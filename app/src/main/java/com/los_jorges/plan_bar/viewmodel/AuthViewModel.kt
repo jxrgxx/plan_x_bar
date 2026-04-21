@@ -39,6 +39,10 @@ class AuthViewModel : ViewModel() {
                 Log.d(TAG, "LOGIN: code=${response.code()} body=${response.body()} error=${response.errorBody()?.string()}")
                 if (response.isSuccessful && response.body()?.success == true) {
                     val trabajador = response.body()!!.trabajador!!
+                    if (trabajador.rol != "admin") {
+                        _state.value = AuthState.Error("Solo los administradores pueden acceder aquí")
+                        return@launch
+                    }
                     SessionManager.loginAdmin(trabajador)
                     _state.value = AuthState.Success(trabajador)
                 } else {

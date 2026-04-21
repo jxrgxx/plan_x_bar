@@ -15,7 +15,6 @@ if (!$nombre || !in_array($rol, $roles) || !$email || !$password) {
     jsonResponse(['error' => 'Todos los campos son obligatorios'], 400);
 }
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) jsonResponse(['error' => 'Email no válido'], 400);
-if (strlen($password) < 6) jsonResponse(['error' => 'La contraseña debe tener al menos 6 caracteres'], 400);
 
 $db = getDB();
 

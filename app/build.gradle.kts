@@ -58,6 +58,7 @@ dependencies {
     implementation(libs.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.material.icons.extended)
+    implementation(libs.litert.metadata)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -21,6 +21,7 @@ import com.los_jorges.plan_bar.viewmodel.MesasViewModel
 fun MesasAdminScreen(
     restauranteId: Int,
     onBack: () -> Unit,
+    onPlano: () -> Unit = {},
     vm: MesasViewModel = viewModel()
 ) {
     val mesas by vm.mesas.collectAsState()
@@ -45,6 +46,9 @@ fun MesasAdminScreen(
                 title = { Text("Mesas") },
                 navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } },
                 actions = {
+                    IconButton(onClick = onPlano) {
+                        Icon(Icons.Default.Dashboard, "Ver plano")
+                    }
                     IconButton(onClick = { mesaEditar = null; showDialog = true }) {
                         Icon(Icons.Default.Add, "Nueva mesa")
                     }
@@ -87,13 +91,13 @@ fun MesasAdminScreen(
         MesaDialog(
             mesa = mesaEditar,
             onDismiss = { showDialog = false },
-            onConfirm = { codigo, capacidad ->
+            onConfirm = { codigo, capacidad, estado ->
                 if (mesaEditar == null) {
                     vm.crear(restauranteId, codigo, capacidad) { ok, err ->
                         snackMsg = if (ok) "Mesa creada" else err ?: "Error"
                     }
                 } else {
-                    vm.editar(restauranteId, mesaEditar!!.id, codigo, capacidad) { ok, err ->
+                    vm.editar(restauranteId, mesaEditar!!.id, codigo, capacidad, estado, mesaEditar!!.posX, mesaEditar!!.posY) { ok, err ->
                         snackMsg = if (ok) "Mesa actualizada" else err ?: "Error"
                     }
                 }
@@ -143,10 +147,15 @@ private fun MesaItem(mesa: Mesa, onEditar: () -> Unit, onEliminar: () -> Unit) {
     }
 }
 
+private val ESTADOS_MESA = listOf("libre", "ocupada", "reservada")
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MesaDialog(mesa: Mesa?, onDismiss: () -> Unit, onConfirm: (String, Int) -> Unit) {
-    var codigo by remember { mutableStateOf(mesa?.codigo ?: "") }
+private fun MesaDialog(mesa: Mesa?, onDismiss: () -> Unit, onConfirm: (String, Int, String) -> Unit) {
+    var codigo    by remember { mutableStateOf(mesa?.codigo ?: "") }
     var capacidad by remember { mutableStateOf(mesa?.capacidad?.toString() ?: "") }
+    var estado    by remember { mutableStateOf(mesa?.estado ?: "libre") }
+    var estadoExpanded by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -164,12 +173,38 @@ private fun MesaDialog(mesa: Mesa?, onDismiss: () -> Unit, onConfirm: (String, I
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
+                if (mesa != null) {
+                    ExposedDropdownMenuBox(
+                        expanded = estadoExpanded,
+                        onExpandedChange = { estadoExpanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = estado,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Estado") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = estadoExpanded) },
+                            modifier = Modifier.fillMaxWidth().menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = estadoExpanded,
+                            onDismissRequest = { estadoExpanded = false }
+                        ) {
+                            ESTADOS_MESA.forEach { opcion ->
+                                DropdownMenuItem(
+                                    text = { Text(opcion) },
+                                    onClick = { estado = opcion; estadoExpanded = false }
+                                )
+                            }
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             TextButton(onClick = {
                 val cap = capacidad.toIntOrNull() ?: 0
-                if (codigo.isNotBlank() && cap > 0) onConfirm(codigo, cap)
+                if (codigo.isNotBlank() && cap > 0) onConfirm(codigo, cap, estado)
             }) { Text("Guardar") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }

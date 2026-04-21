@@ -54,11 +54,11 @@ class MesasViewModel : ViewModel() {
         }
     }
 
-    fun editar(restauranteId: Int, id: Int, codigo: String, capacidad: Int, onDone: (Boolean, String?) -> Unit) {
+    fun editar(restauranteId: Int, id: Int, codigo: String, capacidad: Int, estado: String, posX: Float, posY: Float, onDone: (Boolean, String?) -> Unit) {
         viewModelScope.launch {
             try {
                 val r = RetrofitClient.api.editarMesa(
-                    mapOf("id" to id, "codigo" to codigo, "capacidad" to capacidad)
+                    mapOf("id" to id, "codigo" to codigo, "capacidad" to capacidad, "estado" to estado, "posX" to posX, "posY" to posY)
                 )
                 if (r.isSuccessful && r.body()?.success == true) {
                     cargar(restauranteId)
@@ -82,6 +82,18 @@ class MesasViewModel : ViewModel() {
             } catch (e: Exception) {
                 Log.e(TAG, "eliminar", e)
                 onDone(false, "Error de conexión")
+            }
+        }
+    }
+
+    fun actualizarPosicion(restauranteId: Int, id: Int, posX: Float, posY: Float) {
+        viewModelScope.launch {
+            try {
+                RetrofitClient.api.actualizarPosicionMesa(
+                    mapOf("id" to id, "posX" to posX, "posY" to posY)
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "actualizarPosicion", e)
             }
         }
     }

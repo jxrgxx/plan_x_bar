@@ -19,6 +19,11 @@ if ($categoria) {
 $sql .= " ORDER BY categoria, nombre";
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
-$productos = $stmt->fetchAll();
+$productos = array_map(function($p) {
+    $p['id']         = (int)$p['id'];
+    $p['disponible'] = (bool)$p['disponible'];
+    $p['precio']     = (float)$p['precio'];
+    return $p;
+}, $stmt->fetchAll());
 
 jsonResponse(['productos' => $productos]);

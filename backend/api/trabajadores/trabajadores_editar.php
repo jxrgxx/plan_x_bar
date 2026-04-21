@@ -23,8 +23,7 @@ $stmt->execute([$email, $id]);
 if ($stmt->fetch()) jsonResponse(['error' => 'Ese email ya lo usa otro trabajador'], 409);
 
 if ($password) {
-    if (strlen($password) < 6) jsonResponse(['error' => 'La contraseña debe tener al menos 6 caracteres'], 400);
-    $hash = password_hash($password, PASSWORD_BCRYPT);
+$hash = password_hash($password, PASSWORD_BCRYPT);
     $stmt = $db->prepare("UPDATE Trabajadores SET nombre = ?, rol = ?, email = ?, activo = ?, password_hash = ? WHERE id = ?");
     $stmt->execute([$nombre, $rol, $email, $activo, $hash, $id]);
 } else {

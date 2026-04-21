@@ -201,7 +201,7 @@ private fun TrabajadorDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                val passOk = trabajador != null || password.length >= 4
+                val passOk = trabajador != null || password.isNotBlank()
                 if (nombre.isNotBlank() && email.isNotBlank() && passOk)
                     onConfirm(nombre, rol, email, activo, password)
             }) { Text("Guardar") }

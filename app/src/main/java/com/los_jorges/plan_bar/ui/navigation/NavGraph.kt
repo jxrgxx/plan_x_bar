@@ -10,24 +10,29 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import com.los_jorges.plan_bar.session.SessionManager
 import com.los_jorges.plan_bar.ui.screens.admin.*
 import com.los_jorges.plan_bar.ui.screens.auth.*
+import com.los_jorges.plan_bar.ui.screens.trabajador.ComandaScreen
 import com.los_jorges.plan_bar.ui.screens.trabajador.HomeScreen
 import com.los_jorges.plan_bar.viewmodel.AuthViewModel
 
 object Routes {
-    const val LOGIN                = "login"
-    const val REGISTER             = "register"
-    const val ADMIN                = "admin/{restauranteId}"
-    const val ADMIN_MESAS          = "admin/{restauranteId}/mesas"
-    const val ADMIN_PRODUCTOS      = "admin/{restauranteId}/productos"
-    const val ADMIN_TRABAJADORES   = "admin/{restauranteId}/trabajadores"
-    const val LOGIN_TRABAJADOR     = "admin/{restauranteId}/login_trabajador"
-    const val HOME_TRABAJADOR      = "trabajador/home"
+    const val LOGIN = "login"
+    const val REGISTER = "register"
+    const val ADMIN = "admin/{restauranteId}"
+    const val ADMIN_MESAS = "admin/{restauranteId}/mesas"
+    const val ADMIN_PRODUCTOS = "admin/{restauranteId}/productos"
+    const val ADMIN_TRABAJADORES = "admin/{restauranteId}/trabajadores"
+    const val LOGIN_TRABAJADOR = "admin/{restauranteId}/login_trabajador"
+    const val ADMIN_PLANO = "admin/{restauranteId}/plano"
+    const val HOME_TRABAJADOR = "trabajador/home"
+    const val COMANDA         = "trabajador/comanda/{pedidoId}"
 
-    fun admin(id: Int)               = "admin/$id"
-    fun adminMesas(id: Int)          = "admin/$id/mesas"
-    fun adminProductos(id: Int)      = "admin/$id/productos"
-    fun adminTrabajadores(id: Int)   = "admin/$id/trabajadores"
-    fun loginTrabajador(id: Int)     = "admin/$id/login_trabajador"
+    fun admin(id: Int) = "admin/$id"
+    fun adminMesas(id: Int) = "admin/$id/mesas"
+    fun adminProductos(id: Int) = "admin/$id/productos"
+    fun adminTrabajadores(id: Int) = "admin/$id/trabajadores"
+    fun loginTrabajador(id: Int) = "admin/$id/login_trabajador"
+    fun adminPlano(id: Int) = "admin/$id/plano"
+    fun comanda(id: Int) = "trabajador/comanda/$id"
 }
 
 @Composable
@@ -37,7 +42,7 @@ fun NavGraph(navController: NavHostController) {
     val startDestination = when {
         SessionManager.hayTrabajadorActivo -> Routes.HOME_TRABAJADOR
         SessionManager.admin.value != null -> Routes.admin(SessionManager.restauranteId)
-        else                               -> Routes.LOGIN
+        else -> Routes.LOGIN
     }
 
     NavHost(navController = navController, startDestination = startDestination) {
@@ -69,13 +74,13 @@ fun NavGraph(navController: NavHostController) {
         composable(Routes.ADMIN) { back ->
             val restauranteId = back.arguments?.getString("restauranteId")?.toIntOrNull() ?: 1
             AdminScreen(
-                restauranteId      = restauranteId,
-                restauranteNombre  = SessionManager.restauranteNombre,
-                onMesas            = { navController.navigate(Routes.adminMesas(restauranteId)) },
-                onProductos      = { navController.navigate(Routes.adminProductos(restauranteId)) },
-                onTrabajadores   = { navController.navigate(Routes.adminTrabajadores(restauranteId)) },
+                restauranteId = restauranteId,
+                restauranteNombre = SessionManager.restauranteNombre,
+                onMesas = { navController.navigate(Routes.adminMesas(restauranteId)) },
+                onProductos = { navController.navigate(Routes.adminProductos(restauranteId)) },
+                onTrabajadores = { navController.navigate(Routes.adminTrabajadores(restauranteId)) },
                 onAccesoTrabajador = { navController.navigate(Routes.loginTrabajador(restauranteId)) },
-                onCerrarSesion   = {
+                onCerrarSesion = {
                     SessionManager.cerrarSesionTotal()
                     navController.navigate(Routes.LOGIN) { popUpTo(0) { inclusive = true } }
                 }
@@ -84,17 +89,34 @@ fun NavGraph(navController: NavHostController) {
 
         composable(Routes.ADMIN_MESAS) { back ->
             val restauranteId = back.arguments?.getString("restauranteId")?.toIntOrNull() ?: 1
-            MesasAdminScreen(restauranteId = restauranteId, onBack = { navController.popBackStack() })
+            MesasAdminScreen(
+                restauranteId = restauranteId,
+                onBack = { navController.popBackStack() },
+                onPlano = { navController.navigate(Routes.adminPlano(restauranteId)) }
+            )
+        }
+
+        composable(Routes.ADMIN_PLANO) { back ->
+            val restauranteId = back.arguments?.getString("restauranteId")?.toIntOrNull() ?: 1
+            PlanoMesasScreen(
+                restauranteId = restauranteId,
+                modoEdicion = true,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         composable(Routes.ADMIN_PRODUCTOS) { back ->
             val restauranteId = back.arguments?.getString("restauranteId")?.toIntOrNull() ?: 1
-            ProductosAdminScreen(restauranteId = restauranteId, onBack = { navController.popBackStack() })
+            ProductosAdminScreen(
+                restauranteId = restauranteId,
+                onBack = { navController.popBackStack() })
         }
 
         composable(Routes.ADMIN_TRABAJADORES) { back ->
             val restauranteId = back.arguments?.getString("restauranteId")?.toIntOrNull() ?: 1
-            TrabajadoresAdminScreen(restauranteId = restauranteId, onBack = { navController.popBackStack() })
+            TrabajadoresAdminScreen(
+                restauranteId = restauranteId,
+                onBack = { navController.popBackStack() })
         }
 
         composable(Routes.LOGIN_TRABAJADOR) { back ->
@@ -113,14 +135,25 @@ fun NavGraph(navController: NavHostController) {
 
         composable(Routes.HOME_TRABAJADOR) {
             HomeScreen(
-                authViewModel = authViewModel,
+                authViewModel  = authViewModel,
                 onCerrarSesion = {
-                    // Vuelve al panel admin (el admin ya está en sesión)
                     val id = SessionManager.restauranteId
                     navController.navigate(Routes.admin(id)) {
                         popUpTo(Routes.HOME_TRABAJADOR) { inclusive = true }
                     }
+                },
+                onAbrirComanda = { pedidoId ->
+                    navController.navigate(Routes.comanda(pedidoId))
                 }
+            )
+        }
+
+        composable(Routes.COMANDA) { back ->
+            val pedidoId = back.arguments?.getString("pedidoId")?.toIntOrNull()
+                ?: return@composable
+            ComandaScreen(
+                pedidoId = pedidoId,
+                onBack   = { navController.popBackStack() }
             )
         }
     }
