@@ -26,6 +26,9 @@ interface ApiService {
     @POST("mesas/mesas_eliminar.php")
     suspend fun eliminarMesa(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
 
+    @POST("mesas/mesas_actualizar_posicion.php")
+    suspend fun actualizarPosicionMesa(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
+
     // --- Productos ---
     @GET("productos/productos_obtener.php")
     suspend fun getProductos(@Query("restaurante_id") restauranteId: Int): Response<ProductosResponse>
@@ -38,6 +41,25 @@ interface ApiService {
 
     @POST("productos/productos_eliminar.php")
     suspend fun eliminarProducto(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
+
+    // --- Pedidos ---
+    @POST("pedidos/pedidos_crear.php")
+    suspend fun crearPedido(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<CrearPedidoResponse>
+
+    @GET("pedidos/pedidos_obtener.php")
+    suspend fun getPedidoPorMesa(@Query("mesa_id") mesaId: Int): Response<ObtenerPedidoResponse>
+
+    @GET("pedidos/pedidos_obtener.php")
+    suspend fun getPedidoCompleto(@Query("pedido_id") pedidoId: Int): Response<ObtenerPedidoResponse>
+
+    @POST("pedidos/pedidos_agregar_producto.php")
+    suspend fun agregarProducto(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<AgregarProductoResponse>
+
+    @POST("pedidos/pedidos_cerrar.php")
+    suspend fun cerrarPedido(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
+
+    @POST("pedidos/pedidos_cancelar.php")
+    suspend fun cancelarPedido(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
 
     // --- Trabajadores ---
     @GET("trabajadores/trabajadores_obtener.php")

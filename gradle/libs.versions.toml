@@ -14,6 +14,7 @@ gson = "2.10.1"
 navigation = "2.9.0"
 viewmodel = "2.10.0"
 navigationCompose = "2.9.7"
+litertMetadata = "1.4.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -38,6 +39,7 @@ navigation-compose = { group = "androidx.navigation", name = "navigation-compose
 viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "viewmodel" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
 material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
+litert-metadata = { group = "com.google.ai.edge.litert", name = "litert-metadata", version.ref = "litertMetadata" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

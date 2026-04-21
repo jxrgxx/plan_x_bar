@@ -15,6 +15,14 @@ if ($pedido_id) {
         jsonResponse(['error' => 'Pedido no encontrado'], 404);
     }
 
+    $pedido['id']             = (int)$pedido['id'];
+    $pedido['mesa_id']        = (int)$pedido['mesa_id'];
+    $pedido['restaurante_id'] = (int)$pedido['restaurante_id'];
+    $pedido['trabajador_id']  = $pedido['trabajador_id'] !== null ? (int)$pedido['trabajador_id'] : null;
+    $pedido['reserva_id']     = $pedido['reserva_id']    !== null ? (int)$pedido['reserva_id']    : null;
+    $pedido['subtotal']       = (float)($pedido['subtotal'] ?? 0);
+    $pedido['total']          = (float)($pedido['total']    ?? 0);
+
     $stmt = $db->prepare("
         SELECT pp.id, pp.cantidad, pp.precio_unitario, pp.observaciones, pp.fecha_agregado,
                pr.nombre, pr.categoria
@@ -24,7 +32,15 @@ if ($pedido_id) {
         ORDER BY pp.fecha_agregado
     ");
     $stmt->execute([$pedido_id]);
-    $pedido['productos'] = $stmt->fetchAll();
+    $productos = $stmt->fetchAll();
+
+    foreach ($productos as &$pp) {
+        $pp['id']              = (int)$pp['id'];
+        $pp['cantidad']        = (int)$pp['cantidad'];
+        $pp['precio_unitario'] = (float)$pp['precio_unitario'];
+    }
+
+    $pedido['productos'] = $productos;
 
     jsonResponse(['pedido' => $pedido]);
 }
@@ -36,6 +52,11 @@ if ($mesa_id) {
     ");
     $stmt->execute([$mesa_id]);
     $pedido = $stmt->fetch();
+    if ($pedido) {
+        $pedido['id']            = (int)$pedido['id'];
+        $pedido['trabajador_id'] = $pedido['trabajador_id'] !== null ? (int)$pedido['trabajador_id'] : null;
+        $pedido['total']         = (float)($pedido['total'] ?? 0);
+    }
     jsonResponse(['pedido' => $pedido ?: null]);
 }
 

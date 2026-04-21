@@ -31,9 +31,6 @@ if (!filter_var($admin_email, FILTER_VALIDATE_EMAIL)) {
     jsonResponse(['error' => 'Email del administrador no válido'], 400);
 }
 
-if (strlen($admin_password) < 6) {
-    jsonResponse(['error' => 'La contraseña debe tener al menos 6 caracteres'], 400);
-}
 
 $db = getDB();
 

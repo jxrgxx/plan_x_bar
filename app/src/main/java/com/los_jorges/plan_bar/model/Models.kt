@@ -58,3 +58,29 @@ data class CreateResponse(val success: Boolean, val id: Int? = null, val error: 
 data class MesasResponse(val mesas: List<Mesa>)
 data class ProductosResponse(val productos: List<Producto>)
 data class TrabajadoresResponse(val trabajadores: List<Trabajador>)
+
+// --- Pedidos ---
+data class PedidoProducto(
+    val id: Int,
+    val cantidad: Int,
+    val precio_unitario: Double,
+    val observaciones: String?,
+    val fecha_agregado: String?,
+    val nombre: String,
+    val categoria: String
+)
+
+data class Pedido(
+    val id: Int,
+    val estado: String,
+    val fecha_apertura: String?,
+    val total: Double?,
+    val trabajador_id: Int?,
+    val mesa_id: Int,
+    val mesa_codigo: String?,
+    val productos: List<PedidoProducto> = emptyList()
+)
+
+data class CrearPedidoResponse(val success: Boolean, val pedido_id: Int?, val error: String?)
+data class ObtenerPedidoResponse(val pedido: Pedido?)
+data class AgregarProductoResponse(val success: Boolean, val precio_unitario: Double?, val error: String?)
