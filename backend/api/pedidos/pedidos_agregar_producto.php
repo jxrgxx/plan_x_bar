@@ -27,8 +27,18 @@ if (!$producto) {
 
 $precio = $producto['precio'];
 
-$stmt = $db->prepare("INSERT INTO PedidoProductos (pedido_id, producto_id, cantidad, precio_unitario, observaciones) VALUES (?, ?, ?, ?, ?)");
-$stmt->execute([$pedido_id, $producto_id, $cantidad, $precio, $observaciones]);
+// Si ya existe una línea para este producto (sin observaciones especiales), sumar cantidad
+$stmt = $db->prepare("SELECT id, cantidad FROM PedidoProductos WHERE pedido_id = ? AND producto_id = ? AND (observaciones IS NULL OR observaciones = '')");
+$stmt->execute([$pedido_id, $producto_id]);
+$lineaExistente = $stmt->fetch();
+
+if ($lineaExistente && empty($observaciones)) {
+    $nuevaCantidad = $lineaExistente['cantidad'] + $cantidad;
+    $db->prepare("UPDATE PedidoProductos SET cantidad = ? WHERE id = ?")->execute([$nuevaCantidad, $lineaExistente['id']]);
+} else {
+    $db->prepare("INSERT INTO PedidoProductos (pedido_id, producto_id, cantidad, precio_unitario, observaciones) VALUES (?, ?, ?, ?, ?)")
+       ->execute([$pedido_id, $producto_id, $cantidad, $precio, $observaciones ?: null]);
+}
 
 // Recalcular total del pedido
 $stmt = $db->prepare("UPDATE Pedidos SET subtotal = (SELECT SUM(cantidad * precio_unitario) FROM PedidoProductos WHERE pedido_id = ?), total = (SELECT SUM(cantidad * precio_unitario) FROM PedidoProductos WHERE pedido_id = ?) WHERE id = ?");

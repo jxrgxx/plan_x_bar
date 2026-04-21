@@ -127,6 +127,44 @@ class PedidosViewModel : ViewModel() {
         }
     }
 
+    fun eliminarProducto(pedidoProductoId: Int, pedidoId: Int, onDone: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val r = RetrofitClient.api.eliminarProductoPedido(
+                    mapOf("pedido_producto_id" to pedidoProductoId)
+                )
+                if (r.isSuccessful && r.body()?.success == true) {
+                    cargarPedido(pedidoId)
+                    onDone(true, null)
+                } else {
+                    onDone(false, r.body()?.error ?: "Error al eliminar producto")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "eliminarProducto", e)
+                onDone(false, "Error de conexión")
+            }
+        }
+    }
+
+    fun actualizarCantidad(pedidoProductoId: Int, cantidad: Int, pedidoId: Int, onDone: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val r = RetrofitClient.api.actualizarCantidadProducto(
+                    mapOf("pedido_producto_id" to pedidoProductoId, "cantidad" to cantidad)
+                )
+                if (r.isSuccessful && r.body()?.success == true) {
+                    cargarPedido(pedidoId)
+                    onDone(true, null)
+                } else {
+                    onDone(false, r.body()?.error ?: "Error al actualizar cantidad")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "actualizarCantidad", e)
+                onDone(false, "Error de conexión")
+            }
+        }
+    }
+
     fun cancelarPedido(pedidoId: Int, onDone: (Boolean, String?) -> Unit) {
         viewModelScope.launch {
             try {

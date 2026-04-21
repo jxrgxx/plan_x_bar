@@ -7,6 +7,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,7 +24,7 @@ import com.los_jorges.plan_bar.viewmodel.PedidosViewModel
 import com.los_jorges.plan_bar.viewmodel.ProductosViewModel
 
 private val METODOS_PAGO = listOf("efectivo", "tarjeta", "otro")
-private val CATEGORIAS = listOf("entrante", "principal", "postre", "bebida")
+private val CATEGORIAS = listOf("bebida", "entrante", "principal", "postre")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,7 +110,19 @@ fun ComandaScreen(
                     }
                 } else {
                     items(lineas, key = { it.id }) { linea ->
-                        LineaPedidoItem(linea)
+                        LineaPedidoItem(
+                            linea = linea,
+                            onEliminar = {
+                                pedidosVm.eliminarProducto(linea.id, pedidoId) { ok, err ->
+                                    if (!ok) snackMsg = err ?: "Error al eliminar"
+                                }
+                            },
+                            onCambiarCantidad = { nuevaCantidad ->
+                                pedidosVm.actualizarCantidad(linea.id, nuevaCantidad, pedidoId) { ok, err ->
+                                    if (!ok) snackMsg = err ?: "Error al actualizar"
+                                }
+                            }
+                        )
                         HorizontalDivider()
                     }
                 }
@@ -207,7 +221,6 @@ fun ComandaScreen(
                     snackMsg = if (ok) "${producto.nombre} añadido" else err ?: "Error"
                 }
                 productoSeleccionado = null
-                showSelectorProductos = false
             }
         )
     }
@@ -250,18 +263,20 @@ fun ComandaScreen(
 // ─── Composables auxiliares ──────────────────────────────────────────────────
 
 @Composable
-private fun LineaPedidoItem(linea: PedidoProducto) {
+private fun LineaPedidoItem(
+    linea: PedidoProducto,
+    onEliminar: () -> Unit,
+    onCambiarCantidad: (Int) -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Nombre + observaciones
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                "${linea.cantidad}× ${linea.nombre}",
-                style = MaterialTheme.typography.bodyMedium
-            )
+            Text(linea.nombre, style = MaterialTheme.typography.bodyMedium)
             if (!linea.observaciones.isNullOrBlank()) {
                 Text(
                     linea.observaciones,
@@ -270,11 +285,46 @@ private fun LineaPedidoItem(linea: PedidoProducto) {
                 )
             }
         }
+
+        // Stepper de cantidad
+        IconButton(
+            onClick = {
+                if (linea.cantidad > 1) onCambiarCantidad(linea.cantidad - 1)
+                else onEliminar()
+            },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(Icons.Default.Remove, "Menos", modifier = Modifier.size(16.dp))
+        }
+        Text(
+            "${linea.cantidad}",
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(horizontal = 4.dp)
+        )
+        IconButton(
+            onClick = { onCambiarCantidad(linea.cantidad + 1) },
+            modifier = Modifier.size(32.dp)
+        ) {
+            Icon(Icons.Default.Add, "Más", modifier = Modifier.size(16.dp))
+        }
+
+        // Precio total de la línea
         Text(
             "%.2f €".format(linea.cantidad * linea.precio_unitario),
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier.padding(start = 6.dp)
         )
+
+        // Eliminar línea completa
+        IconButton(onClick = onEliminar) {
+            Icon(
+                Icons.Default.Delete,
+                contentDescription = "Eliminar",
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }
 

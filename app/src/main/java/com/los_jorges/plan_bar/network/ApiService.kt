@@ -61,6 +61,12 @@ interface ApiService {
     @POST("pedidos/pedidos_cancelar.php")
     suspend fun cancelarPedido(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
 
+    @POST("pedidos/pedidos_eliminar_producto.php")
+    suspend fun eliminarProductoPedido(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
+
+    @POST("pedidos/pedidos_actualizar_cantidad.php")
+    suspend fun actualizarCantidadProducto(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
+
     // --- Trabajadores ---
     @GET("trabajadores/trabajadores_obtener.php")
     suspend fun getTrabajadores(@Query("restaurante_id") restauranteId: Int): Response<TrabajadoresResponse>
