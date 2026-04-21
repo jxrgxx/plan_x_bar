@@ -24,7 +24,7 @@ object Routes {
     const val LOGIN_TRABAJADOR = "admin/{restauranteId}/login_trabajador"
     const val ADMIN_PLANO = "admin/{restauranteId}/plano"
     const val HOME_TRABAJADOR = "trabajador/home"
-    const val COMANDA         = "trabajador/comanda/{pedidoId}"
+    const val COMANDA = "trabajador/comanda/{pedidoId}"
 
     fun admin(id: Int) = "admin/$id"
     fun adminMesas(id: Int) = "admin/$id/mesas"
@@ -135,7 +135,7 @@ fun NavGraph(navController: NavHostController) {
 
         composable(Routes.HOME_TRABAJADOR) {
             HomeScreen(
-                authViewModel  = authViewModel,
+                authViewModel = authViewModel,
                 onCerrarSesion = {
                     val id = SessionManager.restauranteId
                     navController.navigate(Routes.admin(id)) {
@@ -153,7 +153,7 @@ fun NavGraph(navController: NavHostController) {
                 ?: return@composable
             ComandaScreen(
                 pedidoId = pedidoId,
-                onBack   = { navController.popBackStack() }
+                onBack = { navController.popBackStack() }
             )
         }
     }

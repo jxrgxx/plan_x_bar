@@ -20,7 +20,7 @@ object SessionManager {
 
     fun init(context: Context) {
         prefs = context.getSharedPreferences("planbar_session", Context.MODE_PRIVATE)
-        _admin.value     = cargar("session_admin")
+        _admin.value = cargar("session_admin")
         _trabajador.value = cargar("session_trabajador")
     }
 
