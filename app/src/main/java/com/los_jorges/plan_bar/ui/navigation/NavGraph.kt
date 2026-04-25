@@ -151,12 +151,12 @@ fun NavGraph(navController: NavHostController) {
         }
 
         composable(Routes.COMANDA) { back ->
-            val mesaId     = back.arguments?.getString("mesaId")?.toIntOrNull()  ?: return@composable
-            val mesaCodigo = back.arguments?.getString("mesaCodigo")             ?: return@composable
+            val mesaId = back.arguments?.getString("mesaId")?.toIntOrNull() ?: return@composable
+            val mesaCodigo = back.arguments?.getString("mesaCodigo") ?: return@composable
             ComandaScreen(
-                mesaId     = mesaId,
+                mesaId = mesaId,
                 mesaCodigo = mesaCodigo,
-                onBack     = { navController.popBackStack() }
+                onBack = { navController.popBackStack() }
             )
         }
     }

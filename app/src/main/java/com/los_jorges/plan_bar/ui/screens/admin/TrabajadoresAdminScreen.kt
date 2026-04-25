@@ -43,7 +43,14 @@ fun TrabajadoresAdminScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Trabajadores") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            null
+                        )
+                    }
+                },
                 actions = {
                     IconButton(onClick = { trabajadorEditar = null; showDialog = true }) {
                         Icon(Icons.Default.Add, "Nuevo trabajador")
@@ -55,19 +62,33 @@ fun TrabajadoresAdminScreen(
     ) { padding ->
 
         if (loading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            Box(
+                Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) { CircularProgressIndicator() }
             return@Scaffold
         }
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp),
             contentPadding = PaddingValues(vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (trabajadores.isEmpty()) {
                 item {
-                    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                        Text("No hay trabajadores. Pulsa + para añadir.", color = MaterialTheme.colorScheme.outline)
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No hay trabajadores. Pulsa + para añadir.",
+                            color = MaterialTheme.colorScheme.outline
+                        )
                     }
                 }
             }
@@ -91,7 +112,15 @@ fun TrabajadoresAdminScreen(
                         snackMsg = if (ok) "Trabajador creado" else err ?: "Error"
                     }
                 } else {
-                    vm.editar(restauranteId, trabajadorEditar!!.id, nombre, rol, email, activo, password) { ok, err ->
+                    vm.editar(
+                        restauranteId,
+                        trabajadorEditar!!.id,
+                        nombre,
+                        rol,
+                        email,
+                        activo,
+                        password
+                    ) { ok, err ->
                         snackMsg = if (ok) "Trabajador actualizado" else err ?: "Error"
                     }
                 }
@@ -113,7 +142,11 @@ fun TrabajadoresAdminScreen(
                     trabajadorEliminar = null
                 }) { Text("Eliminar", color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { trabajadorEliminar = null }) { Text("Cancelar") } }
+            dismissButton = {
+                TextButton(onClick = {
+                    trabajadorEliminar = null
+                }) { Text("Cancelar") }
+            }
         )
     }
 
@@ -126,15 +159,26 @@ private fun TrabajadorItem(trabajador: Trabajador, onEditar: () -> Unit, onElimi
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(trabajador.nombre, style = MaterialTheme.typography.titleMedium)
-                Text("${trabajador.rol} · ${trabajador.email}",
-                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+                Text(
+                    "${trabajador.rol} · ${trabajador.email}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
                 if (!trabajador.activo)
-                    Text("Inactivo", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error)
+                    Text(
+                        "Inactivo", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
             }
             if (trabajador.rol != "admin") {
                 IconButton(onClick = onEditar) { Icon(Icons.Default.Edit, "Editar") }
-                IconButton(onClick = onEliminar) { Icon(Icons.Default.Delete, "Eliminar", tint = MaterialTheme.colorScheme.error) }
+                IconButton(onClick = onEliminar) {
+                    Icon(
+                        Icons.Default.Delete,
+                        "Eliminar",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
             }
         }
     }
@@ -147,10 +191,10 @@ private fun TrabajadorDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, String, String, Boolean, String) -> Unit
 ) {
-    var nombre   by remember { mutableStateOf(trabajador?.nombre ?: "") }
-    var rol      by remember { mutableStateOf(trabajador?.rol ?: ROLES[0]) }
-    var email    by remember { mutableStateOf(trabajador?.email ?: "") }
-    var activo   by remember { mutableStateOf(trabajador?.activo ?: true) }
+    var nombre by remember { mutableStateOf(trabajador?.nombre ?: "") }
+    var rol by remember { mutableStateOf(trabajador?.rol ?: ROLES[0]) }
+    var email by remember { mutableStateOf(trabajador?.email ?: "") }
+    var activo by remember { mutableStateOf(trabajador?.activo ?: true) }
     var password by remember { mutableStateOf("") }
     var expandedRol by remember { mutableStateOf(false) }
 
@@ -159,21 +203,37 @@ private fun TrabajadorDialog(
         title = { Text(if (trabajador == null) "Nuevo trabajador" else "Editar trabajador") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = nombre, onValueChange = { nombre = it },
-                    label = { Text("Nombre *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = nombre,
+                    onValueChange = { nombre = it },
+                    label = { Text("Nombre *") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                OutlinedTextField(value = email, onValueChange = { email = it },
-                    label = { Text("Email *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email *") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                ExposedDropdownMenuBox(expanded = expandedRol, onExpandedChange = { expandedRol = it }) {
+                ExposedDropdownMenuBox(
+                    expanded = expandedRol,
+                    onExpandedChange = { expandedRol = it }) {
                     OutlinedTextField(
                         value = rol.replaceFirstChar { it.uppercase() },
                         onValueChange = {}, readOnly = true,
                         label = { Text("Rol") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedRol) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
                     )
-                    ExposedDropdownMenu(expanded = expandedRol, onDismissRequest = { expandedRol = false }) {
+                    ExposedDropdownMenu(
+                        expanded = expandedRol,
+                        onDismissRequest = { expandedRol = false }) {
                         ROLES.forEach { r ->
                             DropdownMenuItem(
                                 text = { Text(r.replaceFirstChar { it.uppercase() }) },

@@ -37,11 +37,20 @@ class MesasViewModel : ViewModel() {
         }
     }
 
-    fun crear(restauranteId: Int, codigo: String, capacidad: Int, onDone: (Boolean, String?) -> Unit) {
+    fun crear(
+        restauranteId: Int,
+        codigo: String,
+        capacidad: Int,
+        onDone: (Boolean, String?) -> Unit
+    ) {
         viewModelScope.launch {
             try {
                 val r = RetrofitClient.api.crearMesa(
-                    mapOf("restaurante_id" to restauranteId, "codigo" to codigo, "capacidad" to capacidad)
+                    mapOf(
+                        "restaurante_id" to restauranteId,
+                        "codigo" to codigo,
+                        "capacidad" to capacidad
+                    )
                 )
                 if (r.isSuccessful && r.body()?.success == true) {
                     cargar(restauranteId)
@@ -54,11 +63,27 @@ class MesasViewModel : ViewModel() {
         }
     }
 
-    fun editar(restauranteId: Int, id: Int, codigo: String, capacidad: Int, estado: String, posX: Float, posY: Float, onDone: (Boolean, String?) -> Unit) {
+    fun editar(
+        restauranteId: Int,
+        id: Int,
+        codigo: String,
+        capacidad: Int,
+        estado: String,
+        posX: Float,
+        posY: Float,
+        onDone: (Boolean, String?) -> Unit
+    ) {
         viewModelScope.launch {
             try {
                 val r = RetrofitClient.api.editarMesa(
-                    mapOf("id" to id, "codigo" to codigo, "capacidad" to capacidad, "estado" to estado, "posX" to posX, "posY" to posY)
+                    mapOf(
+                        "id" to id,
+                        "codigo" to codigo,
+                        "capacidad" to capacidad,
+                        "estado" to estado,
+                        "posX" to posX,
+                        "posY" to posY
+                    )
                 )
                 if (r.isSuccessful && r.body()?.success == true) {
                     cargar(restauranteId)
@@ -98,5 +123,7 @@ class MesasViewModel : ViewModel() {
         }
     }
 
-    fun clearError() { _error.value = null }
+    fun clearError() {
+        _error.value = null
+    }
 }

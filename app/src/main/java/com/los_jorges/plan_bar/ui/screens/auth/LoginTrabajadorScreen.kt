@@ -24,7 +24,7 @@ fun LoginTrabajadorScreen(
     onLoginSuccess: (Trabajador) -> Unit,
     onBack: () -> Unit
 ) {
-    var email    by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val state by viewModel.state.collectAsState()
 
@@ -34,7 +34,14 @@ fun LoginTrabajadorScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Acceso trabajador") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } }
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            null
+                        )
+                    }
+                }
             )
         }
     ) { padding ->
@@ -47,7 +54,11 @@ fun LoginTrabajadorScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text("Iniciar sesión", fontSize = 24.sp, style = MaterialTheme.typography.headlineSmall)
-            Text("Solo camareros y cocina", fontSize = 13.sp, color = MaterialTheme.colorScheme.outline)
+            Text(
+                "Solo camareros y cocina",
+                fontSize = 13.sp,
+                color = MaterialTheme.colorScheme.outline
+            )
 
             Spacer(Modifier.height(32.dp))
 
@@ -83,10 +94,16 @@ fun LoginTrabajadorScreen(
             Button(
                 onClick = { viewModel.loginTrabajador(email, password, onLoginSuccess) },
                 enabled = state !is AuthState.Loading,
-                modifier = Modifier.fillMaxWidth().height(50.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
             ) {
                 if (state is AuthState.Loading) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+                    CircularProgressIndicator(
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        strokeWidth = 2.dp,
+                        modifier = Modifier.size(22.dp)
+                    )
                 } else {
                     Text("Entrar")
                 }

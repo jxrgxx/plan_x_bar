@@ -37,32 +37,46 @@ class ProductosViewModel : ViewModel() {
         }
     }
 
-    fun crear(restauranteId: Int, nombre: String, categoria: String, descripcion: String,
-              precio: Double, disponible: Boolean, onDone: (Boolean, String?) -> Unit) {
+    fun crear(
+        restauranteId: Int, nombre: String, categoria: String, descripcion: String,
+        precio: Double, disponible: Boolean, onDone: (Boolean, String?) -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val r = RetrofitClient.api.crearProducto(mapOf(
-                    "restaurante_id" to restauranteId, "nombre" to nombre,
-                    "categoria" to categoria, "descripcion" to descripcion,
-                    "precio" to precio, "disponible" to disponible
-                ))
-                if (r.isSuccessful && r.body()?.success == true) { cargar(restauranteId); onDone(true, null) }
-                else onDone(false, r.body()?.error ?: "Error al crear producto")
-            } catch (e: Exception) { Log.e(TAG, "crear", e); onDone(false, "Error de conexión") }
+                val r = RetrofitClient.api.crearProducto(
+                    mapOf(
+                        "restaurante_id" to restauranteId, "nombre" to nombre,
+                        "categoria" to categoria, "descripcion" to descripcion,
+                        "precio" to precio, "disponible" to disponible
+                    )
+                )
+                if (r.isSuccessful && r.body()?.success == true) {
+                    cargar(restauranteId); onDone(true, null)
+                } else onDone(false, r.body()?.error ?: "Error al crear producto")
+            } catch (e: Exception) {
+                Log.e(TAG, "crear", e); onDone(false, "Error de conexión")
+            }
         }
     }
 
-    fun editar(restauranteId: Int, id: Int, nombre: String, categoria: String, descripcion: String,
-               precio: Double, disponible: Boolean, onDone: (Boolean, String?) -> Unit) {
+    fun editar(
+        restauranteId: Int, id: Int, nombre: String, categoria: String, descripcion: String,
+        precio: Double, disponible: Boolean, onDone: (Boolean, String?) -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val r = RetrofitClient.api.editarProducto(mapOf(
-                    "id" to id, "nombre" to nombre, "categoria" to categoria,
-                    "descripcion" to descripcion, "precio" to precio, "disponible" to disponible
-                ))
-                if (r.isSuccessful && r.body()?.success == true) { cargar(restauranteId); onDone(true, null) }
-                else onDone(false, r.body()?.error ?: "Error al editar producto")
-            } catch (e: Exception) { Log.e(TAG, "editar", e); onDone(false, "Error de conexión") }
+                val r = RetrofitClient.api.editarProducto(
+                    mapOf(
+                        "id" to id, "nombre" to nombre, "categoria" to categoria,
+                        "descripcion" to descripcion, "precio" to precio, "disponible" to disponible
+                    )
+                )
+                if (r.isSuccessful && r.body()?.success == true) {
+                    cargar(restauranteId); onDone(true, null)
+                } else onDone(false, r.body()?.error ?: "Error al editar producto")
+            } catch (e: Exception) {
+                Log.e(TAG, "editar", e); onDone(false, "Error de conexión")
+            }
         }
     }
 
@@ -70,11 +84,16 @@ class ProductosViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val r = RetrofitClient.api.eliminarProducto(mapOf("id" to id))
-                if (r.isSuccessful && r.body()?.success == true) { cargar(restauranteId); onDone(true, null) }
-                else onDone(false, r.body()?.error ?: "Error al eliminar producto")
-            } catch (e: Exception) { Log.e(TAG, "eliminar", e); onDone(false, "Error de conexión") }
+                if (r.isSuccessful && r.body()?.success == true) {
+                    cargar(restauranteId); onDone(true, null)
+                } else onDone(false, r.body()?.error ?: "Error al eliminar producto")
+            } catch (e: Exception) {
+                Log.e(TAG, "eliminar", e); onDone(false, "Error de conexión")
+            }
         }
     }
 
-    fun clearError() { _error.value = null }
+    fun clearError() {
+        _error.value = null
+    }
 }

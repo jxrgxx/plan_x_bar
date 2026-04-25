@@ -21,7 +21,7 @@ fun LoginScreen(
     onLoginSuccess: (Trabajador) -> Unit,
     onGoToRegister: () -> Unit
 ) {
-    var email    by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     val state by viewModel.state.collectAsState()
@@ -41,7 +41,11 @@ fun LoginScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Plan Bar", fontSize = 32.sp, style = MaterialTheme.typography.headlineLarge)
-        Text("Iniciar sesión como restaruante", fontSize = 14.sp, color = MaterialTheme.colorScheme.outline)
+        Text(
+            "Iniciar sesión como restaruante",
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.outline
+        )
 
         Spacer(Modifier.height(40.dp))
 
@@ -83,10 +87,16 @@ fun LoginScreen(
         Button(
             onClick = { viewModel.login(email, password) },
             enabled = state !is AuthState.Loading,
-            modifier = Modifier.fillMaxWidth().height(50.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
         ) {
             if (state is AuthState.Loading) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(22.dp)
+                )
             } else {
                 Text("Iniciar sesión")
             }

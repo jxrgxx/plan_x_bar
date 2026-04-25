@@ -36,11 +36,17 @@ class AuthViewModel : ViewModel() {
             try {
                 Log.d(TAG, "LOGIN: enviando email=$email")
                 val response = RetrofitClient.api.login(LoginRequest(email, password))
-                Log.d(TAG, "LOGIN: code=${response.code()} body=${response.body()} error=${response.errorBody()?.string()}")
+                Log.d(
+                    TAG,
+                    "LOGIN: code=${response.code()} body=${response.body()} error=${
+                        response.errorBody()?.string()
+                    }"
+                )
                 if (response.isSuccessful && response.body()?.success == true) {
                     val trabajador = response.body()!!.trabajador!!
                     if (trabajador.rol != "admin") {
-                        _state.value = AuthState.Error("Solo los administradores pueden acceder aquí")
+                        _state.value =
+                            AuthState.Error("Solo los administradores pueden acceder aquí")
                         return@launch
                     }
                     SessionManager.loginAdmin(trabajador)
@@ -68,11 +74,13 @@ class AuthViewModel : ViewModel() {
                 if (response.isSuccessful && response.body()?.success == true) {
                     val trabajador = response.body()!!.trabajador!!
                     if (trabajador.restaurante_id != SessionManager.restauranteId) {
-                        _state.value = AuthState.Error("Este trabajador no pertenece a este restaurante")
+                        _state.value =
+                            AuthState.Error("Este trabajador no pertenece a este restaurante")
                         return@launch
                     }
                     if (trabajador.rol == "admin") {
-                        _state.value = AuthState.Error("Usa el acceso de administrador para entrar como admin")
+                        _state.value =
+                            AuthState.Error("Usa el acceso de administrador para entrar como admin")
                         return@launch
                     }
                     SessionManager.loginTrabajador(trabajador)
@@ -128,10 +136,21 @@ class AuthViewModel : ViewModel() {
             try {
                 Log.d(TAG, "REGISTER: enviando nombre=$nombre email=$email adminEmail=$adminEmail")
                 val response = RetrofitClient.api.registrarRestaurante(
-                    RegisterRequest(nombre, email, direccion, telefono, adminNombre, adminEmail, adminPassword)
+                    RegisterRequest(
+                        nombre,
+                        email,
+                        direccion,
+                        telefono,
+                        adminNombre,
+                        adminEmail,
+                        adminPassword
+                    )
                 )
                 val errorBody = response.errorBody()?.string()
-                Log.d(TAG, "REGISTER: code=${response.code()} body=${response.body()} errorBody=$errorBody")
+                Log.d(
+                    TAG,
+                    "REGISTER: code=${response.code()} body=${response.body()} errorBody=$errorBody"
+                )
                 if (response.isSuccessful && response.body()?.success == true) {
                     _state.value = AuthState.Idle
                     onSuccess()
@@ -147,5 +166,7 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun resetState() { _state.value = AuthState.Idle }
+    fun resetState() {
+        _state.value = AuthState.Idle
+    }
 }

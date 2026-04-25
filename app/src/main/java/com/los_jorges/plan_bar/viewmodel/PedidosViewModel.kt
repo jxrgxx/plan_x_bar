@@ -13,13 +13,13 @@ private const val TAG = "PlanBar_Pedidos"
 
 class PedidosViewModel : ViewModel() {
 
-    private val _pedido  = MutableStateFlow<Pedido?>(null)
+    private val _pedido = MutableStateFlow<Pedido?>(null)
     val pedido: StateFlow<Pedido?> = _pedido
 
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading
 
-    private val _error   = MutableStateFlow<String?>(null)
+    private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
     /** Busca el pedido abierto de una mesa y lo carga completo (con productos).
@@ -34,16 +34,16 @@ class PedidosViewModel : ViewModel() {
                     if (pedidoBase != null) {
                         cargarPedido(pedidoBase.id)   // carga completo con productos
                     } else {
-                        _pedido.value  = null
+                        _pedido.value = null
                         _loading.value = false
                     }
                 } else {
-                    _error.value   = "Error al consultar la mesa"
+                    _error.value = "Error al consultar la mesa"
                     _loading.value = false
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "cargarPedidoPorMesa", e)
-                _error.value   = "Error de conexión"
+                _error.value = "Error de conexión"
                 _loading.value = false
             }
         }
@@ -56,19 +56,19 @@ class PedidosViewModel : ViewModel() {
             try {
                 val body = mutableMapOf<String, Any>(
                     "restaurante_id" to restauranteId,
-                    "mesa_id"        to mesaId
+                    "mesa_id" to mesaId
                 )
                 if (trabajadorId != null) body["trabajador_id"] = trabajadorId
                 val r = RetrofitClient.api.crearPedido(body)
                 if (r.isSuccessful && r.body()?.success == true) {
                     cargarPedido(r.body()!!.pedido_id!!)
                 } else {
-                    _error.value   = r.body()?.error ?: "Error al crear el pedido"
+                    _error.value = r.body()?.error ?: "Error al crear el pedido"
                     _loading.value = false
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "crearNuevoPedido", e)
-                _error.value   = "Error de conexión"
+                _error.value = "Error de conexión"
                 _loading.value = false
             }
         }
@@ -99,9 +99,9 @@ class PedidosViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val body = mutableMapOf<String, Any>(
-                    "pedido_id"   to pedidoId,
+                    "pedido_id" to pedidoId,
                     "producto_id" to productoId,
-                    "cantidad"    to cantidad
+                    "cantidad" to cantidad
                 )
                 if (observaciones.isNotBlank()) body["observaciones"] = observaciones
                 val r = RetrofitClient.api.agregarProducto(body)
@@ -156,7 +156,12 @@ class PedidosViewModel : ViewModel() {
         }
     }
 
-    fun actualizarCantidad(pedidoProductoId: Int, cantidad: Int, pedidoId: Int, onDone: (Boolean, String?) -> Unit) {
+    fun actualizarCantidad(
+        pedidoProductoId: Int,
+        cantidad: Int,
+        pedidoId: Int,
+        onDone: (Boolean, String?) -> Unit
+    ) {
         viewModelScope.launch {
             try {
                 val r = RetrofitClient.api.actualizarCantidadProducto(
@@ -192,5 +197,7 @@ class PedidosViewModel : ViewModel() {
         }
     }
 
-    fun clearError() { _error.value = null }
+    fun clearError() {
+        _error.value = null
+    }
 }

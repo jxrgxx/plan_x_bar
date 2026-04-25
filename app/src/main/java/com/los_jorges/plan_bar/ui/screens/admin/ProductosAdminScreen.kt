@@ -44,7 +44,14 @@ fun ProductosAdminScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Productos") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            null
+                        )
+                    }
+                },
                 actions = {
                     IconButton(onClick = { productoEditar = null; showDialog = true }) {
                         Icon(Icons.Default.Add, "Nuevo producto")
@@ -56,31 +63,47 @@ fun ProductosAdminScreen(
     ) { padding ->
 
         if (loading) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+            Box(
+                Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) { CircularProgressIndicator() }
             return@Scaffold
         }
 
         val agrupados = productos.groupBy { it.categoria }
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp),
             contentPadding = PaddingValues(vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             if (productos.isEmpty()) {
                 item {
-                    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                        Text("No hay productos. Pulsa + para añadir.", color = MaterialTheme.colorScheme.outline)
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No hay productos. Pulsa + para añadir.",
+                            color = MaterialTheme.colorScheme.outline
+                        )
                     }
                 }
             }
             CATEGORIAS.forEach { cat ->
                 val lista = agrupados[cat] ?: return@forEach
                 item {
-                    Text(cat.replaceFirstChar { it.uppercase() },
+                    Text(
+                        cat.replaceFirstChar { it.uppercase() },
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+                        modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                    )
                 }
                 items(lista, key = { it.id }) { producto ->
                     ProductoItem(
@@ -99,11 +122,26 @@ fun ProductosAdminScreen(
             onDismiss = { showDialog = false },
             onConfirm = { nombre, categoria, descripcion, precio, disponible ->
                 if (productoEditar == null) {
-                    vm.crear(restauranteId, nombre, categoria, descripcion, precio, disponible) { ok, err ->
+                    vm.crear(
+                        restauranteId,
+                        nombre,
+                        categoria,
+                        descripcion,
+                        precio,
+                        disponible
+                    ) { ok, err ->
                         snackMsg = if (ok) "Producto creado" else err ?: "Error"
                     }
                 } else {
-                    vm.editar(restauranteId, productoEditar!!.id, nombre, categoria, descripcion, precio, disponible) { ok, err ->
+                    vm.editar(
+                        restauranteId,
+                        productoEditar!!.id,
+                        nombre,
+                        categoria,
+                        descripcion,
+                        precio,
+                        disponible
+                    ) { ok, err ->
                         snackMsg = if (ok) "Producto actualizado" else err ?: "Error"
                     }
                 }
@@ -125,7 +163,11 @@ fun ProductosAdminScreen(
                     productoEliminar = null
                 }) { Text("Eliminar", color = MaterialTheme.colorScheme.error) }
             },
-            dismissButton = { TextButton(onClick = { productoEliminar = null }) { Text("Cancelar") } }
+            dismissButton = {
+                TextButton(onClick = {
+                    productoEliminar = null
+                }) { Text("Cancelar") }
+            }
         )
     }
 
@@ -138,14 +180,24 @@ private fun ProductoItem(producto: Producto, onEditar: () -> Unit, onEliminar: (
         Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
                 Text(producto.nombre, style = MaterialTheme.typography.titleMedium)
-                Text("%.2f €".format(producto.precio), style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline)
+                Text(
+                    "%.2f €".format(producto.precio), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
                 if (!producto.disponible)
-                    Text("No disponible", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error)
+                    Text(
+                        "No disponible", style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error
+                    )
             }
             IconButton(onClick = onEditar) { Icon(Icons.Default.Edit, "Editar") }
-            IconButton(onClick = onEliminar) { Icon(Icons.Default.Delete, "Eliminar", tint = MaterialTheme.colorScheme.error) }
+            IconButton(onClick = onEliminar) {
+                Icon(
+                    Icons.Default.Delete,
+                    "Eliminar",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
         }
     }
 }
@@ -157,11 +209,11 @@ private fun ProductoDialog(
     onDismiss: () -> Unit,
     onConfirm: (String, String, String, Double, Boolean) -> Unit
 ) {
-    var nombre      by remember { mutableStateOf(producto?.nombre ?: "") }
-    var categoria   by remember { mutableStateOf(producto?.categoria ?: CATEGORIAS[0]) }
+    var nombre by remember { mutableStateOf(producto?.nombre ?: "") }
+    var categoria by remember { mutableStateOf(producto?.categoria ?: CATEGORIAS[0]) }
     var descripcion by remember { mutableStateOf(producto?.descripcion ?: "") }
-    var precio      by remember { mutableStateOf(producto?.precio?.toString() ?: "") }
-    var disponible  by remember { mutableStateOf(producto?.disponible ?: true) }
+    var precio by remember { mutableStateOf(producto?.precio?.toString() ?: "") }
+    var disponible by remember { mutableStateOf(producto?.disponible ?: true) }
     var expandedCat by remember { mutableStateOf(false) }
 
     AlertDialog(
@@ -169,19 +221,30 @@ private fun ProductoDialog(
         title = { Text(if (producto == null) "Nuevo producto" else "Editar producto") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(value = nombre, onValueChange = { nombre = it },
-                    label = { Text("Nombre *") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = nombre,
+                    onValueChange = { nombre = it },
+                    label = { Text("Nombre *") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
 
-                ExposedDropdownMenuBox(expanded = expandedCat, onExpandedChange = { expandedCat = it }) {
+                ExposedDropdownMenuBox(
+                    expanded = expandedCat,
+                    onExpandedChange = { expandedCat = it }) {
                     OutlinedTextField(
                         value = categoria.replaceFirstChar { it.uppercase() },
                         onValueChange = {},
                         readOnly = true,
                         label = { Text("Categoría") },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expandedCat) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
                     )
-                    ExposedDropdownMenu(expanded = expandedCat, onDismissRequest = { expandedCat = false }) {
+                    ExposedDropdownMenu(
+                        expanded = expandedCat,
+                        onDismissRequest = { expandedCat = false }) {
                         CATEGORIAS.forEach { cat ->
                             DropdownMenuItem(
                                 text = { Text(cat.replaceFirstChar { it.uppercase() }) },
@@ -191,13 +254,17 @@ private fun ProductoDialog(
                     }
                 }
 
-                OutlinedTextField(value = descripcion, onValueChange = { descripcion = it },
-                    label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = descripcion, onValueChange = { descripcion = it },
+                    label = { Text("Descripción") }, modifier = Modifier.fillMaxWidth()
+                )
 
-                OutlinedTextField(value = precio, onValueChange = { precio = it },
+                OutlinedTextField(
+                    value = precio, onValueChange = { precio = it },
                     label = { Text("Precio (€) *") }, singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth())
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Checkbox(checked = disponible, onCheckedChange = { disponible = it })
@@ -208,7 +275,13 @@ private fun ProductoDialog(
         confirmButton = {
             TextButton(onClick = {
                 val p = precio.replace(",", ".").toDoubleOrNull() ?: 0.0
-                if (nombre.isNotBlank() && p > 0) onConfirm(nombre, categoria, descripcion, p, disponible)
+                if (nombre.isNotBlank() && p > 0) onConfirm(
+                    nombre,
+                    categoria,
+                    descripcion,
+                    p,
+                    disponible
+                )
             }) { Text("Guardar") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }

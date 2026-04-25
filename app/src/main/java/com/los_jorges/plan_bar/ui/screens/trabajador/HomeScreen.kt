@@ -61,9 +61,9 @@ fun HomeScreen(
         ) {
             PlanoCanvas(
                 restauranteId = SessionManager.restauranteId,
-                modoEdicion   = false,
-                onMesaTap     = { mesa -> onAbrirComanda(mesa.id, mesa.codigo) },
-                vm            = mesasVm
+                modoEdicion = false,
+                onMesaTap = { mesa -> onAbrirComanda(mesa.id, mesa.codigo) },
+                vm = mesasVm
             )
         }
     }

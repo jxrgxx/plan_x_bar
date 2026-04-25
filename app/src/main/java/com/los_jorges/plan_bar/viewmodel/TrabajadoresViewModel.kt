@@ -37,22 +37,31 @@ class TrabajadoresViewModel : ViewModel() {
         }
     }
 
-    fun crear(restauranteId: Int, nombre: String, rol: String, email: String,
-              password: String, onDone: (Boolean, String?) -> Unit) {
+    fun crear(
+        restauranteId: Int, nombre: String, rol: String, email: String,
+        password: String, onDone: (Boolean, String?) -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val r = RetrofitClient.api.crearTrabajador(mapOf(
-                    "restaurante_id" to restauranteId, "nombre" to nombre,
-                    "rol" to rol, "email" to email, "password" to password
-                ))
-                if (r.isSuccessful && r.body()?.success == true) { cargar(restauranteId); onDone(true, null) }
-                else onDone(false, r.body()?.error ?: "Error al crear trabajador")
-            } catch (e: Exception) { Log.e(TAG, "crear", e); onDone(false, "Error de conexión") }
+                val r = RetrofitClient.api.crearTrabajador(
+                    mapOf(
+                        "restaurante_id" to restauranteId, "nombre" to nombre,
+                        "rol" to rol, "email" to email, "password" to password
+                    )
+                )
+                if (r.isSuccessful && r.body()?.success == true) {
+                    cargar(restauranteId); onDone(true, null)
+                } else onDone(false, r.body()?.error ?: "Error al crear trabajador")
+            } catch (e: Exception) {
+                Log.e(TAG, "crear", e); onDone(false, "Error de conexión")
+            }
         }
     }
 
-    fun editar(restauranteId: Int, id: Int, nombre: String, rol: String, email: String,
-               activo: Boolean, password: String, onDone: (Boolean, String?) -> Unit) {
+    fun editar(
+        restauranteId: Int, id: Int, nombre: String, rol: String, email: String,
+        activo: Boolean, password: String, onDone: (Boolean, String?) -> Unit
+    ) {
         viewModelScope.launch {
             try {
                 val body = mutableMapOf<String, Any>(
@@ -61,9 +70,12 @@ class TrabajadoresViewModel : ViewModel() {
                 )
                 if (password.isNotBlank()) body["password"] = password
                 val r = RetrofitClient.api.editarTrabajador(body)
-                if (r.isSuccessful && r.body()?.success == true) { cargar(restauranteId); onDone(true, null) }
-                else onDone(false, r.body()?.error ?: "Error al editar trabajador")
-            } catch (e: Exception) { Log.e(TAG, "editar", e); onDone(false, "Error de conexión") }
+                if (r.isSuccessful && r.body()?.success == true) {
+                    cargar(restauranteId); onDone(true, null)
+                } else onDone(false, r.body()?.error ?: "Error al editar trabajador")
+            } catch (e: Exception) {
+                Log.e(TAG, "editar", e); onDone(false, "Error de conexión")
+            }
         }
     }
 
@@ -71,11 +83,16 @@ class TrabajadoresViewModel : ViewModel() {
         viewModelScope.launch {
             try {
                 val r = RetrofitClient.api.eliminarTrabajador(mapOf("id" to id))
-                if (r.isSuccessful && r.body()?.success == true) { cargar(restauranteId); onDone(true, null) }
-                else onDone(false, r.body()?.error ?: "Error al eliminar trabajador")
-            } catch (e: Exception) { Log.e(TAG, "eliminar", e); onDone(false, "Error de conexión") }
+                if (r.isSuccessful && r.body()?.success == true) {
+                    cargar(restauranteId); onDone(true, null)
+                } else onDone(false, r.body()?.error ?: "Error al eliminar trabajador")
+            } catch (e: Exception) {
+                Log.e(TAG, "eliminar", e); onDone(false, "Error de conexión")
+            }
         }
     }
 
-    fun clearError() { _error.value = null }
+    fun clearError() {
+        _error.value = null
+    }
 }

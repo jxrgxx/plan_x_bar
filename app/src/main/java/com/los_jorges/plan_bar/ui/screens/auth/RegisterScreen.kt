@@ -22,13 +22,13 @@ fun RegisterScreen(
     onRegistroExitoso: () -> Unit,
     onGoToLogin: () -> Unit
 ) {
-    var nombre    by remember { mutableStateOf("") }
-    var email     by remember { mutableStateOf("") }
+    var nombre by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var direccion by remember { mutableStateOf("") }
-    var telefono  by remember { mutableStateOf("") }
+    var telefono by remember { mutableStateOf("") }
 
-    var adminNombre   by remember { mutableStateOf("") }
-    var adminEmail    by remember { mutableStateOf("") }
+    var adminNombre by remember { mutableStateOf("") }
+    var adminEmail by remember { mutableStateOf("") }
     var adminPassword by remember { mutableStateOf("") }
 
     val state by viewModel.state.collectAsState()
@@ -42,13 +42,19 @@ fun RegisterScreen(
     ) {
         Spacer(Modifier.height(24.dp))
 
-        Text("Registro de Restaurante", fontSize = 24.sp, style = MaterialTheme.typography.headlineSmall)
+        Text(
+            "Registro de Restaurante",
+            fontSize = 24.sp,
+            style = MaterialTheme.typography.headlineSmall
+        )
 
         Spacer(Modifier.height(24.dp))
 
         // --- Datos del restaurante ---
-        Text("Datos del restaurante", style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.fillMaxWidth())
+        Text(
+            "Datos del restaurante", style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Spacer(Modifier.height(8.dp))
 
@@ -85,8 +91,10 @@ fun RegisterScreen(
         Spacer(Modifier.height(16.dp))
 
         // --- Datos del administrador ---
-        Text("Cuenta de administrador", style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.fillMaxWidth())
+        Text(
+            "Cuenta de administrador", style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Spacer(Modifier.height(8.dp))
 
@@ -136,10 +144,16 @@ fun RegisterScreen(
                 )
             },
             enabled = state !is AuthState.Loading,
-            modifier = Modifier.fillMaxWidth().height(50.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
         ) {
             if (state is AuthState.Loading) {
-                CircularProgressIndicator(color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp, modifier = Modifier.size(22.dp))
+                CircularProgressIndicator(
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(22.dp)
+                )
             } else {
                 Text("Registrar restaurante")
             }

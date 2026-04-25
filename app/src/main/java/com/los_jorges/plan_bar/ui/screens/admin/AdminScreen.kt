@@ -75,7 +75,9 @@ fun AdminScreen(
 
             Button(
                 onClick = onAccesoTrabajador,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -105,8 +107,10 @@ private fun AdminMenuCard(
             icon()
             Column {
                 Text(titulo, style = MaterialTheme.typography.titleMedium)
-                Text(descripcion, style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline)
+                Text(
+                    descripcion, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
             }
         }
     }

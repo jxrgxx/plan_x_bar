@@ -44,7 +44,14 @@ fun MesasAdminScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Mesas") },
-                navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) } },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            null
+                        )
+                    }
+                },
                 actions = {
                     IconButton(onClick = onPlano) {
                         Icon(Icons.Default.Dashboard, "Ver plano")
@@ -66,14 +73,25 @@ fun MesasAdminScreen(
         }
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 16.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(vertical = 12.dp)
         ) {
             if (mesas.isEmpty()) {
                 item {
-                    Box(Modifier.fillMaxWidth().padding(40.dp), contentAlignment = Alignment.Center) {
-                        Text("No hay mesas. Pulsa + para añadir.", color = MaterialTheme.colorScheme.outline)
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "No hay mesas. Pulsa + para añadir.",
+                            color = MaterialTheme.colorScheme.outline
+                        )
                     }
                 }
             }
@@ -97,7 +115,15 @@ fun MesasAdminScreen(
                         snackMsg = if (ok) "Mesa creada" else err ?: "Error"
                     }
                 } else {
-                    vm.editar(restauranteId, mesaEditar!!.id, codigo, capacidad, estado, mesaEditar!!.posX, mesaEditar!!.posY) { ok, err ->
+                    vm.editar(
+                        restauranteId,
+                        mesaEditar!!.id,
+                        codigo,
+                        capacidad,
+                        estado,
+                        mesaEditar!!.posX,
+                        mesaEditar!!.posY
+                    ) { ok, err ->
                         snackMsg = if (ok) "Mesa actualizada" else err ?: "Error"
                     }
                 }
@@ -137,12 +163,20 @@ private fun MesaItem(mesa: Mesa, onEditar: () -> Unit, onEliminar: () -> Unit) {
         ) {
             Column(Modifier.weight(1f)) {
                 Text(mesa.codigo, style = MaterialTheme.typography.titleMedium)
-                Text("${mesa.capacidad} personas · ${mesa.estado}",
+                Text(
+                    "${mesa.capacidad} personas · ${mesa.estado}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline)
+                    color = MaterialTheme.colorScheme.outline
+                )
             }
             IconButton(onClick = onEditar) { Icon(Icons.Default.Edit, "Editar") }
-            IconButton(onClick = onEliminar) { Icon(Icons.Default.Delete, "Eliminar", tint = MaterialTheme.colorScheme.error) }
+            IconButton(onClick = onEliminar) {
+                Icon(
+                    Icons.Default.Delete,
+                    "Eliminar",
+                    tint = MaterialTheme.colorScheme.error
+                )
+            }
         }
     }
 }
@@ -151,10 +185,14 @@ private val ESTADOS_MESA = listOf("libre", "ocupada", "reservada")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MesaDialog(mesa: Mesa?, onDismiss: () -> Unit, onConfirm: (String, Int, String) -> Unit) {
-    var codigo    by remember { mutableStateOf(mesa?.codigo ?: "") }
+private fun MesaDialog(
+    mesa: Mesa?,
+    onDismiss: () -> Unit,
+    onConfirm: (String, Int, String) -> Unit
+) {
+    var codigo by remember { mutableStateOf(mesa?.codigo ?: "") }
     var capacidad by remember { mutableStateOf(mesa?.capacidad?.toString() ?: "") }
-    var estado    by remember { mutableStateOf(mesa?.estado ?: "libre") }
+    var estado by remember { mutableStateOf(mesa?.estado ?: "libre") }
     var estadoExpanded by remember { mutableStateOf(false) }
 
     AlertDialog(
@@ -184,7 +222,9 @@ private fun MesaDialog(mesa: Mesa?, onDismiss: () -> Unit, onConfirm: (String, I
                             readOnly = true,
                             label = { Text("Estado") },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = estadoExpanded) },
-                            modifier = Modifier.fillMaxWidth().menuAnchor()
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
                         )
                         ExposedDropdownMenu(
                             expanded = estadoExpanded,

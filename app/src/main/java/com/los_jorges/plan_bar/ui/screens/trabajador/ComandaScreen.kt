@@ -35,17 +35,17 @@ fun ComandaScreen(
     pedidosVm: PedidosViewModel = viewModel(),
     productosVm: ProductosViewModel = viewModel()
 ) {
-    val trabajador      by SessionManager.trabajador.collectAsState()
-    val pedido          by pedidosVm.pedido.collectAsState()
-    val loading         by pedidosVm.loading.collectAsState()
-    val error           by pedidosVm.error.collectAsState()
-    val productos       by productosVm.productos.collectAsState()
+    val trabajador by SessionManager.trabajador.collectAsState()
+    val pedido by pedidosVm.pedido.collectAsState()
+    val loading by pedidosVm.loading.collectAsState()
+    val error by pedidosVm.error.collectAsState()
+    val productos by productosVm.productos.collectAsState()
 
     var showSelectorProductos by remember { mutableStateOf(false) }
-    var productoSeleccionado  by remember { mutableStateOf<Producto?>(null) }
-    var showCobrarDialog      by remember { mutableStateOf(false) }
-    var showCancelarDialog    by remember { mutableStateOf(false) }
-    var snackMsg              by remember { mutableStateOf<String?>(null) }
+    var productoSeleccionado by remember { mutableStateOf<Producto?>(null) }
+    var showCobrarDialog by remember { mutableStateOf(false) }
+    var showCancelarDialog by remember { mutableStateOf(false) }
+    var snackMsg by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val pedidoVacio = pedido?.productos?.isEmpty() == true
@@ -63,19 +63,18 @@ fun ComandaScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mesa $mesaCodigo") },
+                title = { Text("$mesaCodigo") },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) }
                 },
                 actions = {
                     if (pedido == null) {
-                        // Sin pedido abierto → botón crear
                         TextButton(
                             onClick = {
                                 pedidosVm.crearNuevoPedido(
                                     restauranteId = SessionManager.restauranteId,
-                                    mesaId        = mesaId,
-                                    trabajadorId  = trabajador?.id
+                                    mesaId = mesaId,
+                                    trabajadorId = trabajador?.id
                                 )
                             },
                             enabled = !loading
@@ -170,7 +169,11 @@ fun ComandaScreen(
                                 }
                             },
                             onCambiarCantidad = { nuevaCantidad ->
-                                pedidosVm.actualizarCantidad(linea.id, nuevaCantidad, pedido.id) { ok, err ->
+                                pedidosVm.actualizarCantidad(
+                                    linea.id,
+                                    nuevaCantidad,
+                                    pedido.id
+                                ) { ok, err ->
                                     if (!ok) snackMsg = err ?: "Error al actualizar"
                                 }
                             }
@@ -284,7 +287,7 @@ fun ComandaScreen(
         AlertDialog(
             onDismissRequest = { showCancelarDialog = false },
             title = { Text("¿Cancelar pedido?") },
-            text  = { Text("¿Quieres cancelar el pedido y liberar la mesa?") },
+            text = { Text("¿Quieres cancelar el pedido y liberar la mesa?") },
             confirmButton = {
                 TextButton(onClick = {
                     pedido?.let { p ->
