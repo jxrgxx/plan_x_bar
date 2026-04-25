@@ -22,44 +22,54 @@ class PedidosViewModel : ViewModel() {
     private val _error   = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    /** Abre el pedido abierto de la mesa o crea uno nuevo si no existe */
-    fun abrirOCrearPedido(
-        restauranteId: Int,
-        mesaId: Int,
-        trabajadorId: Int?,
-        onPedidoId: (Int) -> Unit
-    ) {
-        _loading.value = true
+    /** Busca el pedido abierto de una mesa y lo carga completo (con productos).
+     *  Si no existe, deja _pedido en null. */
+    fun cargarPedidoPorMesa(mesaId: Int) {
         viewModelScope.launch {
+            _loading.value = true
             try {
                 val r = RetrofitClient.api.getPedidoPorMesa(mesaId)
                 if (r.isSuccessful) {
-                    val existente = r.body()?.pedido
-                    if (existente != null) {
-                        _loading.value = false
-                        onPedidoId(existente.id)
+                    val pedidoBase = r.body()?.pedido
+                    if (pedidoBase != null) {
+                        cargarPedido(pedidoBase.id)   // carga completo con productos
                     } else {
-                        val body = mutableMapOf<String, Any>(
-                            "restaurante_id" to restauranteId,
-                            "mesa_id"        to mesaId
-                        )
-                        if (trabajadorId != null) body["trabajador_id"] = trabajadorId
-                        val cr = RetrofitClient.api.crearPedido(body)
+                        _pedido.value  = null
                         _loading.value = false
-                        if (cr.isSuccessful && cr.body()?.success == true) {
-                            onPedidoId(cr.body()!!.pedido_id!!)
-                        } else {
-                            _error.value = cr.body()?.error ?: "Error al abrir la mesa"
-                        }
                     }
                 } else {
+                    _error.value   = "Error al consultar la mesa"
                     _loading.value = false
-                    _error.value = "Error al consultar la mesa"
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "abrirOCrearPedido", e)
+                Log.e(TAG, "cargarPedidoPorMesa", e)
+                _error.value   = "Error de conexión"
                 _loading.value = false
-                _error.value = "Error de conexión"
+            }
+        }
+    }
+
+    /** Crea un pedido nuevo para la mesa y lo carga. */
+    fun crearNuevoPedido(restauranteId: Int, mesaId: Int, trabajadorId: Int?) {
+        viewModelScope.launch {
+            _loading.value = true
+            try {
+                val body = mutableMapOf<String, Any>(
+                    "restaurante_id" to restauranteId,
+                    "mesa_id"        to mesaId
+                )
+                if (trabajadorId != null) body["trabajador_id"] = trabajadorId
+                val r = RetrofitClient.api.crearPedido(body)
+                if (r.isSuccessful && r.body()?.success == true) {
+                    cargarPedido(r.body()!!.pedido_id!!)
+                } else {
+                    _error.value   = r.body()?.error ?: "Error al crear el pedido"
+                    _loading.value = false
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "crearNuevoPedido", e)
+                _error.value   = "Error de conexión"
+                _loading.value = false
             }
         }
     }

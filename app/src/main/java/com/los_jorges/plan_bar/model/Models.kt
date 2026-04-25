@@ -4,7 +4,7 @@ data class Trabajador(
     val id: Int,
     val restaurante_id: Int,
     val nombre: String,
-    val rol: String,        // "admin", "camarero", "cocina"
+    val rol: String,
     val email: String,
     val activo: Boolean = true,
     val restaurante_nombre: String? = null
@@ -15,7 +15,7 @@ data class Mesa(
     val restaurante_id: Int,
     val codigo: String,
     val capacidad: Int,
-    val estado: String,     // "libre", "ocupada", "reservada"
+    val estado: String,
     val posX: Float,
     val posY: Float
 )
@@ -24,7 +24,7 @@ data class Producto(
     val id: Int,
     val restaurante_id: Int,
     val nombre: String,
-    val categoria: String,  // "entrante", "principal", "postre", "bebida"
+    val categoria: String,
     val descripcion: String,
     val precio: Double,
     val disponible: Boolean
@@ -43,6 +43,7 @@ data class RegisterRequest(
     val admin_email: String,
     val admin_password: String
 )
+
 data class RegisterResponse(
     val success: Boolean,
     val restaurante_id: Int?,
@@ -83,4 +84,8 @@ data class Pedido(
 
 data class CrearPedidoResponse(val success: Boolean, val pedido_id: Int?, val error: String?)
 data class ObtenerPedidoResponse(val pedido: Pedido?)
-data class AgregarProductoResponse(val success: Boolean, val precio_unitario: Double?, val error: String?)
+data class AgregarProductoResponse(
+    val success: Boolean,
+    val precio_unitario: Double?,
+    val error: String?
+)

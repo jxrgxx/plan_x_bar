@@ -24,7 +24,7 @@ class MesasViewModel : ViewModel() {
 
     fun cargar(restauranteId: Int) {
         viewModelScope.launch {
-            _loading.value = true
+            if (_mesas.value.isEmpty()) _loading.value = true
             try {
                 val r = RetrofitClient.api.getMesas(restauranteId)
                 if (r.isSuccessful) _mesas.value = r.body()?.mesas ?: emptyList()

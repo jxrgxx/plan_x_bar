@@ -1,6 +1,5 @@
 package com.los_jorges.plan_bar.ui.screens.trabajador
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
@@ -8,7 +7,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LifecycleEventObserver
@@ -19,23 +17,18 @@ import com.los_jorges.plan_bar.ui.screens.admin.PlanoCanvas
 import com.los_jorges.plan_bar.viewmodel.AuthState
 import com.los_jorges.plan_bar.viewmodel.AuthViewModel
 import com.los_jorges.plan_bar.viewmodel.MesasViewModel
-import com.los_jorges.plan_bar.viewmodel.PedidosViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onCerrarSesion: () -> Unit,
-    onAbrirComanda: (Int) -> Unit,
+    onAbrirComanda: (Int, String) -> Unit,
     authViewModel: AuthViewModel = viewModel()
 ) {
-    val trabajador       by SessionManager.trabajador.collectAsState()
-    val mesasVm: MesasViewModel   = viewModel()
-    val pedidosVm: PedidosViewModel = viewModel()
-    val abriendo         by pedidosVm.loading.collectAsState()
-    val pedidosError     by pedidosVm.error.collectAsState()
+    val trabajador by SessionManager.trabajador.collectAsState()
+    val mesasVm: MesasViewModel = viewModel()
 
     var showDialogCerrar by remember { mutableStateOf(false) }
-    val snackbarHostState = remember { SnackbarHostState() }
 
     // Recargar mesas al volver desde la comanda
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -49,13 +42,6 @@ fun HomeScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(pedidosError) {
-        pedidosError?.let {
-            snackbarHostState.showSnackbar(it)
-            pedidosVm.clearError()
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
@@ -66,8 +52,7 @@ fun HomeScreen(
                     }
                 }
             )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        }
     ) { padding ->
         Box(
             modifier = Modifier
@@ -77,28 +62,9 @@ fun HomeScreen(
             PlanoCanvas(
                 restauranteId = SessionManager.restauranteId,
                 modoEdicion   = false,
-                onMesaTap     = { mesa ->
-                    pedidosVm.abrirOCrearPedido(
-                        restauranteId = SessionManager.restauranteId,
-                        mesaId        = mesa.id,
-                        trabajadorId  = trabajador?.id,
-                        onPedidoId    = onAbrirComanda
-                    )
-                },
-                vm = mesasVm
+                onMesaTap     = { mesa -> onAbrirComanda(mesa.id, mesa.codigo) },
+                vm            = mesasVm
             )
-
-            // Overlay de carga mientras abre/crea el pedido
-            if (abriendo) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.35f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = Color.White)
-                }
-            }
         }
     }
 

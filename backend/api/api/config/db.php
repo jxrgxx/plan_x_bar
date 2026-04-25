@@ -1,8 +1,8 @@
 <?php
-define('DB_HOST', 'tu host');
-define('DB_NAME', 'tu db name');
-define('DB_USER', 'tu db user');
-define('DB_PASS', 'tu db pass');
+define('DB_HOST', 'pdb1037.awardspace.net');
+define('DB_NAME', '4742077_planbar');
+define('DB_USER', '4742077_planbar');
+define('DB_PASS', 'p2Sm8uc/r_W/iaX');
 define('DB_CHARSET', 'utf8mb4');
 
 function getDB(): PDO {

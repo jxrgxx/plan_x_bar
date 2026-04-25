@@ -1,5 +1,6 @@
 package com.los_jorges.plan_bar.ui.navigation
 
+import android.net.Uri
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -24,7 +25,7 @@ object Routes {
     const val LOGIN_TRABAJADOR = "admin/{restauranteId}/login_trabajador"
     const val ADMIN_PLANO = "admin/{restauranteId}/plano"
     const val HOME_TRABAJADOR = "trabajador/home"
-    const val COMANDA = "trabajador/comanda/{pedidoId}"
+    const val COMANDA = "trabajador/comanda/{mesaId}/{mesaCodigo}"
 
     fun admin(id: Int) = "admin/$id"
     fun adminMesas(id: Int) = "admin/$id/mesas"
@@ -32,7 +33,8 @@ object Routes {
     fun adminTrabajadores(id: Int) = "admin/$id/trabajadores"
     fun loginTrabajador(id: Int) = "admin/$id/login_trabajador"
     fun adminPlano(id: Int) = "admin/$id/plano"
-    fun comanda(id: Int) = "trabajador/comanda/$id"
+    fun comanda(mesaId: Int, mesaCodigo: String) =
+        "trabajador/comanda/$mesaId/${Uri.encode(mesaCodigo)}"
 }
 
 @Composable
@@ -142,18 +144,19 @@ fun NavGraph(navController: NavHostController) {
                         popUpTo(Routes.HOME_TRABAJADOR) { inclusive = true }
                     }
                 },
-                onAbrirComanda = { pedidoId ->
-                    navController.navigate(Routes.comanda(pedidoId))
+                onAbrirComanda = { mesaId, mesaCodigo ->
+                    navController.navigate(Routes.comanda(mesaId, mesaCodigo))
                 }
             )
         }
 
         composable(Routes.COMANDA) { back ->
-            val pedidoId = back.arguments?.getString("pedidoId")?.toIntOrNull()
-                ?: return@composable
+            val mesaId     = back.arguments?.getString("mesaId")?.toIntOrNull()  ?: return@composable
+            val mesaCodigo = back.arguments?.getString("mesaCodigo")             ?: return@composable
             ComandaScreen(
-                pedidoId = pedidoId,
-                onBack = { navController.popBackStack() }
+                mesaId     = mesaId,
+                mesaCodigo = mesaCodigo,
+                onBack     = { navController.popBackStack() }
             )
         }
     }

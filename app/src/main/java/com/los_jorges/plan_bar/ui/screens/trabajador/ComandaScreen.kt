@@ -29,31 +29,28 @@ private val CATEGORIAS = listOf("bebida", "entrante", "principal", "postre")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ComandaScreen(
-    pedidoId: Int,
+    mesaId: Int,
+    mesaCodigo: String,
     onBack: () -> Unit,
     pedidosVm: PedidosViewModel = viewModel(),
     productosVm: ProductosViewModel = viewModel()
 ) {
-    val pedido by pedidosVm.pedido.collectAsState()
-    val loading by pedidosVm.loading.collectAsState()
-    val error by pedidosVm.error.collectAsState()
-    val productos by productosVm.productos.collectAsState()
+    val trabajador      by SessionManager.trabajador.collectAsState()
+    val pedido          by pedidosVm.pedido.collectAsState()
+    val loading         by pedidosVm.loading.collectAsState()
+    val error           by pedidosVm.error.collectAsState()
+    val productos       by productosVm.productos.collectAsState()
 
-    var showSelectorProductos  by remember { mutableStateOf(false) }
-    var productoSeleccionado   by remember { mutableStateOf<Producto?>(null) }
-    var showCobrarDialog       by remember { mutableStateOf(false) }
-    var showCancelarDialog     by remember { mutableStateOf(false) }
-    var snackMsg               by remember { mutableStateOf<String?>(null) }
+    var showSelectorProductos by remember { mutableStateOf(false) }
+    var productoSeleccionado  by remember { mutableStateOf<Producto?>(null) }
+    var showCobrarDialog      by remember { mutableStateOf(false) }
+    var showCancelarDialog    by remember { mutableStateOf(false) }
+    var snackMsg              by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val pedidoVacio = pedido?.productos?.isEmpty() != false
+    val pedidoVacio = pedido?.productos?.isEmpty() == true
 
-    // Función de volver: si el pedido está vacío pregunta antes de cancelar
-    val handleBack: () -> Unit = {
-        if (pedidoVacio) showCancelarDialog = true else onBack()
-    }
-
-    LaunchedEffect(pedidoId) { pedidosVm.cargarPedido(pedidoId) }
+    LaunchedEffect(mesaId) { pedidosVm.cargarPedidoPorMesa(mesaId) }
 
     LaunchedEffect(snackMsg) {
         snackMsg?.let { snackbarHostState.showSnackbar(it); snackMsg = null }
@@ -66,16 +63,48 @@ fun ComandaScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Mesa ${pedido?.mesa_codigo ?: "..."}") },
+                title = { Text("Mesa $mesaCodigo") },
                 navigationIcon = {
-                    IconButton(onClick = handleBack) { Icon(Icons.Default.ArrowBack, null) }
+                    IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) }
+                },
+                actions = {
+                    if (pedido == null) {
+                        // Sin pedido abierto → botón crear
+                        TextButton(
+                            onClick = {
+                                pedidosVm.crearNuevoPedido(
+                                    restauranteId = SessionManager.restauranteId,
+                                    mesaId        = mesaId,
+                                    trabajadorId  = trabajador?.id
+                                )
+                            },
+                            enabled = !loading
+                        ) {
+                            Text("Crear pedido")
+                        }
+                    } else {
+                        // Pedido abierto → botón cancelar (solo activo si está vacío)
+                        TextButton(
+                            onClick = { showCancelarDialog = true },
+                            enabled = pedidoVacio
+                        ) {
+                            Text(
+                                "Cancelar pedido",
+                                color = if (pedidoVacio)
+                                    MaterialTheme.colorScheme.error
+                                else
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                            )
+                        }
+                    }
                 }
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
 
-        if (loading && pedido == null) {
+        // Cargando
+        if (loading) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -84,6 +113,29 @@ fun ComandaScreen(
             ) { CircularProgressIndicator() }
             return@Scaffold
         }
+
+        // Sin pedido abierto
+        if (pedido == null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "Sin pedido abierto",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
+            return@Scaffold
+        }
+
+        // Pedido abierto — sombrea 'pedido' como val local no-null para que los
+        // lambdas del LazyColumn no lean el StateFlow directamente (evita NPE
+        // cuando el snapshot observer re-evalúa el content fuera de recomposición).
+        @Suppress("NAME_SHADOWING")
+        val pedido = pedido!!
 
         Column(
             modifier = Modifier
@@ -96,7 +148,7 @@ fun ComandaScreen(
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                val lineas = pedido?.productos ?: emptyList()
+                val lineas = pedido.productos
                 if (lineas.isEmpty()) {
                     item {
                         Box(
@@ -113,12 +165,12 @@ fun ComandaScreen(
                         LineaPedidoItem(
                             linea = linea,
                             onEliminar = {
-                                pedidosVm.eliminarProducto(linea.id, pedidoId) { ok, err ->
+                                pedidosVm.eliminarProducto(linea.id, pedido.id) { ok, err ->
                                     if (!ok) snackMsg = err ?: "Error al eliminar"
                                 }
                             },
                             onCambiarCantidad = { nuevaCantidad ->
-                                pedidosVm.actualizarCantidad(linea.id, nuevaCantidad, pedidoId) { ok, err ->
+                                pedidosVm.actualizarCantidad(linea.id, nuevaCantidad, pedido.id) { ok, err ->
                                     if (!ok) snackMsg = err ?: "Error al actualizar"
                                 }
                             }
@@ -141,7 +193,7 @@ fun ComandaScreen(
                 ) {
                     Text("Total", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "%.2f €".format(pedido?.total ?: 0.0),
+                        "%.2f €".format(pedido.total ?: 0.0),
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -165,7 +217,7 @@ fun ComandaScreen(
                     Button(
                         onClick = { showCobrarDialog = true },
                         modifier = Modifier.weight(1f),
-                        enabled = pedido?.productos?.isNotEmpty() == true
+                        enabled = pedido.productos.isNotEmpty()
                     ) {
                         Text("Cobrar")
                     }
@@ -212,29 +264,33 @@ fun ComandaScreen(
             producto = producto,
             onDismiss = { productoSeleccionado = null },
             onConfirm = { cantidad, observaciones ->
-                pedidosVm.agregarProducto(
-                    pedidoId,
-                    producto.id,
-                    cantidad,
-                    observaciones
-                ) { ok, err ->
-                    snackMsg = if (ok) "${producto.nombre} añadido" else err ?: "Error"
+                pedido?.let { p ->
+                    pedidosVm.agregarProducto(
+                        p.id,
+                        producto.id,
+                        cantidad,
+                        observaciones
+                    ) { ok, err ->
+                        snackMsg = if (ok) "${producto.nombre} añadido" else err ?: "Error"
+                    }
                 }
                 productoSeleccionado = null
             }
         )
     }
 
-    // ── Diálogo cancelar pedido vacío ─────────────────────────────────────────
+    // ── Diálogo cancelar pedido ───────────────────────────────────────────────
     if (showCancelarDialog) {
         AlertDialog(
             onDismissRequest = { showCancelarDialog = false },
             title = { Text("¿Cancelar pedido?") },
-            text  = { Text("El pedido está vacío. ¿Quieres cancelarlo y liberar la mesa?") },
+            text  = { Text("¿Quieres cancelar el pedido y liberar la mesa?") },
             confirmButton = {
                 TextButton(onClick = {
-                    pedidosVm.cancelarPedido(pedidoId) { ok, err ->
-                        if (ok) onBack() else snackMsg = err ?: "Error al cancelar"
+                    pedido?.let { p ->
+                        pedidosVm.cancelarPedido(p.id) { ok, err ->
+                            if (ok) onBack() else snackMsg = err ?: "Error al cancelar"
+                        }
                     }
                     showCancelarDialog = false
                 }) { Text("Cancelar pedido", color = MaterialTheme.colorScheme.error) }
@@ -251,8 +307,10 @@ fun ComandaScreen(
             total = pedido?.total ?: 0.0,
             onDismiss = { showCobrarDialog = false },
             onConfirm = { metodoPago ->
-                pedidosVm.cerrarPedido(pedidoId, metodoPago) { ok, err ->
-                    if (ok) onBack() else snackMsg = err ?: "Error al cobrar"
+                pedido?.let { p ->
+                    pedidosVm.cerrarPedido(p.id, metodoPago) { ok, err ->
+                        if (ok) onBack() else snackMsg = err ?: "Error al cobrar"
+                    }
                 }
                 showCobrarDialog = false
             }
@@ -274,7 +332,6 @@ private fun LineaPedidoItem(
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Nombre + observaciones
         Column(modifier = Modifier.weight(1f)) {
             Text(linea.nombre, style = MaterialTheme.typography.bodyMedium)
             if (!linea.observaciones.isNullOrBlank()) {
@@ -308,15 +365,12 @@ private fun LineaPedidoItem(
             Icon(Icons.Default.Add, "Más", modifier = Modifier.size(16.dp))
         }
 
-        // Precio total de la línea
         Text(
             "%.2f €".format(linea.cantidad * linea.precio_unitario),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(start = 6.dp)
         )
-
-        // Eliminar línea completa
         IconButton(onClick = onEliminar) {
             Icon(
                 Icons.Default.Delete,
