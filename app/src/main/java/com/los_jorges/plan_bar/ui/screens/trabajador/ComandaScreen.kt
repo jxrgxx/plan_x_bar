@@ -3,7 +3,6 @@ package com.los_jorges.plan_bar.ui.screens.trabajador
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
@@ -14,7 +13,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.los_jorges.plan_bar.model.PedidoProducto
@@ -24,7 +22,7 @@ import com.los_jorges.plan_bar.viewmodel.PedidosViewModel
 import com.los_jorges.plan_bar.viewmodel.ProductosViewModel
 
 private val METODOS_PAGO = listOf("efectivo", "tarjeta", "otro")
-private val CATEGORIAS = listOf("bebida", "entrante", "principal", "postre")
+private val CATEGORIAS = listOf("bebida", "entrante", "primero", "segundo", "postre")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +39,7 @@ fun ComandaScreen(
     val error by pedidosVm.error.collectAsState()
     val productos by productosVm.productos.collectAsState()
 
-    var showSelectorProductos by remember { mutableStateOf(false) }
+    var selectedTab by remember { mutableStateOf(0) }
     var productoSeleccionado by remember { mutableStateOf<Producto?>(null) }
     var showCobrarDialog by remember { mutableStateOf(false) }
     var showCancelarDialog by remember { mutableStateOf(false) }
@@ -50,7 +48,10 @@ fun ComandaScreen(
 
     val pedidoVacio = pedido?.productos?.isEmpty() == true
 
-    LaunchedEffect(mesaId) { pedidosVm.cargarPedidoPorMesa(mesaId) }
+    LaunchedEffect(mesaId) {
+        pedidosVm.cargarPedidoPorMesa(mesaId)
+        productosVm.cargar(SessionManager.restauranteId)
+    }
 
     LaunchedEffect(snackMsg) {
         snackMsg?.let { snackbarHostState.showSnackbar(it); snackMsg = null }
@@ -60,10 +61,23 @@ fun ComandaScreen(
         error?.let { snackMsg = it; pedidosVm.clearError() }
     }
 
+    val tabs = CATEGORIAS.filter { cat -> productos.any { it.categoria == cat } }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("$mesaCodigo") },
+                title = {
+                    Column {
+                        Text(mesaCodigo, style = MaterialTheme.typography.titleLarge)
+                        pedido?.estado?.let { estado ->
+                            Text(
+                                estado.replaceFirstChar { it.uppercase() },
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, null) }
                 },
@@ -78,22 +92,14 @@ fun ComandaScreen(
                                 )
                             },
                             enabled = !loading
-                        ) {
-                            Text("Crear pedido")
+                        ) { Text("Crear pedido") }
+                    } else if (pedidoVacio) {
+                        TextButton(onClick = { showCancelarDialog = true }) {
+                            Text("Cancelar pedido", color = MaterialTheme.colorScheme.error)
                         }
                     } else {
-                        // Pedido abierto → botón cancelar (solo activo si está vacío)
-                        TextButton(
-                            onClick = { showCancelarDialog = true },
-                            enabled = pedidoVacio
-                        ) {
-                            Text(
-                                "Cancelar pedido",
-                                color = if (pedidoVacio)
-                                    MaterialTheme.colorScheme.error
-                                else
-                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                            )
+                        TextButton(onClick = { /* TODO: pantalla cocinero */ }) {
+                            Text("Enviar")
                         }
                     }
                 }
@@ -102,159 +108,142 @@ fun ComandaScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
 
-        // Cargando
-        if (loading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) { CircularProgressIndicator() }
-            return@Scaffold
-        }
-
-        // Sin pedido abierto
-        if (pedido == null) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    "Sin pedido abierto",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.outline
-                )
-            }
-            return@Scaffold
-        }
-
-        // Pedido abierto — sombrea 'pedido' como val local no-null para que los
-        // lambdas del LazyColumn no lean el StateFlow directamente (evita NPE
-        // cuando el snapshot observer re-evalúa el content fuera de recomposición).
-        @Suppress("NAME_SHADOWING")
-        val pedido = pedido!!
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
         ) {
-            // ── Lista de líneas del pedido ──────────────────────────────────
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                val lineas = pedido.productos
-                if (lineas.isEmpty()) {
-                    item {
-                        Box(
-                            Modifier
-                                .fillMaxWidth()
-                                .padding(40.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("Sin productos aún", color = MaterialTheme.colorScheme.outline)
+
+            // ── Mitad superior: pedido actual ───────────────────────────────
+            Box(modifier = Modifier.weight(1f)) {
+                when {
+                    loading -> {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            CircularProgressIndicator()
                         }
                     }
-                } else {
-                    items(lineas, key = { it.id }) { linea ->
-                        LineaPedidoItem(
-                            linea = linea,
-                            onEliminar = {
-                                pedidosVm.eliminarProducto(linea.id, pedido.id) { ok, err ->
-                                    if (!ok) snackMsg = err ?: "Error al eliminar"
-                                }
-                            },
-                            onCambiarCantidad = { nuevaCantidad ->
-                                pedidosVm.actualizarCantidad(
-                                    linea.id,
-                                    nuevaCantidad,
-                                    pedido.id
-                                ) { ok, err ->
-                                    if (!ok) snackMsg = err ?: "Error al actualizar"
-                                }
-                            }
-                        )
-                        HorizontalDivider()
-                    }
-                }
-            }
 
-            // ── Barra inferior ──────────────────────────────────────────────
-            HorizontalDivider()
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("Total", style = MaterialTheme.typography.titleMedium)
-                    Text(
-                        "%.2f €".format(pedido.total ?: 0.0),
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = {
-                            productosVm.cargar(SessionManager.restauranteId)
-                            showSelectorProductos = true
-                        },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
-                        Spacer(Modifier.width(4.dp))
-                        Text("Añadir")
-                    }
-                    Button(
-                        onClick = { showCobrarDialog = true },
-                        modifier = Modifier.weight(1f),
-                        enabled = pedido.productos.isNotEmpty()
-                    ) {
-                        Text("Cobrar")
-                    }
-                }
-            }
-        }
-    }
-
-    // ── Selector de productos (bottom sheet) ─────────────────────────────────
-    if (showSelectorProductos) {
-        ModalBottomSheet(onDismissRequest = { showSelectorProductos = false }) {
-            Text(
-                "Carta",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
-            )
-            LazyColumn(
-                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                CATEGORIAS.forEach { cat ->
-                    val lista = productos.filter { it.categoria == cat }
-                    if (lista.isNotEmpty()) {
-                        item {
+                    pedido == null -> {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                             Text(
-                                cat.replaceFirstChar { it.uppercase() },
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)
+                                "Sin pedido abierto",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.outline
                             )
                         }
-                        items(lista, key = { it.id }) { producto ->
-                            ProductoSelectorItem(producto) { productoSeleccionado = producto }
+                    }
+
+                    else -> {
+                        @Suppress("NAME_SHADOWING")
+                        val pedido = pedido!!
+
+                        Column(Modifier.fillMaxSize()) {
+                            LazyColumn(
+                                modifier = Modifier.weight(1f),
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                val lineas = pedido.productos
+                                if (lineas.isEmpty()) {
+                                    item {
+                                        Box(
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .padding(24.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                "Sin productos aún",
+                                                color = MaterialTheme.colorScheme.outline
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    items(lineas, key = { it.id }) { linea ->
+                                        LineaPedidoItem(
+                                            linea = linea,
+                                            onEliminar = {
+                                                pedidosVm.eliminarProducto(
+                                                    linea.id,
+                                                    pedido.id
+                                                ) { ok, err ->
+                                                    if (!ok) snackMsg = err ?: "Error al eliminar"
+                                                }
+                                            },
+                                            onCambiarCantidad = { nuevaCantidad ->
+                                                pedidosVm.actualizarCantidad(
+                                                    linea.id,
+                                                    nuevaCantidad,
+                                                    pedido.id
+                                                ) { ok, err ->
+                                                    if (!ok) snackMsg = err ?: "Error al actualizar"
+                                                }
+                                            }
+                                        )
+                                        HorizontalDivider()
+                                    }
+                                }
+                            }
+
+                            // Total + Cobrar
+                            HorizontalDivider()
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "Total  %.2f €".format(pedido.total ?: 0.0),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Button(
+                                    onClick = { showCobrarDialog = true },
+                                    enabled = pedido.productos.isNotEmpty()
+                                ) {
+                                    Text("Cobrar")
+                                }
+                            }
                         }
+                    }
+                }
+            }
+
+            // ── Mitad inferior: carta siempre visible ───────────────────────
+            HorizontalDivider(thickness = 2.dp)
+
+            if (tabs.isNotEmpty()) {
+                ScrollableTabRow(selectedTabIndex = selectedTab.coerceAtMost(tabs.lastIndex)) {
+                    tabs.forEachIndexed { index, cat ->
+                        Tab(
+                            selected = selectedTab == index,
+                            onClick = { selectedTab = index },
+                            text = { Text(cat.replaceFirstChar { it.uppercase() }) }
+                        )
+                    }
+                }
+
+                val listaActual = productos.filter {
+                    it.categoria == tabs[selectedTab.coerceAtMost(tabs.lastIndex)]
+                }
+
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    items(listaActual, key = { it.id }) { producto ->
+                        ProductoSelectorItem(
+                            producto = producto,
+                            enabled = pedido != null,
+                            onClick = {
+                                if (pedido != null) productoSeleccionado = producto
+                                else snackMsg = "Crea el pedido primero"
+                            }
+                        )
                     }
                 }
             }
@@ -345,8 +334,6 @@ private fun LineaPedidoItem(
                 )
             }
         }
-
-        // Stepper de cantidad
         IconButton(
             onClick = {
                 if (linea.cantidad > 1) onCambiarCantidad(linea.cantidad - 1)
@@ -367,7 +354,6 @@ private fun LineaPedidoItem(
         ) {
             Icon(Icons.Default.Add, "Más", modifier = Modifier.size(16.dp))
         }
-
         Text(
             "%.2f €".format(linea.cantidad * linea.precio_unitario),
             style = MaterialTheme.typography.bodyMedium,
@@ -386,7 +372,7 @@ private fun LineaPedidoItem(
 }
 
 @Composable
-private fun ProductoSelectorItem(producto: Producto, onClick: () -> Unit) {
+private fun ProductoSelectorItem(producto: Producto, enabled: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -394,14 +380,19 @@ private fun ProductoSelectorItem(producto: Producto, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(producto.nombre, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                producto.nombre,
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (enabled) MaterialTheme.colorScheme.onSurface
+                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            )
             Text(
                 "%.2f €".format(producto.precio),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline
             )
         }
-        FilledTonalIconButton(onClick = onClick) {
+        FilledTonalIconButton(onClick = onClick, enabled = enabled) {
             Icon(Icons.Default.Add, "Añadir")
         }
     }
@@ -413,7 +404,7 @@ private fun DetalleProductoDialog(
     onDismiss: () -> Unit,
     onConfirm: (Int, String) -> Unit
 ) {
-    var cantidad by remember { mutableStateOf("1") }
+    var cantidad by remember { mutableStateOf(1) }
     var observaciones by remember { mutableStateOf("") }
 
     AlertDialog(
@@ -426,14 +417,26 @@ private fun DetalleProductoDialog(
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.bodyMedium
                 )
-                OutlinedTextField(
-                    value = cantidad,
-                    onValueChange = { if (it.all { c -> c.isDigit() }) cantidad = it },
-                    label = { Text("Cantidad") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(
+                        onClick = { if (cantidad > 1) cantidad-- },
+                        enabled = cantidad > 1
+                    ) {
+                        Icon(Icons.Default.Remove, "Menos")
+                    }
+                    Text(
+                        "$cantidad",
+                        style = MaterialTheme.typography.titleLarge,
+                        modifier = Modifier.padding(horizontal = 24.dp)
+                    )
+                    IconButton(onClick = { cantidad++ }) {
+                        Icon(Icons.Default.Add, "Más")
+                    }
+                }
                 OutlinedTextField(
                     value = observaciones,
                     onValueChange = { observaciones = it },
@@ -445,8 +448,7 @@ private fun DetalleProductoDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                val cant = cantidad.toIntOrNull() ?: 0
-                if (cant > 0) onConfirm(cant, observaciones)
+                onConfirm(cantidad, observaciones)
             }) { Text("Añadir") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
