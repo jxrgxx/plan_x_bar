@@ -16,7 +16,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.los_jorges.plan_bar.model.Producto
 import com.los_jorges.plan_bar.viewmodel.ProductosViewModel
 
-private val CATEGORIAS = listOf("entrante", "principal", "postre", "bebida")
+private val CATEGORIAS = listOf("bebida", "entrante", "primero", "segundo", "postre")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
