@@ -72,7 +72,7 @@ fun HomeScreen(
         DialogVerificarAdmin(
             authViewModel = authViewModel,
             onConfirm = {
-                SessionManager.cerrarSesionTrabajador()
+                SessionManager.desactivarPersonal()
                 showDialogCerrar = false
                 onCerrarSesion()
             },

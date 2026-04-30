@@ -39,16 +39,16 @@ class TrabajadoresViewModel : ViewModel() {
 
     fun crear(
         restauranteId: Int, nombre: String, rol: String, email: String,
-        password: String, onDone: (Boolean, String?) -> Unit
+        password: String, pin: String = "", onDone: (Boolean, String?) -> Unit
     ) {
         viewModelScope.launch {
             try {
-                val r = RetrofitClient.api.crearTrabajador(
-                    mapOf(
-                        "restaurante_id" to restauranteId, "nombre" to nombre,
-                        "rol" to rol, "email" to email, "password" to password
-                    )
+                val body = mutableMapOf<String, Any>(
+                    "restaurante_id" to restauranteId, "nombre" to nombre,
+                    "rol" to rol, "email" to email, "password" to password
                 )
+                if (pin.isNotBlank()) body["pin"] = pin
+                val r = RetrofitClient.api.crearTrabajador(body)
                 if (r.isSuccessful && r.body()?.success == true) {
                     cargar(restauranteId); onDone(true, null)
                 } else onDone(false, r.body()?.error ?: "Error al crear trabajador")
@@ -60,7 +60,7 @@ class TrabajadoresViewModel : ViewModel() {
 
     fun editar(
         restauranteId: Int, id: Int, nombre: String, rol: String, email: String,
-        activo: Boolean, password: String, onDone: (Boolean, String?) -> Unit
+        activo: Boolean, password: String, pin: String = "", onDone: (Boolean, String?) -> Unit
     ) {
         viewModelScope.launch {
             try {
@@ -69,6 +69,7 @@ class TrabajadoresViewModel : ViewModel() {
                     "email" to email, "activo" to activo
                 )
                 if (password.isNotBlank()) body["password"] = password
+                if (pin.isNotBlank()) body["pin"] = pin
                 val r = RetrofitClient.api.editarTrabajador(body)
                 if (r.isSuccessful && r.body()?.success == true) {
                     cargar(restauranteId); onDone(true, null)

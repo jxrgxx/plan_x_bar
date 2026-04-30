@@ -32,6 +32,8 @@ data class Producto(
 
 // --- Auth ---
 data class LoginRequest(val email: String, val password: String)
+data class PinVerifyRequest(val trabajador_id: Int, val pin: String)
+data class PinVerifyResponse(val success: Boolean, val error: String? = null)
 data class LoginResponse(val success: Boolean, val trabajador: Trabajador?)
 
 data class RegisterRequest(

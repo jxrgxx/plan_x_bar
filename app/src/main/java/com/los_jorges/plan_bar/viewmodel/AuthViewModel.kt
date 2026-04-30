@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.los_jorges.plan_bar.model.LoginRequest
+import com.los_jorges.plan_bar.model.PinVerifyRequest
 import com.los_jorges.plan_bar.model.RegisterRequest
 import com.los_jorges.plan_bar.model.Trabajador
 import com.los_jorges.plan_bar.network.RetrofitClient
@@ -83,7 +84,7 @@ class AuthViewModel : ViewModel() {
                             AuthState.Error("Usa el acceso de administrador para entrar como admin")
                         return@launch
                     }
-                    SessionManager.loginTrabajador(trabajador)
+                    SessionManager.seleccionarTrabajador(trabajador)
                     _state.value = AuthState.Idle
                     onSuccess(trabajador)
                 } else {
@@ -162,6 +163,31 @@ class AuthViewModel : ViewModel() {
             } catch (e: Exception) {
                 Log.e(TAG, "REGISTER: excepcion", e)
                 _state.value = AuthState.Error("Error: ${e.message}")
+            }
+        }
+    }
+
+    fun verificarPin(trabajadorId: Int, pin: String, onSuccess: () -> Unit) {
+        if (pin.isBlank()) {
+            _state.value = AuthState.Error("Introduce tu PIN")
+            return
+        }
+        _state.value = AuthState.Loading
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "VERIFICAR_PIN: trabajador_id=$trabajadorId")
+                val response = RetrofitClient.api.verificarPin(PinVerifyRequest(trabajadorId, pin))
+                if (response.isSuccessful && response.body()?.success == true) {
+                    SessionManager.confirmarPin()
+                    _state.value = AuthState.Idle
+                    onSuccess()
+                } else {
+                    val msg = response.body()?.error ?: "PIN incorrecto"
+                    _state.value = AuthState.Error(msg)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "VERIFICAR_PIN: excepcion", e)
+                _state.value = AuthState.Error("Error de conexión")
             }
         }
     }

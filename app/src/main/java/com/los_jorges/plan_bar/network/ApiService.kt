@@ -10,6 +10,9 @@ interface ApiService {
     @POST("auth/auth_login.php")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
+    @POST("auth/verificar_pin.php")
+    suspend fun verificarPin(@Body request: PinVerifyRequest): Response<PinVerifyResponse>
+
     @POST("restaurante/restaurante_registrar.php")
     suspend fun registrarRestaurante(@Body request: RegisterRequest): Response<RegisterResponse>
 
