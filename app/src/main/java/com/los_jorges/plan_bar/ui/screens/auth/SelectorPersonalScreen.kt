@@ -27,6 +27,7 @@ fun SelectorPersonalScreen(
 ) {
     val vm: TrabajadoresViewModel = viewModel()
     val trabajadores by vm.trabajadores.collectAsState()
+    val loading by vm.loading.collectAsState()
     val restauranteNombre = SessionManager.restauranteNombre
 
     LaunchedEffect(Unit) {
@@ -49,64 +50,30 @@ fun SelectorPersonalScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(16.dp),
+                .padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = "¿Quién eres?",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 24.dp)
+                modifier = Modifier.padding(vertical = 20.dp)
             )
 
-            if (trabajadores.isEmpty()) {
+            if (loading) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             } else {
-                // Filtramos admins — solo camareros y cocina en el selector
-                val personal = trabajadores.filter { it.activo && it.rol != "admin" }
-                val admins = trabajadores.filter { it.activo && it.rol == "admin" }
-
-                if (personal.isNotEmpty()) {
-                    Text(
-                        "Personal",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp)
-                    )
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(140.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.weight(1f, fill = false)
-                    ) {
-                        items(personal) { t ->
-                            TrabajadorCard(t, onClick = { onTrabajadorSeleccionado(t) })
-                        }
-                    }
-                }
-
-                if (admins.isNotEmpty()) {
-                    Spacer(Modifier.height(16.dp))
-                    HorizontalDivider()
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        "Administración",
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp)
-                    )
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(140.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(admins) { t ->
-                            TrabajadorCard(t, onClick = { onTrabajadorSeleccionado(t) })
-                        }
+                val personal = trabajadores.filter { it.activo }
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(130.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(personal, key = { it.id }) { t ->
+                        TrabajadorCard(t, onClick = { onTrabajadorSeleccionado(t) })
                     }
                 }
             }
@@ -115,16 +82,16 @@ fun SelectorPersonalScreen(
 }
 
 @Composable
-private fun TrabajadorCard(trabajador: Trabajador, onClick: () -> Unit) {
+fun TrabajadorCard(trabajador: Trabajador, onClick: () -> Unit) {
     val rolColor = when (trabajador.rol) {
-        "admin" -> MaterialTheme.colorScheme.primaryContainer
+        "admin"  -> MaterialTheme.colorScheme.primaryContainer
         "cocina" -> MaterialTheme.colorScheme.tertiaryContainer
-        else -> MaterialTheme.colorScheme.secondaryContainer
+        else     -> MaterialTheme.colorScheme.secondaryContainer
     }
     val rolTexto = when (trabajador.rol) {
-        "admin" -> "Administrador"
+        "admin"  -> "Admin"
         "cocina" -> "Cocina"
-        else -> "Camarero"
+        else     -> "Camarero"
     }
 
     Card(
@@ -145,8 +112,7 @@ private fun TrabajadorCard(trabajador: Trabajador, onClick: () -> Unit) {
             Icon(
                 Icons.Default.Person,
                 contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.onSurface
+                modifier = Modifier.size(40.dp)
             )
             Spacer(Modifier.height(8.dp))
             Text(

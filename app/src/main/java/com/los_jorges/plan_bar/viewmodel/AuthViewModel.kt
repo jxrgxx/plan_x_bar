@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.los_jorges.plan_bar.model.LoginRequest
 import com.los_jorges.plan_bar.model.PinVerifyRequest
+import com.los_jorges.plan_bar.model.SetPinRequest
 import com.los_jorges.plan_bar.model.RegisterRequest
 import com.los_jorges.plan_bar.model.Trabajador
 import com.los_jorges.plan_bar.network.RetrofitClient
@@ -187,6 +188,31 @@ class AuthViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "VERIFICAR_PIN: excepcion", e)
+                _state.value = AuthState.Error("Error de conexión")
+            }
+        }
+    }
+
+    fun setPin(trabajadorId: Int, pin: String, onSuccess: () -> Unit) {
+        if (pin.length != 4) {
+            _state.value = AuthState.Error("El PIN debe tener 4 dígitos")
+            return
+        }
+        _state.value = AuthState.Loading
+        viewModelScope.launch {
+            try {
+                Log.d(TAG, "SET_PIN: trabajador_id=$trabajadorId")
+                val response = RetrofitClient.api.setPin(SetPinRequest(trabajadorId, pin))
+                if (response.isSuccessful && response.body()?.success == true) {
+                    SessionManager.confirmarPin()
+                    _state.value = AuthState.Idle
+                    onSuccess()
+                } else {
+                    val msg = response.body()?.error ?: "Error al guardar el PIN"
+                    _state.value = AuthState.Error(msg)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "SET_PIN: excepcion", e)
                 _state.value = AuthState.Error("Error de conexión")
             }
         }

@@ -102,6 +102,7 @@ fun NavGraph(navController: NavHostController) {
             PinScreen(
                 trabajadorId = trabajadorId,
                 trabajadorNombre = trabajadorNombre,
+                tienePinPrevio = trabajador?.tiene_pin ?: true,
                 viewModel = authViewModel,
                 onPinCorrecto = {
                     // Si es admin, va al panel de admin; si no, al home de trabajador

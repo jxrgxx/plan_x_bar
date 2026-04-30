@@ -13,6 +13,9 @@ interface ApiService {
     @POST("auth/verificar_pin.php")
     suspend fun verificarPin(@Body request: PinVerifyRequest): Response<PinVerifyResponse>
 
+    @POST("auth/set_pin.php")
+    suspend fun setPin(@Body request: SetPinRequest): Response<SetPinResponse>
+
     @POST("restaurante/restaurante_registrar.php")
     suspend fun registrarRestaurante(@Body request: RegisterRequest): Response<RegisterResponse>
 

@@ -7,7 +7,8 @@ data class Trabajador(
     val rol: String,
     val email: String,
     val activo: Boolean = true,
-    val restaurante_nombre: String? = null
+    val restaurante_nombre: String? = null,
+    val tiene_pin: Boolean = false
 )
 
 data class Mesa(
@@ -34,6 +35,8 @@ data class Producto(
 data class LoginRequest(val email: String, val password: String)
 data class PinVerifyRequest(val trabajador_id: Int, val pin: String)
 data class PinVerifyResponse(val success: Boolean, val error: String? = null)
+data class SetPinRequest(val trabajador_id: Int, val pin: String)
+data class SetPinResponse(val success: Boolean, val error: String? = null)
 data class LoginResponse(val success: Boolean, val trabajador: Trabajador?)
 
 data class RegisterRequest(
