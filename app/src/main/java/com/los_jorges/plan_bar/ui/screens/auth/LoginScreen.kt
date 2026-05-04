@@ -107,5 +107,6 @@ fun LoginScreen(
         TextButton(onClick = onGoToRegister) {
             Text("¿Sin cuenta? Registra tu restaurante")
         }
+
     }
 }

@@ -106,9 +106,9 @@ fun TrabajadoresAdminScreen(
         TrabajadorDialog(
             trabajador = trabajadorEditar,
             onDismiss = { showDialog = false },
-            onConfirm = { nombre, rol, email, activo, password ->
+            onConfirm = { nombre, rol, email, activo, password, pin ->
                 if (trabajadorEditar == null) {
-                    vm.crear(restauranteId, nombre, rol, email, password) { ok, err ->
+                    vm.crear(restauranteId, nombre, rol, email, password, pin) { ok, err ->
                         snackMsg = if (ok) "Trabajador creado" else err ?: "Error"
                     }
                 } else {
@@ -119,7 +119,8 @@ fun TrabajadoresAdminScreen(
                         rol,
                         email,
                         activo,
-                        password
+                        password,
+                        pin
                     ) { ok, err ->
                         snackMsg = if (ok) "Trabajador actualizado" else err ?: "Error"
                     }
@@ -189,13 +190,14 @@ private fun TrabajadorItem(trabajador: Trabajador, onEditar: () -> Unit, onElimi
 private fun TrabajadorDialog(
     trabajador: Trabajador?,
     onDismiss: () -> Unit,
-    onConfirm: (String, String, String, Boolean, String) -> Unit
+    onConfirm: (String, String, String, Boolean, String, String) -> Unit
 ) {
     var nombre by remember { mutableStateOf(trabajador?.nombre ?: "") }
     var rol by remember { mutableStateOf(trabajador?.rol ?: ROLES[0]) }
     var email by remember { mutableStateOf(trabajador?.email ?: "") }
     var activo by remember { mutableStateOf(trabajador?.activo ?: true) }
     var password by remember { mutableStateOf("") }
+    var pin by remember { mutableStateOf("") }
     var expandedRol by remember { mutableStateOf(false) }
 
     AlertDialog(
@@ -251,6 +253,16 @@ private fun TrabajadorDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                OutlinedTextField(
+                    value = pin,
+                    onValueChange = { v -> pin = v.filter { it.isDigit() }.take(6) },
+                    label = { Text(if (trabajador == null) "PIN (numérico, opcional)" else "Nuevo PIN (opcional)") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    supportingText = { Text("Máx. 6 dígitos") }
+                )
+
                 if (trabajador != null) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Checkbox(checked = activo, onCheckedChange = { activo = it })
@@ -263,7 +275,7 @@ private fun TrabajadorDialog(
             TextButton(onClick = {
                 val passOk = trabajador != null || password.isNotBlank()
                 if (nombre.isNotBlank() && email.isNotBlank() && passOk)
-                    onConfirm(nombre, rol, email, activo, password)
+                    onConfirm(nombre, rol, email, activo, password, pin)
             }) { Text("Guardar") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }

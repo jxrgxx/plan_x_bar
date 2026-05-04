@@ -10,6 +10,12 @@ interface ApiService {
     @POST("auth/auth_login.php")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
+    @POST("auth/verificar_pin.php")
+    suspend fun verificarPin(@Body request: PinVerifyRequest): Response<PinVerifyResponse>
+
+    @POST("auth/set_pin.php")
+    suspend fun setPin(@Body request: SetPinRequest): Response<SetPinResponse>
+
     @POST("restaurante/restaurante_registrar.php")
     suspend fun registrarRestaurante(@Body request: RegisterRequest): Response<RegisterResponse>
 
@@ -61,11 +67,55 @@ interface ApiService {
     @POST("pedidos/pedidos_cancelar.php")
     suspend fun cancelarPedido(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
 
+    @POST("pedidos/pedidos_enviar_cocina.php")
+    suspend fun enviarACocina(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
+
+    @GET("pedidos/pedidos_activos_cocina.php")
+    suspend fun getPedidosActivosCocina(@Query("restaurante_id") restauranteId: Int): Response<PedidosActivosResponse>
+
+    @POST("pedidos/pedidos_marcar_plato.php")
+    suspend fun marcarPlato(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
+
+    @POST("pedidos/pedidos_marcar_listo.php")
+    suspend fun marcarPedidoListo(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
+
     @POST("pedidos/pedidos_eliminar_producto.php")
     suspend fun eliminarProductoPedido(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
 
     @POST("pedidos/pedidos_actualizar_cantidad.php")
     suspend fun actualizarCantidadProducto(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
+
+    // --- Reservas ---
+    @GET("reservas/reservas_obtener.php")
+    suspend fun getReservas(
+        @Query("restaurante_id") restauranteId: Int,
+        @Query("fecha") fecha: String
+    ): Response<ReservasResponse>
+
+    @POST("reservas/reservas_crear.php")
+    suspend fun crearReserva(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<CrearReservaResponse>
+
+    @POST("reservas/reservas_editar.php")
+    suspend fun editarReserva(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
+
+    @POST("reservas/reservas_eliminar.php")
+    suspend fun eliminarReserva(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
+
+    @GET("restaurante/restaurantes_obtener.php")
+    suspend fun getRestaurantes(): Response<RestaurantesResponse>
+
+    // --- Estructuras ---
+    @GET("estructuras/estructuras_obtener.php")
+    suspend fun getEstructuras(@Query("restaurante_id") restauranteId: Int): Response<EstructurasResponse>
+
+    @POST("estructuras/estructuras_crear.php")
+    suspend fun crearEstructura(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<CreateResponse>
+
+    @POST("estructuras/estructuras_editar.php")
+    suspend fun editarEstructura(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
+
+    @POST("estructuras/estructuras_eliminar.php")
+    suspend fun eliminarEstructura(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
 
     // --- Trabajadores ---
     @GET("trabajadores/trabajadores_obtener.php")

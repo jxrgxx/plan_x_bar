@@ -15,7 +15,7 @@ if (!$email || !$password) {
 
 $db   = getDB();
 $stmt = $db->prepare("
-    SELECT t.id, t.restaurante_id, t.nombre, t.rol, t.email, t.password_hash, t.activo,
+    SELECT t.id, t.restaurante_id, t.nombre, t.rol, t.email, t.password_hash, t.activo, t.pin,
            r.nombre AS restaurante_nombre
     FROM Trabajadores t
     JOIN Restaurante r ON r.id = t.restaurante_id
@@ -31,4 +31,6 @@ if (!$user || !$user['activo'] || !password_verify($password, $user['password_ha
 unset($user['password_hash'], $user['activo']);
 $user['id']             = (int) $user['id'];
 $user['restaurante_id'] = (int) $user['restaurante_id'];
+$user['tiene_pin']      = !empty($user['pin']);
+unset($user['pin']);
 jsonResponse(['success' => true, 'trabajador' => $user]);

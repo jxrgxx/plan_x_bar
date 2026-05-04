@@ -17,7 +17,7 @@ if ($pedido_id) {
 
     $stmt = $db->prepare("
         SELECT pp.id, pp.cantidad, pp.precio_unitario, pp.observaciones, pp.fecha_agregado,
-               pr.nombre, pr.categoria
+               pp.estado, pr.nombre, pr.categoria
         FROM PedidoProductos pp
         JOIN Productos pr ON pr.id = pp.producto_id
         WHERE pp.pedido_id = ?
@@ -32,7 +32,7 @@ if ($pedido_id) {
 if ($mesa_id) {
     $stmt = $db->prepare("
         SELECT p.id, p.estado, p.fecha_apertura, p.total, p.trabajador_id
-        FROM Pedidos p WHERE p.mesa_id = ? AND p.estado = 'abierto' LIMIT 1
+        FROM Pedidos p WHERE p.mesa_id = ? AND p.estado IN ('abierto','en_cocina','listo') LIMIT 1
     ");
     $stmt->execute([$mesa_id]);
     $pedido = $stmt->fetch();
