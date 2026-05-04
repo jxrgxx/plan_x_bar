@@ -108,7 +108,10 @@ fun ComandaScreen(
                         TextButton(onClick = { showCancelarDialog = true }) {
                             Text("Cancelar pedido", color = MaterialTheme.colorScheme.error)
                         }
-                    } else if (pedido?.estado == "abierto") {
+                    } else if (pedido?.estado == "abierto" ||
+                        (pedido?.estado in listOf("en_cocina", "listo") &&
+                                pedido?.productos?.any { it.estado == "" } == true)
+                    ) {
                         TextButton(onClick = {
                             pedido?.let { p ->
                                 pedidosVm.enviarACocina(p.id) { ok, err ->
@@ -159,8 +162,7 @@ fun ComandaScreen(
                         Column(Modifier.fillMaxSize()) {
                             LazyColumn(
                                 modifier = Modifier.weight(1f),
-                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
                             ) {
                                 val lineas = pedido.productos
                                 if (lineas.isEmpty()) {
@@ -251,8 +253,7 @@ fun ComandaScreen(
 
                 LazyColumn(
                     modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                    contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp)
                 ) {
                     items(listaActual, key = { it.id }) { producto ->
                         ProductoSelectorItem(
@@ -263,6 +264,7 @@ fun ComandaScreen(
                                 else snackMsg = "Crea el pedido primero"
                             }
                         )
+                        HorizontalDivider()
                     }
                 }
             }
@@ -333,6 +335,7 @@ fun ComandaScreen(
 
 private val ColorPlatoListo = Color(0xFF43A047)
 private val ColorPlatoEnCocina = Color(0xFFFFA726)
+private val ColorPlatoDefault = Color.Gray
 
 @Composable
 private fun LineaPedidoItem(
@@ -343,13 +346,13 @@ private fun LineaPedidoItem(
     val estadoColor = when (linea.estado) {
         "preparado" -> ColorPlatoListo
         "en preparacion" -> ColorPlatoEnCocina
-        else -> null
+        else -> ColorPlatoDefault
     }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 4.dp),
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (estadoColor != null) {

@@ -18,12 +18,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.los_jorges.plan_bar.model.Reserva
 import com.los_jorges.plan_bar.model.Trabajador
 import com.los_jorges.plan_bar.session.SessionManager
+import com.los_jorges.plan_bar.viewmodel.AuthState
+import com.los_jorges.plan_bar.viewmodel.AuthViewModel
 import com.los_jorges.plan_bar.viewmodel.ReservasViewModel
 import com.los_jorges.plan_bar.viewmodel.TrabajadoresViewModel
 import java.util.Calendar
@@ -37,14 +40,17 @@ fun SelectorPersonalScreen(
 ) {
     val vm: TrabajadoresViewModel = viewModel()
     val reservasVm: ReservasViewModel = viewModel()
+    val authVm: AuthViewModel = viewModel()
     val trabajadores by vm.trabajadores.collectAsState()
     val loading by vm.loading.collectAsState()
     val reservas by reservasVm.reservas.collectAsState()
+    val authState by authVm.state.collectAsState()
     val restauranteNombre = SessionManager.restauranteNombre
     val restauranteId = SessionManager.restauranteId
 
     var showNuevaReserva by remember { mutableStateOf(false) }
     var showVerReservas by remember { mutableStateOf(false) }
+    var showConfirmarCierre by remember { mutableStateOf(false) }
     var snackMsg by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -60,7 +66,7 @@ fun SelectorPersonalScreen(
             TopAppBar(
                 title = { Text(restauranteNombre) },
                 actions = {
-                    TextButton(onClick = onCerrarSesionRestaurante) { Text("Cerrar sesión") }
+                    TextButton(onClick = { authVm.resetState(); showConfirmarCierre = true }) { Text("Cerrar sesión") }
                 }
             )
         },
@@ -163,6 +169,66 @@ fun SelectorPersonalScreen(
             }
         )
     }
+
+    if (showConfirmarCierre) {
+        ConfirmarCierreSesionDialog(
+            authState = authState,
+            onDismiss = { showConfirmarCierre = false; authVm.resetState() },
+            onConfirmar = { password ->
+                authVm.verificarAdmin(password) {
+                    showConfirmarCierre = false
+                    onCerrarSesionRestaurante()
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun ConfirmarCierreSesionDialog(
+    authState: AuthState,
+    onDismiss: () -> Unit,
+    onConfirmar: (String) -> Unit
+) {
+    var password by remember { mutableStateOf("") }
+    val isLoading = authState is AuthState.Loading
+    val errorMsg = (authState as? AuthState.Error)?.mensaje
+
+    AlertDialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        title = { Text("Cerrar sesión") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Introduce la contraseña de administrador para salir.")
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Contraseña") },
+                    singleLine = true,
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !isLoading
+                )
+                if (errorMsg != null) {
+                    Text(
+                        errorMsg,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirmar(password) }, enabled = !isLoading) {
+                if (isLoading) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                else Text("Confirmar")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isLoading) { Text("Cancelar") }
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

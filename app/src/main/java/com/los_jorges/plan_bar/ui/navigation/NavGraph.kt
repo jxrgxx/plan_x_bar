@@ -12,7 +12,7 @@ import com.los_jorges.plan_bar.ui.screens.auth.*
 import com.los_jorges.plan_bar.ui.screens.auth.FormularioReservaScreen
 import com.los_jorges.plan_bar.ui.screens.trabajador.CocinaScreen
 import com.los_jorges.plan_bar.ui.screens.trabajador.ComandaScreen
-import com.los_jorges.plan_bar.ui.screens.trabajador.HomeScreen
+import com.los_jorges.plan_bar.ui.screens.trabajador.MesasCamareroScreen
 import com.los_jorges.plan_bar.viewmodel.AuthViewModel
 
 object Routes {
@@ -50,6 +50,7 @@ fun NavGraph(navController: NavHostController) {
     val authViewModel: AuthViewModel = viewModel()
 
     val startDestination = when {
+        SessionManager.hayTrabajadorActivo && SessionManager.trabajador.value?.rol == "cocina" -> Routes.HOME_COCINA
         SessionManager.hayTrabajadorActivo -> Routes.HOME_TRABAJADOR
         SessionManager.hayRestauranteActivo -> Routes.selectorPersonal(SessionManager.restauranteId)
         else -> Routes.LOGIN
@@ -145,17 +146,6 @@ fun NavGraph(navController: NavHostController) {
                 onProductos = { navController.navigate(Routes.adminProductos(restauranteId)) },
                 onTrabajadores = { navController.navigate(Routes.adminTrabajadores(restauranteId)) },
                 onReservas = { navController.navigate(Routes.adminReservas(restauranteId)) },
-                onAccesoTrabajador = {
-                    // Vuelve al selector para que otro trabajador entre
-                    SessionManager.desactivarPersonal()
-                    navController.navigate(Routes.selectorPersonal(restauranteId)) {
-                        popUpTo(Routes.admin(restauranteId)) { inclusive = true }
-                    }
-                },
-                onCerrarSesion = {
-                    SessionManager.cerrarSesionTotal()
-                    navController.navigate(Routes.LOGIN) { popUpTo(0) { inclusive = true } }
-                }
             )
         }
 
@@ -220,12 +210,9 @@ fun NavGraph(navController: NavHostController) {
         }
 
         composable(Routes.HOME_TRABAJADOR) {
-            HomeScreen(
-                authViewModel = authViewModel,
-                onCerrarSesion = {
-                    val id = SessionManager.restauranteId
-                    SessionManager.desactivarPersonal()
-                    navController.navigate(Routes.selectorPersonal(id)) {
+            MesasCamareroScreen(
+                onVolverAlSelector = {
+                    navController.navigate(Routes.selectorPersonal(SessionManager.restauranteId)) {
                         popUpTo(Routes.HOME_TRABAJADOR) { inclusive = true }
                     }
                 },

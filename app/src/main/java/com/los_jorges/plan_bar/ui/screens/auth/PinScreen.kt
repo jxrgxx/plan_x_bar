@@ -36,9 +36,14 @@ fun PinScreen(
     var pin by remember { mutableStateOf("") }
     var pinCreado by remember { mutableStateOf("") } // guarda el primer PIN en la confirmación
 
-    // Limpiar error al escribir
+    // Limpiar error al escribir (solo si el usuario teclea, no al borrar por fallo)
     LaunchedEffect(pin) {
-        if (state is AuthState.Error) viewModel.resetState()
+        if (pin.isNotEmpty() && state is AuthState.Error) viewModel.resetState()
+    }
+
+    // Borrar PIN al fallar
+    LaunchedEffect(state) {
+        if (state is AuthState.Error) pin = ""
     }
 
     val titulo = when (paso) {

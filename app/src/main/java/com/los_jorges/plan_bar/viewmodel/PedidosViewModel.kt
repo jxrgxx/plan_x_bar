@@ -133,6 +133,8 @@ class PedidosViewModel : ViewModel() {
                     _pedido.value = null
                     onDone(true, null)
                 } else {
+                    val errorBody = r.errorBody()?.string()
+                    Log.e(TAG, "cerrarPedido: code=${r.code()} body=${r.body()} errorBody=$errorBody")
                     onDone(false, r.body()?.error ?: "Error al cobrar el pedido")
                 }
             } catch (e: Exception) {

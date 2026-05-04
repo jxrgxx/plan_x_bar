@@ -16,7 +16,7 @@ if (!$pedido_id || !in_array($metodo_pago, $permitidos)) {
 
 $db = getDB();
 
-$stmt = $db->prepare("SELECT mesa_id FROM Pedidos WHERE id = ? AND estado = 'abierto'");
+$stmt = $db->prepare("SELECT mesa_id FROM Pedidos WHERE id = ? AND estado != 'pagado'");
 $stmt->execute([$pedido_id]);
 $pedido = $stmt->fetch();
 if (!$pedido) {

@@ -18,18 +18,11 @@ fun AdminScreen(
     onProductos: () -> Unit,
     onTrabajadores: () -> Unit,
     onReservas: () -> Unit,
-    onAccesoTrabajador: () -> Unit,
-    onCerrarSesion: () -> Unit
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Gestión del restaurante") },
-                actions = {
-                    IconButton(onClick = onCerrarSesion) {
-                        Icon(Icons.Default.ExitToApp, "Cerrar sesión")
-                    }
-                }
+                title = { Text("Gestión del restaurante") }
             )
         }
     ) { padding ->
@@ -76,24 +69,6 @@ fun AdminScreen(
                 onClick = onReservas
             )
 
-            Spacer(Modifier.height(8.dp))
-            HorizontalDivider()
-            Spacer(Modifier.height(8.dp))
-
-            Button(
-                onClick = onAccesoTrabajador,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                )
-            ) {
-                Icon(Icons.Default.SwitchAccount, null, modifier = Modifier.size(20.dp))
-                Spacer(Modifier.width(8.dp))
-                Text("Acceder como trabajador")
-            }
         }
     }
 }

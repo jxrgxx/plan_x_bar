@@ -36,7 +36,7 @@ if ($lineaExistente && empty($observaciones)) {
     $nuevaCantidad = $lineaExistente['cantidad'] + $cantidad;
     $db->prepare("UPDATE PedidoProductos SET cantidad = ? WHERE id = ?")->execute([$nuevaCantidad, $lineaExistente['id']]);
 } else {
-    $db->prepare("INSERT INTO PedidoProductos (pedido_id, producto_id, cantidad, precio_unitario, observaciones) VALUES (?, ?, ?, ?, ?)")
+    $db->prepare("INSERT INTO PedidoProductos (pedido_id, producto_id, cantidad, precio_unitario, observaciones, estado) VALUES (?, ?, ?, ?, ?, '')")
        ->execute([$pedido_id, $producto_id, $cantidad, $precio, $observaciones ?: null]);
 }
 

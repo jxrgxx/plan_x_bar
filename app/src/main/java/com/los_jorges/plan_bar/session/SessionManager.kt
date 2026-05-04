@@ -37,8 +37,9 @@ object SessionManager {
         prefs = context.getSharedPreferences("planbar_session", Context.MODE_PRIVATE)
         _admin.value = cargar("session_admin")
         _trabajador.value = cargar("session_trabajador")
-        // El PIN nunca se persiste — siempre empieza sin verificar
-        _pinVerificado.value = false
+        // Si había un trabajador activo, consideramos el PIN ya verificado
+        _pinVerificado.value = _trabajador.value != null
+        if (_pinVerificado.value) pinVerificadoTimestamp = System.currentTimeMillis()
     }
 
     // ── Nivel 1: Restaurante ──────────────────────────────────────────────────
@@ -73,27 +74,7 @@ object SessionManager {
      * - Jefe de sala: siempre
      * - Camarero/cocina: solo si no se ha verificado hoy
      */
-    fun necesitaPin(): Boolean {
-        val t = _trabajador.value ?: return true
-        if (!_pinVerificado.value) return true
-        return when (t.rol) {
-            "admin" -> true  // jefe siempre vuelve a pedir
-            else -> {
-                // Para camarero/cocina: válido todo el día
-                val hoyInicio = startOfDay()
-                pinVerificadoTimestamp < hoyInicio
-            }
-        }
-    }
-
-    private fun startOfDay(): Long {
-        val cal = java.util.Calendar.getInstance()
-        cal.set(java.util.Calendar.HOUR_OF_DAY, 0)
-        cal.set(java.util.Calendar.MINUTE, 0)
-        cal.set(java.util.Calendar.SECOND, 0)
-        cal.set(java.util.Calendar.MILLISECOND, 0)
-        return cal.timeInMillis
-    }
+    fun necesitaPin(): Boolean = true
 
     // ── Cerrar sesiones ───────────────────────────────────────────────────────
 

@@ -27,7 +27,7 @@ try {
                    pp.fecha_agregado, pp.estado, pr.nombre, pr.categoria
             FROM PedidoProductos pp
             JOIN Productos pr ON pr.id = pp.producto_id
-            WHERE pp.pedido_id = ?
+            WHERE pp.pedido_id = ? AND pp.estado != ''
             ORDER BY pp.fecha_agregado
         ");
         $ps->execute([$pedido['id']]);
