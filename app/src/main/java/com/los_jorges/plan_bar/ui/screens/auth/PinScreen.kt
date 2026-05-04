@@ -42,14 +42,14 @@ fun PinScreen(
     }
 
     val titulo = when (paso) {
-        Paso.VERIFICAR  -> "Introduce tu PIN"
-        Paso.CREAR      -> "Crea tu PIN"
-        Paso.CONFIRMAR  -> "Confirma tu PIN"
+        Paso.VERIFICAR -> "Introduce tu PIN"
+        Paso.CREAR -> "Crea tu PIN"
+        Paso.CONFIRMAR -> "Confirma tu PIN"
     }
     val subtitulo = when (paso) {
-        Paso.VERIFICAR  -> "Hola, $trabajadorNombre"
-        Paso.CREAR      -> "Es tu primera vez. Elige un PIN de $PIN_LENGTH dígitos."
-        Paso.CONFIRMAR  -> "Repite el PIN para confirmarlo."
+        Paso.VERIFICAR -> "Hola, $trabajadorNombre"
+        Paso.CREAR -> "Es tu primera vez. Elige un PIN de $PIN_LENGTH dígitos."
+        Paso.CONFIRMAR -> "Repite el PIN para confirmarlo."
     }
 
     fun onDigito(d: String) {
@@ -57,8 +57,16 @@ fun PinScreen(
         // Avance automático al completar los 4 dígitos
         if (pin.length == PIN_LENGTH) {
             when (paso) {
-                Paso.VERIFICAR -> viewModel.verificarPin(trabajadorId, pin, onSuccess = onPinCorrecto)
-                Paso.CREAR     -> { pinCreado = pin; pin = ""; paso = Paso.CONFIRMAR }
+                Paso.VERIFICAR -> viewModel.verificarPin(
+                    trabajadorId,
+                    pin,
+                    onSuccess = onPinCorrecto
+                )
+
+                Paso.CREAR -> {
+                    pinCreado = pin; pin = ""; paso = Paso.CONFIRMAR
+                }
+
                 Paso.CONFIRMAR -> {
                     if (pin == pinCreado) {
                         viewModel.setPin(trabajadorId, pin, onSuccess = onPinCorrecto)
@@ -179,18 +187,23 @@ fun PinNumpad(onDigit: (String) -> Unit, onBorrar: () -> Unit, cargando: Boolean
             ) {
                 fila.forEach { label ->
                     when (label) {
-                        ""  -> Spacer(Modifier.weight(1f))
+                        "" -> Spacer(Modifier.weight(1f))
                         "⌫" -> OutlinedButton(
                             onClick = onBorrar,
                             enabled = !cargando,
-                            modifier = Modifier.weight(1f).height(60.dp)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(60.dp)
                         ) {
                             Icon(Icons.Default.Backspace, "Borrar")
                         }
+
                         else -> FilledTonalButton(
                             onClick = { onDigit(label) },
                             enabled = !cargando,
-                            modifier = Modifier.weight(1f).height(60.dp)
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(60.dp)
                         ) {
                             if (cargando && label == "0") {
                                 CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)

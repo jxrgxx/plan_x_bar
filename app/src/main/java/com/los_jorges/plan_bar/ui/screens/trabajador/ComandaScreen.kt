@@ -1,5 +1,6 @@
 package com.los_jorges.plan_bar.ui.screens.trabajador
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -12,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -51,6 +53,15 @@ fun ComandaScreen(
     LaunchedEffect(mesaId) {
         pedidosVm.cargarPedidoPorMesa(mesaId)
         productosVm.cargar(SessionManager.restauranteId)
+    }
+
+    // Polling cuando el pedido está en cocina para ver cambios de estado de platos
+    val pedidoEstado = pedido?.estado
+    val pedidoId = pedido?.id
+    LaunchedEffect(pedidoEstado, pedidoId) {
+        if (pedidoEstado == "en_cocina" && pedidoId != null) {
+            pedidosVm.iniciarPollingCamarero(pedidoId)
+        }
     }
 
     LaunchedEffect(snackMsg) {
@@ -97,9 +108,17 @@ fun ComandaScreen(
                         TextButton(onClick = { showCancelarDialog = true }) {
                             Text("Cancelar pedido", color = MaterialTheme.colorScheme.error)
                         }
+                    } else if (pedido?.estado == "abierto") {
+                        TextButton(onClick = {
+                            pedido?.let { p ->
+                                pedidosVm.enviarACocina(p.id) { ok, err ->
+                                    if (!ok) snackMsg = err ?: "Error al enviar"
+                                }
+                            }
+                        }) { Text("Enviar a cocina") }
                     } else {
-                        TextButton(onClick = { /* TODO: pantalla cocinero */ }) {
-                            Text("Enviar")
+                        TextButton(enabled = false, onClick = {}) {
+                            Text(pedido?.estado?.replaceFirstChar { it.uppercase() } ?: "")
                         }
                     }
                 }
@@ -312,20 +331,44 @@ fun ComandaScreen(
 
 // ─── Composables auxiliares ──────────────────────────────────────────────────
 
+private val ColorPlatoListo = Color(0xFF43A047)
+private val ColorPlatoEnCocina = Color(0xFFFFA726)
+
 @Composable
 private fun LineaPedidoItem(
     linea: PedidoProducto,
     onEliminar: () -> Unit,
     onCambiarCantidad: (Int) -> Unit
 ) {
+    val estadoColor = when (linea.estado) {
+        "preparado" -> ColorPlatoListo
+        "en preparacion" -> ColorPlatoEnCocina
+        else -> null
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        if (estadoColor != null) {
+            Box(
+                modifier = Modifier
+                    .width(4.dp)
+                    .height(40.dp)
+                    .background(
+                        estadoColor,
+                        androidx.compose.foundation.shape.RoundedCornerShape(2.dp)
+                    )
+            )
+            Spacer(Modifier.width(8.dp))
+        }
         Column(modifier = Modifier.weight(1f)) {
-            Text(linea.nombre, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                linea.nombre, style = MaterialTheme.typography.bodyMedium,
+                color = estadoColor ?: MaterialTheme.colorScheme.onSurface
+            )
             if (!linea.observaciones.isNullOrBlank()) {
                 Text(
                     linea.observaciones,

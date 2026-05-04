@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: pdb1037.awardspace.net
--- Tiempo de generación: 25-04-2026 a las 17:20:53
+-- Tiempo de generación: 27-04-2026 a las 18:52:16
 -- Versión del servidor: 8.0.32
 -- Versión de PHP: 8.1.34
 
@@ -50,7 +50,8 @@ CREATE TABLE `PedidoProductos` (
   `cantidad` int NOT NULL DEFAULT '1',
   `precio_unitario` decimal(10,2) NOT NULL,
   `observaciones` text COLLATE utf8mb4_unicode_ci,
-  `fecha_agregado` datetime DEFAULT CURRENT_TIMESTAMP
+  `fecha_agregado` datetime DEFAULT CURRENT_TIMESTAMP,
+  `estado` enum('en preparacion','preparado','servido','') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -67,7 +68,7 @@ CREATE TABLE `Pedidos` (
   `trabajador_id` int DEFAULT NULL,
   `fecha_apertura` datetime DEFAULT CURRENT_TIMESTAMP,
   `fecha_cierre` datetime DEFAULT NULL,
-  `estado` enum('abierto','pagado') COLLATE utf8mb4_unicode_ci DEFAULT 'abierto',
+  `estado` enum('abierto','en_cocina','listo','pagado') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'abierto',
   `subtotal` decimal(10,2) DEFAULT '0.00',
   `total` decimal(10,2) DEFAULT '0.00',
   `metodo_pago` enum('efectivo','tarjeta','otro') COLLATE utf8mb4_unicode_ci DEFAULT NULL
@@ -83,7 +84,7 @@ CREATE TABLE `Productos` (
   `id` int NOT NULL,
   `restaurante_id` int NOT NULL,
   `nombre` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `categoria` enum('entrante','principal','postre','bebida') COLLATE utf8mb4_unicode_ci NOT NULL,
+  `categoria` enum('bebida','entrante','primero','segundo','postre') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
   `descripcion` text COLLATE utf8mb4_unicode_ci,
   `precio` decimal(10,2) NOT NULL,
   `disponible` tinyint(1) DEFAULT '1',

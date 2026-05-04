@@ -17,6 +17,7 @@ fun AdminScreen(
     onMesas: () -> Unit,
     onProductos: () -> Unit,
     onTrabajadores: () -> Unit,
+    onReservas: () -> Unit,
     onAccesoTrabajador: () -> Unit,
     onCerrarSesion: () -> Unit
 ) {
@@ -67,6 +68,12 @@ fun AdminScreen(
                 titulo = "Trabajadores",
                 descripcion = "Gestionar el equipo",
                 onClick = onTrabajadores
+            )
+            AdminMenuCard(
+                icon = { Icon(Icons.Default.CalendarMonth, null, modifier = Modifier.size(32.dp)) },
+                titulo = "Reservas",
+                descripcion = "Ver y gestionar reservas por día",
+                onClick = onReservas
             )
 
             Spacer(Modifier.height(8.dp))
