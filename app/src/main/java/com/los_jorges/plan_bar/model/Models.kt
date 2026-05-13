@@ -18,7 +18,8 @@ data class Mesa(
     val capacidad: Int,
     val estado: String,
     val posX: Float,
-    val posY: Float
+    val posY: Float,
+    val zona: String = "piso1"
 )
 
 data class Producto(
@@ -101,7 +102,8 @@ data class Estructura(
     val posY: Float,
     val ancho: Float,
     val alto: Float,
-    val color: String = "#BBDEFB"
+    val color: String = "#BBDEFB",
+    val zona: String = "piso1"
 )
 
 data class EstructurasResponse(val estructuras: List<Estructura>)
@@ -114,6 +116,7 @@ data class TrabajadoresResponse(val trabajadores: List<Trabajador>)
 // --- Pedidos ---
 data class PedidoProducto(
     val id: Int,
+    val producto_id: Int = 0,
     val cantidad: Int,
     val precio_unitario: Double,
     val observaciones: String?,
@@ -151,4 +154,68 @@ data class AgregarProductoResponse(
     val success: Boolean,
     val precio_unitario: Double?,
     val error: String?
+)
+
+// --- Menú del Día ---
+data class MenuDiaLinea(
+    val id: Int = 0,
+    val producto_id: Int,
+    val nombre: String,
+    val precio: Double,
+    val curso: String,     // "bebida" | "primero" | "segundo" | "postre"
+    val cantidad: Int = 0  // 0 = sin límite
+)
+
+data class MenuDia(
+    val id: Int,
+    val precio: Double,
+    val activo: Boolean,
+    val lineas: List<MenuDiaLinea> = emptyList()
+)
+
+data class MenuDiaResponse(val menu: MenuDia?)
+
+data class MenuDiaLineaRequest(
+    val producto_id: Int,
+    val curso: String,
+    val cantidad: Int
+)
+
+data class GuardarMenuDiaRequest(
+    val restaurante_id: Int,
+    val precio: Double,
+    val activo: Boolean = true,
+    val lineas: List<MenuDiaLineaRequest>
+)
+
+// --- Estadísticas ---
+data class TopPlato(
+    val nombre: String,
+    val categoria: String,
+    val total_unidades: Int,
+    val total_importe: Double
+)
+
+data class VentaCategoria(
+    val categoria: String,
+    val total_unidades: Int,
+    val total_importe: Double
+)
+
+data class VentaMesero(
+    val nombre: String,
+    val total_pedidos: Int,
+    val total_importe: Double
+)
+
+data class EstadisticasResponse(
+    val venta_bruta: Double,
+    val venta_neta: Double,
+    val total_descuentos: Double,
+    val total_cortesias: Double,
+    val total_pax: Int,
+    val tiempo_medio_minutos: Int,
+    val top_platos: List<TopPlato>,
+    val ventas_categoria: List<VentaCategoria>,
+    val ventas_mesero: List<VentaMesero>
 )

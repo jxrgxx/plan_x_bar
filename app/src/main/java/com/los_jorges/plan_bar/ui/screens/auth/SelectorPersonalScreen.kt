@@ -1,6 +1,8 @@
 package com.los_jorges.plan_bar.ui.screens.auth
 
 import androidx.compose.foundation.clickable
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -51,6 +53,7 @@ fun SelectorPersonalScreen(
     var showNuevaReserva by remember { mutableStateOf(false) }
     var showVerReservas by remember { mutableStateOf(false) }
     var showConfirmarCierre by remember { mutableStateOf(false) }
+    var showReservasMenu by remember { mutableStateOf(false) }
     var snackMsg by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -66,7 +69,9 @@ fun SelectorPersonalScreen(
             TopAppBar(
                 title = { Text(restauranteNombre) },
                 actions = {
-                    TextButton(onClick = { authVm.resetState(); showConfirmarCierre = true }) { Text("Cerrar sesión") }
+                    TextButton(onClick = {
+                        authVm.resetState(); showConfirmarCierre = true
+                    }) { Text("Cerrar sesión") }
                 }
             )
         },
@@ -87,15 +92,18 @@ fun SelectorPersonalScreen(
             )
 
             if (loading) {
-                Box(Modifier
-                    .weight(1f)
-                    .fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth(), contentAlignment = Alignment.Center
+                ) {
                     CircularProgressIndicator()
                 }
             } else {
-                val personal = trabajadores.filter { it.activo }
+                val personal =
+                    trabajadores.filter { it.activo }.sortedBy { if (it.rol == "admin") 0 else 1 }
                 LazyVerticalGrid(
-                    columns = GridCells.Adaptive(130.dp),
+                    columns = GridCells.Fixed(3),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     modifier = Modifier.weight(1f)
@@ -108,32 +116,41 @@ fun SelectorPersonalScreen(
 
             // ── Botones de reservas ───────────────────────────────────────
             HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-            Row(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .padding(bottom = 16.dp)
             ) {
-                OutlinedButton(
-                    onClick = {
-                        showVerReservas = true; reservasVm.cargar(
-                        restauranteId,
-                        reservasVm.fechaHoy()
-                    )
-                    },
-                    modifier = Modifier.weight(1f)
+                Button(
+                    onClick = { showReservasMenu = true },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(Icons.Default.CalendarMonth, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Ver reservas")
+                    Spacer(Modifier.width(8.dp))
+                    Text("Reservas")
                 }
-                Button(
-                    onClick = { showNuevaReserva = true },
-                    modifier = Modifier.weight(1f)
+                DropdownMenu(
+                    expanded = showReservasMenu,
+                    onDismissRequest = { showReservasMenu = false },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text("Nueva reserva")
+                    DropdownMenuItem(
+                        text = { Text("Ver reservas de hoy") },
+                        leadingIcon = { Icon(Icons.Default.CalendarMonth, null) },
+                        onClick = {
+                            showReservasMenu = false
+                            reservasVm.cargar(restauranteId, reservasVm.fechaHoy())
+                            showVerReservas = true
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Nueva reserva") },
+                        leadingIcon = { Icon(Icons.Default.Add, null) },
+                        onClick = {
+                            showReservasMenu = false
+                            showNuevaReserva = true
+                        }
+                    )
                 }
             }
         }
@@ -221,7 +238,10 @@ private fun ConfirmarCierreSesionDialog(
         },
         confirmButton = {
             TextButton(onClick = { onConfirmar(password) }, enabled = !isLoading) {
-                if (isLoading) CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                if (isLoading) CircularProgressIndicator(
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp
+                )
                 else Text("Confirmar")
             }
         },
@@ -488,12 +508,17 @@ private fun ReservaResumenItem(reserva: Reserva, onMarcarLlegado: () -> Unit) {
     }
 }
 
+private val COLORES_EMPLEADOS = listOf(
+    Color(0xFF3B82F6), Color(0xFF22C55E), Color(0xFFF97316),
+    Color(0xFF8B5CF6), Color(0xFF06B6D4), Color(0xFFEAB308), Color(0xFFEF4444)
+)
+
 @Composable
 fun TrabajadorCard(trabajador: Trabajador, onClick: () -> Unit) {
-    val rolColor = when (trabajador.rol) {
-        "admin" -> MaterialTheme.colorScheme.primaryContainer
-        "cocina" -> MaterialTheme.colorScheme.tertiaryContainer
-        else -> MaterialTheme.colorScheme.secondaryContainer
+    val bgColor = if (trabajador.rol == "admin") {
+        Color(0xFF000000)
+    } else {
+        COLORES_EMPLEADOS[trabajador.id % 7]
     }
     val rolTexto = when (trabajador.rol) {
         "admin" -> "Admin"
@@ -506,7 +531,7 @@ fun TrabajadorCard(trabajador: Trabajador, onClick: () -> Unit) {
             .fillMaxWidth()
             .aspectRatio(1f)
             .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = rolColor),
+        colors = CardDefaults.cardColors(containerColor = bgColor),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(
@@ -516,19 +541,25 @@ fun TrabajadorCard(trabajador: Trabajador, onClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(40.dp))
+            Icon(
+                Icons.Default.Person,
+                contentDescription = null,
+                modifier = Modifier.size(40.dp),
+                tint = Color.White
+            )
             Spacer(Modifier.height(8.dp))
             Text(
                 text = trabajador.nombre,
                 style = MaterialTheme.typography.titleSmall,
                 fontWeight = FontWeight.SemiBold,
                 textAlign = TextAlign.Center,
-                maxLines = 2
+                maxLines = 2,
+                color = Color.White
             )
             Text(
                 text = rolTexto,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = Color.White.copy(alpha = 0.75f),
                 textAlign = TextAlign.Center
             )
         }

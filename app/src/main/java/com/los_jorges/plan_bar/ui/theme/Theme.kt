@@ -1,57 +1,83 @@
 package com.los_jorges.plan_bar.ui.theme
 
-import android.app.Activity
-import android.os.Build
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
 
+// ── Dark Luxury ──────────────────────────────────────────────────────────────
 private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+    primary = Platinum40,
+    onPrimary = DarkBase,
+    primaryContainer = DarkSurface3,
+    onPrimaryContainer = Platinum80,
+
+    secondary = Warm40,
+    onSecondary = DarkBase,
+    secondaryContainer = DarkSurface2,
+    onSecondaryContainer = Warm80,
+
+    tertiary = Green40,
+    onTertiary = DarkBase,
+    tertiaryContainer = Green10,
+    onTertiaryContainer = Green80,
+
+    background = DarkBase,
+    onBackground = WarmWhite,
+    surface = DarkSurface1,
+    onSurface = WarmWhite,
+    surfaceVariant = DarkSurface2,
+    onSurfaceVariant = WarmGray,
+    outline = WarmMuted,
+    outlineVariant = DarkSurface3,
+
+    error = Color(0xFFC0574A),
+    onError = DarkBase,
+    errorContainer = Color(0xFF3D1512),
+    onErrorContainer = Color(0xFFFFADA6),
+
+    inverseSurface = WarmWhite,
+    inverseOnSurface = DarkBase,
+    inversePrimary = Platinum30,
+
+    scrim = Color(0x99000000),
 )
 
+// ── Light (fallback) ─────────────────────────────────────────────────────────
 private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
-
-    /* Other default colors to override
-    background = Color(0xFFFFFBFE),
-    surface = Color(0xFFFFFBFE),
+    primary = Platinum30,
     onPrimary = Color.White,
+    primaryContainer = Platinum90,
+    onPrimaryContainer = Platinum10,
+
+    secondary = Warm40,
     onSecondary = Color.White,
+    secondaryContainer = Warm90,
+    onSecondaryContainer = Warm30,
+
+    tertiary = Green40,
     onTertiary = Color.White,
-    onBackground = Color(0xFF1C1B1F),
-    onSurface = Color(0xFF1C1B1F),
-    */
+    tertiaryContainer = Green90,
+    onTertiaryContainer = Green30,
+
+    background = LightBg,
+    onBackground = DarkOnLight,
+    surface = LightBg,
+    onSurface = DarkOnLight,
+    surfaceVariant = LightSurf,
+    onSurfaceVariant = Warm30,
+    outline = Warm40,
+    outlineVariant = Warm80,
 )
 
 @Composable
 fun Plan_BarTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    darkTheme: Boolean = true,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
-    }
-
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
         typography = Typography,
         content = content
     )

@@ -14,6 +14,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.los_jorges.plan_bar.model.Mesa
+import com.los_jorges.plan_bar.session.SessionManager
 import com.los_jorges.plan_bar.viewmodel.MesasViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -109,9 +110,9 @@ fun MesasAdminScreen(
         MesaDialog(
             mesa = mesaEditar,
             onDismiss = { showDialog = false },
-            onConfirm = { codigo, capacidad, estado ->
+            onConfirm = { codigo, capacidad, estado, zona ->
                 if (mesaEditar == null) {
-                    vm.crear(restauranteId, codigo, capacidad) { ok, err ->
+                    vm.crear(restauranteId, codigo, capacidad, zona) { ok, err ->
                         snackMsg = if (ok) "Mesa creada" else err ?: "Error"
                     }
                 } else {
@@ -122,7 +123,8 @@ fun MesasAdminScreen(
                         capacidad,
                         estado,
                         mesaEditar!!.posX,
-                        mesaEditar!!.posY
+                        mesaEditar!!.posY,
+                        zona
                     ) { ok, err ->
                         snackMsg = if (ok) "Mesa actualizada" else err ?: "Error"
                     }
@@ -188,12 +190,20 @@ private val ESTADOS_MESA = listOf("libre", "ocupada", "reservada")
 private fun MesaDialog(
     mesa: Mesa?,
     onDismiss: () -> Unit,
-    onConfirm: (String, Int, String) -> Unit
+    onConfirm: (String, Int, String, String) -> Unit   // codigo, capacidad, estado, zona
 ) {
+    val zonas = SessionManager.zonas
     var codigo by remember { mutableStateOf(mesa?.codigo ?: "") }
     var capacidad by remember { mutableStateOf(mesa?.capacidad?.toString() ?: "") }
     var estado by remember { mutableStateOf(mesa?.estado ?: "libre") }
+    var zona by remember {
+        mutableStateOf(
+            if (mesa != null) mesa.zona
+            else zonas.firstOrNull()?.first ?: "piso1"
+        )
+    }
     var estadoExpanded by remember { mutableStateOf(false) }
+    var zonaExpanded by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -211,6 +221,36 @@ private fun MesaDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
+                // Selector de zona (siempre visible)
+                if (zonas.size > 1) {
+                    ExposedDropdownMenuBox(
+                        expanded = zonaExpanded,
+                        onExpandedChange = { zonaExpanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = zonas.firstOrNull { it.first == zona }?.second ?: zona,
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Espacio") },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = zonaExpanded) },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .menuAnchor()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = zonaExpanded,
+                            onDismissRequest = { zonaExpanded = false }
+                        ) {
+                            zonas.forEach { (key, nombre) ->
+                                DropdownMenuItem(
+                                    text = { Text(nombre) },
+                                    onClick = { zona = key; zonaExpanded = false }
+                                )
+                            }
+                        }
+                    }
+                }
+                // Estado (solo al editar)
                 if (mesa != null) {
                     ExposedDropdownMenuBox(
                         expanded = estadoExpanded,
@@ -244,7 +284,7 @@ private fun MesaDialog(
         confirmButton = {
             TextButton(onClick = {
                 val cap = capacidad.toIntOrNull() ?: 0
-                if (codigo.isNotBlank() && cap > 0) onConfirm(codigo, cap, estado)
+                if (codigo.isNotBlank() && cap > 0) onConfirm(codigo, cap, estado, zona)
             }) { Text("Guardar") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }

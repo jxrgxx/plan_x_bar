@@ -37,6 +37,8 @@ class EstructurasViewModel : ViewModel() {
     fun crear(
         restauranteId: Int, nombre: String, color: String,
         posX: Float = 50f, posY: Float = 50f,
+        ancho: Float = 200f, alto: Float = 150f,
+        zona: String = "piso1",
         onResult: (Boolean, String?) -> Unit
     ) {
         viewModelScope.launch {
@@ -48,8 +50,9 @@ class EstructurasViewModel : ViewModel() {
                         "color" to color,
                         "posX" to posX,
                         "posY" to posY,
-                        "ancho" to 200f,
-                        "alto" to 150f
+                        "ancho" to ancho,
+                        "alto" to alto,
+                        "zona" to zona
                     )
                 )
                 if (r.isSuccessful && r.body()?.success == true) {

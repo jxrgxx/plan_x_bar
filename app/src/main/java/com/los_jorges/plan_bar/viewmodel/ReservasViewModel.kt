@@ -85,6 +85,40 @@ class ReservasViewModel : ViewModel() {
         }
     }
 
+    fun editar(
+        id: Int,
+        nombre: String,
+        telefono: String,
+        correo: String,
+        numPersonas: Int,
+        hora: String,
+        notas: String,
+        restauranteId: Int,
+        fecha: String,
+        onDone: (Boolean, String?) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val body = mutableMapOf<String, Any>(
+                    "id" to id,
+                    "nombre" to nombre,
+                    "telefono" to telefono,
+                    "num_personas" to numPersonas,
+                    "hora" to hora,
+                    "correo" to correo,
+                    "notas" to notas
+                )
+                val r = RetrofitClient.api.editarReserva(body)
+                if (r.isSuccessful && r.body()?.success == true) {
+                    cargar(restauranteId, fecha)
+                    onDone(true, null)
+                } else onDone(false, r.body()?.error ?: "Error al editar")
+            } catch (_: Exception) {
+                onDone(false, "Error de conexión")
+            }
+        }
+    }
+
     fun cambiarEstado(
         id: Int,
         estado: String,

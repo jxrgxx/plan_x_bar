@@ -132,17 +132,17 @@ fun PinScreen(
 
             // Puntos visuales
             Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.padding(bottom = 16.dp)
+                horizontalArrangement = Arrangement.spacedBy(20.dp),
+                modifier = Modifier.padding(bottom = 20.dp)
             ) {
                 repeat(PIN_LENGTH) { i ->
                     Surface(
-                        shape = MaterialTheme.shapes.small,
+                        shape = androidx.compose.foundation.shape.CircleShape,
                         color = if (i < pin.length)
                             MaterialTheme.colorScheme.primary
                         else
                             MaterialTheme.colorScheme.surfaceVariant,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(22.dp)
                     ) {}
                 }
             }

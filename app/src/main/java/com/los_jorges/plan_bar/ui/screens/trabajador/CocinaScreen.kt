@@ -82,8 +82,13 @@ fun CocinaScreen(
         snackMsg?.let { snackbarHostState.showSnackbar(it); snackMsg = null }
     }
 
-    val pendientesPorTerminar = pedidosActivos.count { p ->
-        p.productos.any { it.estado != "preparado" }
+    // Las bebidas no se preparan en cocina — se filtran de toda la vista
+    val pedidosSinBebidas = pedidosActivos.map { p ->
+        p.copy(productos = p.productos.filter { it.categoria != "bebida" })
+    }.filter { it.productos.isNotEmpty() }
+
+    val pendientesPorTerminar = pedidosSinBebidas.count { p ->
+        p.productos.any { it.estado != "preparado" && it.estado != "cancelado" }
     }
 
     Scaffold(
@@ -92,7 +97,7 @@ fun CocinaScreen(
                 title = {
                     Column {
                         Text("Cocina")
-                        if (pedidosActivos.isNotEmpty()) {
+                        if (pedidosSinBebidas.isNotEmpty()) {
                             Text(
                                 if (pendientesPorTerminar == 0) "Todo al día"
                                 else "$pendientesPorTerminar pedido${if (pendientesPorTerminar > 1) "s" else ""} en marcha",
@@ -111,26 +116,32 @@ fun CocinaScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                    actionIconContentColor = MaterialTheme.colorScheme.onTertiaryContainer
                 )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
 
-        if (loading && pedidosActivos.isEmpty()) {
-            Box(Modifier
-                .fillMaxSize()
-                .padding(padding), contentAlignment = Alignment.Center) {
+        if (loading && pedidosSinBebidas.isEmpty()) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding), contentAlignment = Alignment.Center
+            ) {
                 CircularProgressIndicator()
             }
             return@Scaffold
         }
 
-        if (pedidosActivos.isEmpty()) {
-            Box(Modifier
-                .fillMaxSize()
-                .padding(padding), contentAlignment = Alignment.Center) {
+        if (pedidosSinBebidas.isEmpty()) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding), contentAlignment = Alignment.Center
+            ) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -157,7 +168,7 @@ fun CocinaScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // Primero los pedidos con platos pendientes, luego los ya terminados
-            val ordenados = pedidosActivos.sortedWith(
+            val ordenados = pedidosSinBebidas.sortedWith(
                 compareBy(
                     { p -> p.productos.all { it.estado == "preparado" } },
                     { it.fecha_apertura })
@@ -165,23 +176,20 @@ fun CocinaScreen(
             items(ordenados, key = { it.id }) { pedido ->
                 @Suppress("NAME_SHADOWING")
                 val minutos = remember(pedido.id, tick) { minutosDesde(pedido.fecha_apertura) }
-                PedidoCocinaCard(
-                    pedido = pedido,
-                    minutos = minutos,
-                    onMarcarPlato = { producto ->
-                        val nuevoEstado =
-                            if (producto.estado == "preparado") "en preparacion" else "preparado"
-                        vm.marcarPlato(producto.id, nuevoEstado) { ok, err ->
-                            if (ok) vm.cargarPedidosActivos(restauranteId)
-                            else snackMsg = err ?: "Error al marcar"
+                Box(Modifier.animateItem()) {
+                    PedidoCocinaCard(
+                        pedido = pedido,
+                        minutos = minutos,
+                        onMarcarPlato = { producto ->
+                            val nuevoEstado =
+                                if (producto.estado == "preparado") "en preparacion" else "preparado"
+                            vm.marcarPlato(producto.id, nuevoEstado) { ok, err ->
+                                if (ok) vm.cargarPedidosActivos(restauranteId)
+                                else snackMsg = err ?: "Error al marcar"
+                            }
                         }
-                    },
-                    onMarcarTodoListo = {
-                        vm.marcarPedidoListo(pedido.id, restauranteId) { ok, err ->
-                            if (!ok) snackMsg = err ?: "Error"
-                        }
-                    }
-                )
+                    )
+                }
             }
         }
     }
@@ -191,12 +199,14 @@ fun CocinaScreen(
 private fun PedidoCocinaCard(
     pedido: PedidoCocina,
     minutos: Int,
-    onMarcarPlato: (PedidoProducto) -> Unit,
-    onMarcarTodoListo: () -> Unit
+    onMarcarPlato: (PedidoProducto) -> Unit
 ) {
+    val cancelados = pedido.productos.count { it.estado == "cancelado" }
     val listos = pedido.productos.count { it.estado == "preparado" }
-    val total = pedido.productos.size
+    val total = pedido.productos.count { it.estado != "cancelado" }
+    // Todo listo si todos los activos están preparados
     val todoListo = listos == total && total > 0
+    val platosActivos = pedido.productos.filter { it.estado != "preparado" }
 
     val tiempoColor = when {
         minutos > 20 -> ColorUrgente
@@ -287,41 +297,47 @@ private fun PedidoCocinaCard(
 
             HorizontalDivider()
 
-            // ── Lista de platos: pendientes primero ───────────────────────
-            val platosOrdenados = pedido.productos.sortedBy { it.estado == "preparado" }
+            // ── Lista de platos ──────────────────────────────────────────────
+            val platosOrdenados = platosActivos.sortedWith(
+                compareBy(
+                { it.estado == "cancelado" }
+            ))
             platosOrdenados.forEach { producto ->
-                PlatoItem(producto = producto, onClick = { onMarcarPlato(producto) })
+                PlatoItem(
+                    producto = producto,
+                    onClick = { if (producto.estado != "cancelado") onMarcarPlato(producto) }
+                )
             }
-
-            // ── Botón SERVIR ──────────────────────────────────────────────
-            if (todoListo) {
-                Button(
-                    onClick = onMarcarTodoListo,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(containerColor = ColorListo)
-                ) {
-                    Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Servido — retirar de cocina", fontWeight = FontWeight.Bold)
-                }
-            } else {
-                OutlinedButton(
-                    onClick = onMarcarTodoListo,
+            // ── Badge de cancelaciones ────────────────────────────────────
+            if (cancelados > 0) {
+                Surface(
+                    color = ColorUrgente.copy(alpha = 0.12f),
+                    shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("Marcar todo como listo")
+                    Text(
+                        "⚠ $cancelados plato${if (cancelados > 1) "s" else ""} CANCELADO${if (cancelados > 1) "S" else ""}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = ColorUrgente,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                    )
                 }
             }
+
+            // Cuando todoListo, el ViewModel auto-marca y retira el pedido de cocina
         }
     }
 }
 
 @Composable
 private fun PlatoItem(producto: PedidoProducto, onClick: () -> Unit) {
+    val cancelado = producto.estado == "cancelado"
     val preparado = producto.estado == "preparado"
 
     val bgColor by animateColorAsState(
         targetValue = when (producto.estado) {
+            "cancelado" -> ColorUrgente.copy(alpha = 0.06f)
             "preparado" -> ColorListo.copy(alpha = 0.1f)
             "en preparacion" -> ColorPendiente.copy(alpha = 0.08f)
             else -> Color.Transparent
@@ -334,30 +350,50 @@ private fun PlatoItem(producto: PedidoProducto, onClick: () -> Unit) {
             .fillMaxWidth()
             .background(bgColor, RoundedCornerShape(8.dp))
             .border(
-                width = if (preparado) 1.dp else 0.dp,
-                color = if (preparado) ColorListo.copy(alpha = 0.4f) else Color.Transparent,
+                width = when {
+                    cancelado -> 1.dp
+                    preparado -> 1.dp
+                    else -> 0.dp
+                },
+                color = when {
+                    cancelado -> ColorUrgente.copy(alpha = 0.5f)
+                    preparado -> ColorListo.copy(alpha = 0.4f)
+                    else -> Color.Transparent
+                },
                 shape = RoundedCornerShape(8.dp)
             )
-            .clickable(onClick = onClick)
+            .clickable(enabled = !cancelado, onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Icon(
-            imageVector = if (preparado) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+            imageVector = when {
+                cancelado -> Icons.Default.CheckCircle   // reused, tinted red
+                preparado -> Icons.Default.CheckCircle
+                else -> Icons.Default.RadioButtonUnchecked
+            },
             contentDescription = null,
-            tint = if (preparado) ColorListo else MaterialTheme.colorScheme.outline,
+            tint = when {
+                cancelado -> ColorUrgente
+                preparado -> ColorListo
+                else -> MaterialTheme.colorScheme.outline
+            },
             modifier = Modifier.size(22.dp)
         )
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 "${producto.cantidad}× ${producto.nombre}",
                 style = MaterialTheme.typography.bodyLarge.copy(
-                    textDecoration = if (preparado) TextDecoration.LineThrough else TextDecoration.None
+                    textDecoration = if (cancelado || preparado)
+                        TextDecoration.LineThrough else TextDecoration.None
                 ),
-                color = if (preparado) MaterialTheme.colorScheme.outline
-                else MaterialTheme.colorScheme.onSurface,
-                fontWeight = if (!preparado) FontWeight.Medium else FontWeight.Normal
+                color = when {
+                    cancelado -> MaterialTheme.colorScheme.outline
+                    preparado -> MaterialTheme.colorScheme.outline
+                    else -> MaterialTheme.colorScheme.onSurface
+                },
+                fontWeight = if (!preparado && !cancelado) FontWeight.Medium else FontWeight.Normal
             )
             if (!producto.observaciones.isNullOrBlank()) {
                 Text(
@@ -367,8 +403,22 @@ private fun PlatoItem(producto: PedidoProducto, onClick: () -> Unit) {
                 )
             }
         }
-        if (!preparado) {
-            Surface(
+        when {
+            cancelado -> Surface(
+                color = ColorUrgente.copy(alpha = 0.18f),
+                shape = RoundedCornerShape(6.dp)
+            ) {
+                Text(
+                    "CANCELADO",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ColorUrgente,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+
+            !preparado -> Surface(
                 color = ColorPendiente.copy(alpha = 0.15f),
                 shape = RoundedCornerShape(6.dp)
             ) {

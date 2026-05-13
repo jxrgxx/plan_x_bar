@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.los_jorges.plan_bar.model.Pedido
 import com.los_jorges.plan_bar.model.PedidoCocina
 import com.los_jorges.plan_bar.network.RetrofitClient
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,6 +15,26 @@ import kotlinx.coroutines.launch
 private const val TAG = "PlanBar_Pedidos"
 
 class PedidosViewModel : ViewModel() {
+
+    // Pedidos cuyo auto-marcado ya está en curso (evita llamadas duplicadas)
+    private val autoMarkInProgress = mutableSetOf<Int>()
+
+    private var pollingCocinaJob: Job? = null
+    private var pollingCamareroJob: Job? = null
+
+    private fun autoMarcarListos(restauranteId: Int) {
+        _pedidosActivos.value.forEach { pedido ->
+            val total = pedido.productos.count { it.estado != "cancelado" }
+            val listos = pedido.productos.count { it.estado == "preparado" }
+            val allDone = listos == total && total > 0
+            if (allDone && pedido.id !in autoMarkInProgress) {
+                autoMarkInProgress.add(pedido.id)
+                marcarPedidoListo(pedido.id, restauranteId) { ok, _ ->
+                    if (!ok) autoMarkInProgress.remove(pedido.id)
+                }
+            }
+        }
+    }
 
     private val _pedido = MutableStateFlow<Pedido?>(null)
     val pedido: StateFlow<Pedido?> = _pedido
@@ -28,8 +49,8 @@ class PedidosViewModel : ViewModel() {
     val error: StateFlow<String?> = _error
 
     /** Busca el pedido abierto de una mesa y lo carga completo (con productos).
-     *  Si no existe, deja _pedido en null. */
-    fun cargarPedidoPorMesa(mesaId: Int) {
+     *  Si no existe, invoca [onNoPedido] para que el llamador decida qué hacer. */
+    fun cargarPedidoPorMesa(mesaId: Int, onNoPedido: (() -> Unit)? = null) {
         viewModelScope.launch {
             _loading.value = true
             try {
@@ -41,6 +62,7 @@ class PedidosViewModel : ViewModel() {
                     } else {
                         _pedido.value = null
                         _loading.value = false
+                        onNoPedido?.invoke()          // no existe → crear nuevo
                     }
                 } else {
                     _error.value = "Error al consultar la mesa"
@@ -123,23 +145,58 @@ class PedidosViewModel : ViewModel() {
         }
     }
 
-    fun cerrarPedido(pedidoId: Int, metodoPago: String, onDone: (Boolean, String?) -> Unit) {
+    fun cerrarPedido(
+        pedidoId: Int,
+        metodoPago: String,
+        totalFinal: Double? = null,
+        onDone: (Boolean, String?) -> Unit
+    ) {
         viewModelScope.launch {
             try {
-                val r = RetrofitClient.api.cerrarPedido(
-                    mapOf("pedido_id" to pedidoId, "metodo_pago" to metodoPago)
-                )
+                val body =
+                    mutableMapOf<String, Any>("pedido_id" to pedidoId, "metodo_pago" to metodoPago)
+                if (totalFinal != null) body["total_final"] = totalFinal
+                val r = RetrofitClient.api.cerrarPedido(body)
                 if (r.isSuccessful && r.body()?.success == true) {
                     _pedido.value = null
                     onDone(true, null)
                 } else {
                     val errorBody = r.errorBody()?.string()
-                    Log.e(TAG, "cerrarPedido: code=${r.code()} body=${r.body()} errorBody=$errorBody")
+                    Log.e(
+                        TAG,
+                        "cerrarPedido: code=${r.code()} body=${r.body()} errorBody=$errorBody"
+                    )
                     onDone(false, r.body()?.error ?: "Error al cobrar el pedido")
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "cerrarPedido", e)
                 onDone(false, "Error de conexión")
+            }
+        }
+    }
+
+    fun cancelarProducto(pedidoProductoId: Int, pedidoId: Int, onDone: (Boolean, String?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val r = RetrofitClient.api.cancelarProductoPedido(
+                    mapOf("pedido_producto_id" to pedidoProductoId)
+                )
+                if (r.isSuccessful && r.body()?.success == true) {
+                    cargarPedido(pedidoId)
+                    onDone(true, null)
+                } else {
+                    val errorMsg = r.body()?.error
+                        ?: r.errorBody()?.string()
+                        ?: "Error ${r.code()}"
+                    Log.e(
+                        TAG,
+                        "cancelarProducto: pp_id=$pedidoProductoId code=${r.code()} err=$errorMsg"
+                    )
+                    onDone(false, errorMsg)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "cancelarProducto", e)
+                onDone(false, "Error de conexión: ${e.message}")
             }
         }
     }
@@ -226,8 +283,10 @@ class PedidosViewModel : ViewModel() {
             _loading.value = true
             try {
                 val r = RetrofitClient.api.getPedidosActivosCocina(restauranteId)
-                if (r.isSuccessful) _pedidosActivos.value = r.body()?.pedidos ?: emptyList()
-                else _error.value = "Error al cargar pedidos"
+                if (r.isSuccessful) {
+                    _pedidosActivos.value = r.body()?.pedidos ?: emptyList()
+                    autoMarcarListos(restauranteId)
+                } else _error.value = "Error al cargar pedidos"
             } catch (e: Exception) {
                 Log.e(TAG, "cargarPedidosActivos", e)
                 _error.value = "Error de conexión"
@@ -237,11 +296,15 @@ class PedidosViewModel : ViewModel() {
     }
 
     fun iniciarPollingCocina(restauranteId: Int) {
-        viewModelScope.launch {
+        pollingCocinaJob?.cancel()
+        pollingCocinaJob = viewModelScope.launch {
             while (true) {
                 try {
                     val r = RetrofitClient.api.getPedidosActivosCocina(restauranteId)
-                    if (r.isSuccessful) _pedidosActivos.value = r.body()?.pedidos ?: emptyList()
+                    if (r.isSuccessful) {
+                        _pedidosActivos.value = r.body()?.pedidos ?: emptyList()
+                        autoMarcarListos(restauranteId)
+                    }
                 } catch (_: Exception) {
                 }
                 delay(5_000)
@@ -250,7 +313,8 @@ class PedidosViewModel : ViewModel() {
     }
 
     fun iniciarPollingCamarero(pedidoId: Int) {
-        viewModelScope.launch {
+        pollingCamareroJob?.cancel()
+        pollingCamareroJob = viewModelScope.launch {
             while (true) {
                 delay(5_000)
                 try {

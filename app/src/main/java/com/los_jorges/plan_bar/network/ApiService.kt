@@ -117,6 +117,25 @@ interface ApiService {
     @POST("estructuras/estructuras_eliminar.php")
     suspend fun eliminarEstructura(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
 
+    // --- Cancelar producto (sin eliminarlo, queda visible en cocina) ---
+    @POST("pedidos/pedidos_cancelar_producto.php")
+    suspend fun cancelarProductoPedido(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
+
+    // --- Menú del Día ---
+    @GET("menu_dia/menu_dia_obtener.php")
+    suspend fun getMenuDia(@Query("restaurante_id") restauranteId: Int): Response<MenuDiaResponse>
+
+    @POST("menu_dia/menu_dia_guardar.php")
+    suspend fun guardarMenuDia(@Body request: GuardarMenuDiaRequest): Response<CreateResponse>
+
+    // --- Estadísticas ---
+    @GET("estadisticas/estadisticas_obtener.php")
+    suspend fun getEstadisticas(
+        @Query("restaurante_id") restauranteId: Int,
+        @Query("fecha_inicio")   fechaInicio: String,
+        @Query("fecha_fin")      fechaFin: String
+    ): Response<EstadisticasResponse>
+
     // --- Trabajadores ---
     @GET("trabajadores/trabajadores_obtener.php")
     suspend fun getTrabajadores(@Query("restaurante_id") restauranteId: Int): Response<TrabajadoresResponse>

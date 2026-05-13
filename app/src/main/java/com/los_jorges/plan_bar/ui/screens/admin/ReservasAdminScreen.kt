@@ -3,6 +3,7 @@ package com.los_jorges.plan_bar.ui.screens.admin
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -11,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.los_jorges.plan_bar.model.Reserva
@@ -39,6 +41,7 @@ fun ReservasAdminScreen(
     var fecha by remember { mutableStateOf(vm.fechaHoy()) }
     var snackMsg by remember { mutableStateOf<String?>(null) }
     var showCrear by remember { mutableStateOf(false) }
+    var reservaEditar by remember { mutableStateOf<Reserva?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(fecha) { vm.cargar(restauranteId, fecha) }
@@ -74,9 +77,11 @@ fun ReservasAdminScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
 
-        Column(modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+        ) {
 
             // ── Navegador de fecha ────────────────────────────────────────
             Surface(tonalElevation = 2.dp) {
@@ -146,6 +151,7 @@ fun ReservasAdminScreen(
                                 if (!ok) snackMsg = "Error al actualizar estado"
                             }
                         },
+                        onEditar = { reservaEditar = reserva },
                         onEliminar = {
                             vm.eliminar(reserva.id, restauranteId, fecha) { ok, err ->
                                 snackMsg = if (ok) "Reserva eliminada" else err ?: "Error"
@@ -162,17 +168,33 @@ fun ReservasAdminScreen(
             onDismiss = { showCrear = false },
             onConfirm = { nombre, telefono, correo, personas, hora, notas ->
                 vm.crear(
-                    restauranteId,
+                    restauranteId, nombre, telefono, correo, personas, fecha, hora, notas
+                ) { ok, err, codigo ->
+                    showCrear = false
+                    snackMsg = if (ok) "Reserva creada · Código: $codigo" else err ?: "Error"
+                }
+            }
+        )
+    }
+
+    reservaEditar?.let { r ->
+        EditarReservaDialog(
+            reserva = r,
+            onDismiss = { reservaEditar = null },
+            onConfirm = { nombre, telefono, correo, personas, hora, notas ->
+                vm.editar(
+                    r.id,
                     nombre,
                     telefono,
                     correo,
                     personas,
-                    fecha,
                     hora,
-                    notas
-                ) { ok, err, codigo ->
-                    showCrear = false
-                    snackMsg = if (ok) "Reserva creada · Código: $codigo" else err ?: "Error"
+                    notas,
+                    restauranteId,
+                    fecha
+                ) { ok, err ->
+                    reservaEditar = null
+                    snackMsg = if (ok) "Reserva actualizada" else err ?: "Error"
                 }
             }
         )
@@ -184,6 +206,7 @@ fun ReservasAdminScreen(
 private fun ReservaCard(
     reserva: Reserva,
     onCambiarEstado: (String) -> Unit,
+    onEditar: () -> Unit,
     onEliminar: () -> Unit
 ) {
     var expandedEstado by remember { mutableStateOf(false) }
@@ -308,19 +331,22 @@ private fun ReservaCard(
                 }
             }
 
-            // Eliminar
+            // Editar / Eliminar
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onEditar) {
+                    Icon(Icons.Default.Edit, null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Editar", style = MaterialTheme.typography.labelMedium)
+                }
                 TextButton(onClick = { showEliminar = true }) {
                     Icon(
-                        Icons.Default.Delete,
-                        null,
+                        Icons.Default.Delete, null,
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.error
                     )
                     Spacer(Modifier.width(4.dp))
                     Text(
-                        "Eliminar",
-                        color = MaterialTheme.colorScheme.error,
+                        "Eliminar", color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.labelMedium
                     )
                 }
@@ -341,6 +367,73 @@ private fun ReservaCard(
             dismissButton = { TextButton(onClick = { showEliminar = false }) { Text("Cancelar") } }
         )
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditarReservaDialog(
+    reserva: Reserva,
+    onDismiss: () -> Unit,
+    onConfirm: (String, String, String, Int, String, String) -> Unit
+) {
+    var nombre by remember { mutableStateOf(reserva.nombre) }
+    var telefono by remember { mutableStateOf(reserva.telefono) }
+    var correo by remember { mutableStateOf(reserva.correo ?: "") }
+    var personas by remember { mutableStateOf(reserva.num_personas.toString()) }
+    var hora by remember { mutableStateOf(reserva.hora.take(5)) }
+    var notas by remember { mutableStateOf(reserva.notas ?: "") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Editar reserva · #${reserva.codigo}") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = nombre, onValueChange = { nombre = it },
+                    label = { Text("Nombre *") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = telefono, onValueChange = { telefono = it },
+                    label = { Text("Teléfono *") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = correo, onValueChange = { correo = it },
+                    label = { Text("Email (opcional)") }, singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = personas,
+                        onValueChange = { personas = it.filter { c -> c.isDigit() } },
+                        label = { Text("Personas *") }, singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = hora, onValueChange = { hora = it },
+                        label = { Text("Hora *") }, singleLine = true,
+                        placeholder = { Text("HH:MM") },
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+                OutlinedTextField(
+                    value = notas, onValueChange = { notas = it },
+                    label = { Text("Notas (opcional)") },
+                    modifier = Modifier.fillMaxWidth(), maxLines = 3
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {
+                val p = personas.toIntOrNull() ?: 0
+                if (nombre.isNotBlank() && telefono.isNotBlank() && hora.isNotBlank() && p > 0)
+                    onConfirm(nombre, telefono, correo, p, hora, notas)
+            }) { Text("Guardar") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
