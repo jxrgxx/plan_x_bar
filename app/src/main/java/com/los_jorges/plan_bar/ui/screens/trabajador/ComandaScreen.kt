@@ -7,9 +7,13 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -24,6 +28,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.activity.compose.BackHandler
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.los_jorges.plan_bar.model.MenuDia
@@ -115,6 +120,7 @@ fun ComandaScreen(
     val error by pedidosVm.error.collectAsState()
     val productos by productosVm.productos.collectAsState()
     val menu by menuDiaVm.menu.collectAsState()
+    val usoMenu by menuDiaVm.usoMenu.collectAsState()
 
     val descuentos = remember { mutableStateMapOf<Int, DescuentoLinea>() }
     val scope = rememberCoroutineScope()
@@ -166,22 +172,31 @@ fun ComandaScreen(
             pedidosVm.crearNuevoPedido(
                 restauranteId = SessionManager.restauranteId,
                 mesaId = mesaId,
-                trabajadorId = trabajadorId
+                trabajadorId = trabajadorId,
+                comensales = comensales
             )
         }
         productosVm.cargar(SessionManager.restauranteId)
         menuDiaVm.cargar(SessionManager.restauranteId)
+        menuDiaVm.cargarUso(SessionManager.restauranteId)
     }
 
     val handleBack: () -> Unit = { onBack() }
 
     BackHandler(onBack = handleBack)
 
-    val pedidoEstado = pedido?.estado
     val pedidoId = pedido?.id
-    LaunchedEffect(pedidoEstado, pedidoId) {
-        if (pedidoEstado in listOf("en_cocina", "listo") && pedidoId != null) {
+    LaunchedEffect(pedidoId) {
+        if (pedidoId != null) {
             pedidosVm.iniciarPollingCamarero(pedidoId)
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(5_000)
+            menuDiaVm.cargarUso(SessionManager.restauranteId)
+            menuDiaVm.cargar(SessionManager.restauranteId)
         }
     }
 
@@ -202,30 +217,29 @@ fun ComandaScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Column {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(mesaCodigo, style = MaterialTheme.typography.titleLarge)
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = MaterialTheme.shapes.small
                         ) {
-                            Text(mesaCodigo, style = MaterialTheme.typography.titleLarge)
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = MaterialTheme.shapes.small
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(3.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(3.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Person, null, modifier = Modifier.size(12.dp),
-                                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                    Text(
-                                        "$comensales", style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                                    )
-                                }
+                                Icon(
+                                    Icons.Default.Person, null, modifier = Modifier.size(12.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    "${pedido?.comensales?.takeIf { it > 0 } ?: comensales}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
                             }
                         }
                         pedido?.estado?.let { estado ->
@@ -268,13 +282,22 @@ fun ComandaScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
+        var splitFraction by remember { mutableStateOf(0.5f) }
+        var columnHeightPx by remember { mutableStateOf(0f) }
 
-        Column(modifier = Modifier
-            .fillMaxSize()
-            .padding(padding)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .onSizeChanged { columnHeightPx = it.height.toFloat() }
+        ) {
 
             // ── Pedido actual ────────────────────────────────────────────────
-            Box(modifier = Modifier.weight(1f)) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(splitFraction)
+            ) {
                 when {
                     loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator()
@@ -357,7 +380,14 @@ fun ComandaScreen(
                                                 if (!ok) snackMsg = err ?: "Error al actualizar"
                                             }
                                         },
-                                        onAplicarDescuento = { lineaDescuento = linea }
+                                        onAplicarDescuento = { lineaDescuento = linea },
+                                        onMarcarServida = {
+                                            val nuevo = if (linea.estado == "servido") "en preparacion" else "servido"
+                                            pedidosVm.marcarPlato(linea.id, nuevo) { ok, err ->
+                                                if (ok) pedidosVm.cargarPedido(pedido.id)
+                                                else snackMsg = err ?: "Error al marcar"
+                                            }
+                                        }
                                     )
                                     HorizontalDivider()
                                 }
@@ -375,6 +405,13 @@ fun ComandaScreen(
                                                 },
                                                 onEliminarGrupo = {
                                                     grupoAEliminar = clave to prods
+                                                },
+                                                onMarcarServida = { prod ->
+                                                    val nuevo = if (prod.estado == "servido") "en preparacion" else "servido"
+                                                    pedidosVm.marcarPlato(prod.id, nuevo) { ok, err ->
+                                                        if (ok) pedidosVm.cargarPedido(pedido.id)
+                                                        else snackMsg = err ?: "Error al marcar"
+                                                    }
                                                 }
                                             )
                                         }
@@ -429,7 +466,7 @@ fun ComandaScreen(
                                             val sinEnviar = productosActivos.any { it.estado == "" }
                                             if (sinEnviar) {
                                                 snackMsg =
-                                                    "Pulsa ← para enviar los productos a cocina antes de cobrar"
+                                                    "Envía los productos a cocina antes de cobrar"
                                             } else {
                                                 showCobrarDialog = true
                                             }
@@ -455,73 +492,135 @@ fun ComandaScreen(
                 }
             }
 
-            // ── Carta ────────────────────────────────────────────────────────
-            HorizontalDivider(thickness = 2.dp)
-
-            if (tabs.isNotEmpty()) {
-                ScrollableTabRow(selectedTabIndex = selectedTab.coerceAtMost(tabs.lastIndex)) {
-                    tabs.forEachIndexed { index, label ->
-                        Tab(
-                            selected = selectedTab == index,
-                            onClick = { selectedTab = index },
-                            text = { Text(label.replaceFirstChar { it.uppercase() }) }
-                        )
-                    }
-                }
-
-                if (tieneMenu && selectedTab == tabMenuIndex) {
-                    // ── Panel Menú del Día ───────────────────────────────────
-                    var showCantidadDialog by remember { mutableStateOf(false) }
-                    MenuDiaSelectorPanel(
-                        menu = menu!!,
-                        onIniciar = { showCantidadDialog = true }
-                    )
-                    if (showCantidadDialog) {
-                        CantidadMenusDialog(
-                            onDismiss = { showCantidadDialog = false },
-                            onConfirm = { n ->
-                                showCantidadDialog = false
-                                val hayBebidas =
-                                    productos.any { it.categoria == "bebida" && it.disponible }
-                                val menusExistentes = productosActivos
-                                    .mapNotNull { it.observaciones }
-                                    .filter { it.startsWith("Menú del día #") }
-                                    .distinct()
-                                    .size
-                                menuFlowSteps = buildMenuSteps(menu!!, n, hayBebidas, startMenuNum = menusExistentes + 1)
-                                menuFlowIndex = 0
+            // ── Divisor arrastrable ──────────────────────────────────────────
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(20.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .draggable(
+                        orientation = Orientation.Vertical,
+                        state = rememberDraggableState { delta ->
+                            if (columnHeightPx > 0) {
+                                splitFraction = (splitFraction + delta / columnHeightPx)
+                                    .coerceIn(0.15f, 0.85f)
                             }
+                        }
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .width(40.dp)
+                        .height(4.dp)
+                        .background(
+                            MaterialTheme.colorScheme.outline.copy(alpha = 0.4f),
+                            RoundedCornerShape(2.dp)
                         )
-                    }
-                } else {
-                    val catIndex = if (tieneMenu) selectedTab - 1 else selectedTab
-                    val listaActual = if (catIndex in categoriaTabs.indices) {
-                        productos.filter { it.categoria == categoriaTabs[catIndex] }
-                    } else emptyList()
+                )
+            }
 
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 16.dp)
-                    ) {
-                        items(listaActual, key = { it.id }) { producto ->
-                            ProductoSelectorItem(
-                                producto = producto,
-                                enabled = pedido != null,
-                                onClick = {
-                                    pedido?.let { p ->
-                                        pedidosVm.agregarProducto(
-                                            p.id,
-                                            producto.id,
-                                            1,
-                                            ""
-                                        ) { ok, err ->
-                                            snackMsg = if (ok) "${producto.nombre} añadido" else err
-                                                ?: "Error"
-                                        }
-                                    }
+            // ── Carta ────────────────────────────────────────────────────────
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f - splitFraction)
+            ) {
+                if (tabs.isNotEmpty()) {
+                    BoxWithConstraints {
+                        val tabMinWidth = 80.dp
+                        val cabenTodos = maxWidth >= tabMinWidth * tabs.size
+                        if (cabenTodos) {
+                            TabRow(selectedTabIndex = selectedTab.coerceAtMost(tabs.lastIndex)) {
+                                tabs.forEachIndexed { index, label ->
+                                    Tab(
+                                        selected = selectedTab == index,
+                                        onClick = { selectedTab = index },
+                                        text = { Text(label.replaceFirstChar { it.uppercase() }) }
+                                    )
+                                }
+                            }
+                        } else {
+                            ScrollableTabRow(
+                                selectedTabIndex = selectedTab.coerceAtMost(tabs.lastIndex),
+                                edgePadding = 0.dp
+                            ) {
+                                tabs.forEachIndexed { index, label ->
+                                    Tab(
+                                        selected = selectedTab == index,
+                                        onClick = { selectedTab = index },
+                                        text = { Text(label.replaceFirstChar { it.uppercase() }) }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    if (tieneMenu && selectedTab == tabMenuIndex) {
+                        // ── Panel Menú del Día ───────────────────────────────────
+                        var showCantidadDialog by remember { mutableStateOf(false) }
+                        MenuDiaSelectorPanel(
+                            menu = menu!!,
+                            usoMenu = usoMenu,
+                            onIniciar = { showCantidadDialog = true }
+                        )
+                        if (showCantidadDialog) {
+                            CantidadMenusDialog(
+                                onDismiss = { showCantidadDialog = false },
+                                onConfirm = { n ->
+                                    showCantidadDialog = false
+                                    val hayBebidas =
+                                        productos.any { it.categoria == "bebida" && it.disponible }
+                                    val menusExistentes = productosActivos
+                                        .mapNotNull { it.observaciones }
+                                        .filter { it.startsWith("Menú del día #") }
+                                        .distinct()
+                                        .size
+                                    menuFlowSteps = buildMenuSteps(
+                                        menu!!,
+                                        n,
+                                        hayBebidas,
+                                        startMenuNum = menusExistentes + 1
+                                    )
+                                    menuFlowIndex = 0
                                 }
                             )
-                            HorizontalDivider()
+                        }
+                    } else {
+                        val catIndex = if (tieneMenu) selectedTab - 1 else selectedTab
+                        val listaActual = if (catIndex in categoriaTabs.indices) {
+                            productos.filter { it.categoria == categoriaTabs[catIndex] }
+                        } else emptyList()
+
+                        LazyColumn(
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(
+                                start = 16.dp,
+                                end = 16.dp,
+                                bottom = 16.dp
+                            )
+                        ) {
+                            items(listaActual, key = { it.id }) { producto ->
+                                ProductoSelectorItem(
+                                    producto = producto,
+                                    enabled = pedido != null,
+                                    onClick = {
+                                        pedido?.let { p ->
+                                            pedidosVm.agregarProducto(
+                                                p.id,
+                                                producto.id,
+                                                1,
+                                                ""
+                                            ) { ok, err ->
+                                                snackMsg =
+                                                    if (ok) "${producto.nombre} añadido" else err
+                                                        ?: "Error"
+                                            }
+                                        }
+                                    }
+                                )
+                                HorizontalDivider()
+                            }
                         }
                     }
                 }
@@ -533,20 +632,39 @@ fun ComandaScreen(
     if (menuFlowSteps.isNotEmpty() && menuFlowIndex < menuFlowSteps.size) {
         val step = menuFlowSteps[menuFlowIndex]
 
+        // Helper: unidades ya usadas de un producto en TODOS los pedidos activos del restaurante.
+        // maxOf garantiza que si el servidor va ligeramente por detrás usamos el conteo local.
+        fun usoProducto(productoId: Int): Int {
+            val serverUso = usoMenu[productoId] ?: 0
+            val localUso  = productosActivos
+                .filter { it.observaciones.orEmpty().startsWith("Menú del día #") && it.producto_id == productoId }
+                .sumOf { it.cantidad }
+            return maxOf(serverUso, localUso)
+        }
+        fun MenuDiaLinea.agotado() = cantidad > 0 && usoProducto(producto_id) >= cantidad
+        fun MenuDiaLinea.restantes() = if (cantidad > 0) cantidad - usoProducto(producto_id) else -1
+
         // Bebida: siempre pide elección (catálogo completo). Otros cursos: auto-añadir si solo hay 1 opción.
         LaunchedEffect(menuFlowIndex) {
             val s = menuFlowSteps.getOrNull(menuFlowIndex) ?: return@LaunchedEffect
             if (s.curso != "bebida" && s.opciones.size == 1 && !menuFlowAdding) {
+                val opcion = s.opciones[0]
+                // Si el único plato disponible está agotado, saltar el paso
+                if (opcion.agotado()) {
+                    snackMsg = "${opcion.nombre} agotado"
+                    val next = menuFlowIndex + 1
+                    if (next >= menuFlowSteps.size) { menuFlowSteps = emptyList(); menuFlowIndex = 0 }
+                    else menuFlowIndex = next
+                    return@LaunchedEffect
+                }
                 val p = pedido ?: return@LaunchedEffect
                 menuFlowAdding = true
                 pedidosVm.agregarProducto(
-                    p.id,
-                    s.opciones[0].producto_id,
-                    1,
-                    "Menú del día #${s.menuNum}"
+                    p.id, opcion.producto_id, 1, "Menú del día #${s.menuNum}"
                 ) { ok, err ->
                     menuFlowAdding = false
                     if (ok) {
+                        menuDiaVm.cargarUso(SessionManager.restauranteId)
                         val next = menuFlowIndex + 1
                         if (next >= menuFlowSteps.size) {
                             menuFlowSteps = emptyList(); menuFlowIndex = 0
@@ -577,7 +695,8 @@ fun ComandaScreen(
 
         if (esBebida || step.opciones.size > 1) {
             var opcionSeleccionada by remember(menuFlowIndex) {
-                mutableStateOf(opcionesEfectivas.firstOrNull())
+                // Preseleccionar la primera opción no agotada
+                mutableStateOf(opcionesEfectivas.firstOrNull { !it.agotado() })
             }
             AlertDialog(
                 onDismissRequest = { menuFlowSteps = emptyList(); menuFlowIndex = 0 },
@@ -609,28 +728,40 @@ fun ComandaScreen(
                                     verticalArrangement = Arrangement.spacedBy(0.dp)
                                 ) {
                                     opcionesEfectivas.forEach { opcion ->
+                                        val agotado = !esBebida && opcion.agotado()
+                                        val restantes = if (!esBebida) opcion.restantes() else -1
                                         val seleccionado =
                                             opcionSeleccionada?.producto_id == opcion.producto_id
                                         Row(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .clickable { opcionSeleccionada = opcion }
+                                                .clickable(enabled = !agotado) {
+                                                    opcionSeleccionada = opcion
+                                                }
                                                 .padding(vertical = 4.dp),
                                             verticalAlignment = Alignment.CenterVertically
                                         ) {
                                             RadioButton(
                                                 selected = seleccionado,
+                                                enabled = !agotado,
                                                 onClick = { opcionSeleccionada = opcion }
                                             )
                                             Column(modifier = Modifier.weight(1f)) {
                                                 Text(
                                                     opcion.nombre,
                                                     style = MaterialTheme.typography.bodyMedium,
-                                                    fontWeight = if (seleccionado) FontWeight.SemiBold else FontWeight.Normal
+                                                    fontWeight = if (seleccionado) FontWeight.SemiBold else FontWeight.Normal,
+                                                    color = if (agotado) MaterialTheme.colorScheme.outline
+                                                    else MaterialTheme.colorScheme.onSurface
                                                 )
-                                                if (!esBebida && opcion.cantidad > 0) {
-                                                    Text(
-                                                        "${opcion.cantidad} disponibles",
+                                                when {
+                                                    agotado -> Text(
+                                                        "Agotado",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = ColorPlatoCancelado
+                                                    )
+                                                    restantes > 0 -> Text(
+                                                        "$restantes disponibles",
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = MaterialTheme.colorScheme.outline
                                                     )
@@ -657,7 +788,8 @@ fun ComandaScreen(
                 },
                 confirmButton = {
                     Button(
-                        enabled = !menuFlowAdding && opcionSeleccionada != null,
+                        enabled = !menuFlowAdding && opcionSeleccionada != null
+                                && !(esBebida.not() && (opcionSeleccionada?.agotado() == true)),
                         onClick = {
                             val sel = opcionSeleccionada ?: return@Button
                             val p = pedido ?: return@Button
@@ -668,6 +800,7 @@ fun ComandaScreen(
                                 ) { ok, err ->
                                     menuFlowAdding = false
                                     if (ok) {
+                                        menuDiaVm.cargarUso(SessionManager.restauranteId)
                                         val next = menuFlowIndex + 1
                                         if (next >= menuFlowSteps.size) {
                                             menuFlowSteps = emptyList(); menuFlowIndex = 0
@@ -699,7 +832,7 @@ fun ComandaScreen(
             productosActivos.filter { it.observaciones.orEmpty().startsWith("Menú del día #") }
                 .map { it.observaciones }.distinct().size
         val titulo =
-            if (numero != null && numGrupos > 1) "Menú del día · $numero" else "Menú del día"
+            if (numero != null) "Menú del día · $numero" else "Menú del día"
         AlertDialog(
             onDismissRequest = { grupoAEliminar = null },
             title = { Text("Eliminar $titulo") },
@@ -738,13 +871,12 @@ fun ComandaScreen(
                                 if (!ok) snackMsg = err ?: "Error al modificar"
                             }
                         }
-                        if (oldProd.estado == "") {
-                            pedidosVm.eliminarProducto(oldProd.id, p.id) { ok, _ ->
+                        when {
+                            oldProd == null -> doAgregar()  // adición nueva sin producto previo
+                            oldProd.estado == "" -> pedidosVm.eliminarProducto(oldProd.id, p.id) { ok, _ ->
                                 if (ok) doAgregar()
                             }
-                        } else {
-                            // Ya está en cocina: lo cancelamos (queda visible como cancelado) y añadimos el nuevo
-                            pedidosVm.cancelarProducto(oldProd.id, p.id) { ok, _ ->
+                            else -> pedidosVm.cancelarProducto(oldProd.id, p.id) { ok, _ ->
                                 if (ok) doAgregar()
                             }
                         }
@@ -822,7 +954,8 @@ fun ComandaScreen(
                 TextButton(onClick = {
                     pedido?.let { p ->
                         pedidosVm.enviarACocina(p.id) { ok, err ->
-                            snackMsg = if (ok) "Pedido enviado a cocina" else err ?: "Error al enviar"
+                            snackMsg =
+                                if (ok) "Pedido enviado a cocina" else err ?: "Error al enviar"
                         }
                     }
                     showEnviarDialog = false
@@ -855,11 +988,19 @@ fun ComandaScreen(
 @Composable
 private fun MenuDiaSelectorPanel(
     menu: MenuDia,
+    usoMenu: Map<Int, Int>,
     onIniciar: () -> Unit
 ) {
+    // Helper local: unidades restantes de una línea (-1 = sin límite)
+    fun restantes(linea: com.los_jorges.plan_bar.model.MenuDiaLinea): Int {
+        if (linea.cantidad <= 0) return -1
+        return (linea.cantidad - (usoMenu[linea.producto_id] ?: 0)).coerceAtLeast(0)
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -879,28 +1020,50 @@ private fun MenuDiaSelectorPanel(
                     if (lineasCurso.isNotEmpty()) {
                         val cursoLabel = CURSO_LABELS[curso] ?: curso
                         if (lineasCurso.size == 1) {
-                            MenuCursoFila(cursoLabel, lineasCurso[0].nombre)
+                            val linea = lineasCurso[0]
+                            val r = restantes(linea)
+                            MenuCursoFila(
+                                label = cursoLabel,
+                                nombre = linea.nombre,
+                                stockLabel = when {
+                                    r == 0  -> "Agotado"
+                                    r == -1 -> null
+                                    else    -> "$r restantes"
+                                },
+                                agotado = r == 0
+                            )
                         } else {
                             Text(
                                 cursoLabel, style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.outline
                             )
                             lineasCurso.forEach { linea ->
+                                val r = restantes(linea)
+                                val agotado = r == 0
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .padding(start = 8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
                                         "• ${linea.nombre}",
                                         style = MaterialTheme.typography.bodySmall,
                                         fontWeight = FontWeight.Medium,
+                                        color = if (agotado) MaterialTheme.colorScheme.outline
+                                        else MaterialTheme.colorScheme.onSurface,
                                         modifier = Modifier.weight(1f)
                                     )
-                                    if (linea.cantidad > 0) {
-                                        Text(
-                                            "${linea.cantidad} uds.",
+                                    when {
+                                        agotado -> Text(
+                                            "Agotado",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = ColorPlatoCancelado,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                        r > 0 -> Text(
+                                            "$r restantes",
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.outline
                                         )
@@ -943,27 +1106,31 @@ private fun MenuGrupoCard(
     productos: List<PedidoProducto>,
     totalMenus: Int,
     onModificar: () -> Unit,
-    onEliminarGrupo: () -> Unit
+    onEliminarGrupo: () -> Unit,
+    onMarcarServida: (PedidoProducto) -> Unit
 ) {
     // Título: si solo hay un menú, "Menú del día"; si hay varios, "Menú del día · 1"
     val numero = clave.removePrefix("Menú del día #").toIntOrNull()
-    val titulo = if (totalMenus > 1 && numero != null) "Menú del día · $numero" else "Menú del día"
+    val titulo = if (numero != null) "Menú del día · $numero" else "Menú del día"
 
     val productosNoCancel = productos.filter { it.estado != "cancelado" }
-    val todosListos = productosNoCancel.isNotEmpty() && productosNoCancel.all { it.estado == "preparado" }
-    val algunEnCocina = productosNoCancel.any { it.estado in listOf("en preparacion", "preparado") }
+    val todosListos =
+        productosNoCancel.isNotEmpty() && productosNoCancel.all { it.estado == "preparado" || it.estado == "servido" }
+    val algunEnCocina = productosNoCancel.any { it.categoria != "bebida" && it.estado in listOf("en preparacion", "preparado") }
     val todoEnCocina = algunEnCocina
     val algunCancelado = productos.any { it.estado == "cancelado" }
 
     val tituloColor = when {
-        todosListos  -> ColorPlatoListo
+        todosListos -> ColorPlatoListo
         algunEnCocina -> ColorPlatoEnCocina
         else -> MaterialTheme.colorScheme.primary
     }
 
-    Column(modifier = Modifier
-        .fillMaxWidth()
-        .padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+    ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -991,7 +1158,11 @@ private fun MenuGrupoCard(
                 }
             }
             // Botón eliminar menú completo
-            IconButton(onClick = onEliminarGrupo, modifier = Modifier.size(36.dp)) {
+            IconButton(
+                onClick = onEliminarGrupo,
+                modifier = Modifier
+                    .size(36.dp)
+            ) {
                 Icon(
                     Icons.Default.Delete, "Eliminar menú",
                     tint = MaterialTheme.colorScheme.error,
@@ -1005,18 +1176,47 @@ private fun MenuGrupoCard(
         productosOrdenados.forEach { prod ->
             val cursoLabel =
                 CURSO_LABELS[prod.categoria] ?: prod.categoria.replaceFirstChar { it.uppercase() }
-            val prodColor = when (prod.estado) {
-                "cancelado"      -> ColorPlatoCancelado
-                "preparado"      -> ColorPlatoListo
-                "en preparacion" -> ColorPlatoEnCocina
-                else             -> MaterialTheme.colorScheme.onSurface
+            val servida = prod.estado == "servido"
+            val esBebidaProd = prod.categoria == "bebida"
+            val prodColor = when {
+                prod.estado == "cancelado" -> ColorPlatoCancelado
+                servida -> ColorPlatoListo
+                prod.estado == "preparado" -> ColorPlatoListo
+                prod.estado == "en preparacion" && !esBebidaProd -> ColorPlatoEnCocina
+                else -> MaterialTheme.colorScheme.onSurface
             }
-            Text(
-                "$cursoLabel: ${prod.nombre}",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(start = 22.dp, top = 2.dp),
-                color = prodColor
-            )
+
+            if (esBebidaProd && prod.estado != "cancelado") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onMarcarServida(prod) }
+                        .padding(start = 22.dp, top = 2.dp, end = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "$cursoLabel: ${prod.nombre}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = prodColor,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Icon(
+                        imageVector = if (servida) Icons.Default.CheckCircle
+                        else Icons.Default.RadioButtonUnchecked,
+                        contentDescription = if (servida) "Desmarcar servida" else "Marcar servida",
+                        tint = if (servida) ColorPlatoListo
+                        else MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            } else {
+                Text(
+                    "$cursoLabel: ${prod.nombre}",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(start = 22.dp, top = 2.dp),
+                    color = prodColor
+                )
+            }
         }
     }
 }
@@ -1029,9 +1229,9 @@ private fun ModificarMenuDialog(
     productosEnGrupo: List<PedidoProducto>,
     menu: MenuDia,
     onDismiss: () -> Unit,
-    onConfirm: (List<Pair<PedidoProducto, Int>>) -> Unit  // (productoViejo, nuevoProductoId)
+    // oldProd == null → adición nueva; oldProd != null → sustitución
+    onConfirm: (List<Pair<PedidoProducto?, Int>>) -> Unit
 ) {
-    // Mapear cada producto del grupo a su curso usando producto_id para identificar bebidas y platos
     val prodPorCurso: Map<String, PedidoProducto> = buildMap {
         productosEnGrupo.forEach { prod ->
             val curso = menu.lineas.firstOrNull { it.producto_id == prod.producto_id }?.curso
@@ -1039,12 +1239,16 @@ private fun ModificarMenuDialog(
         }
     }
 
-    // Selección actual: curso → producto_id
+    // -1 = "No añadir" (para cursos que faltan en el grupo)
     val selecciones = remember {
         mutableStateMapOf<String, Int>().apply {
-            prodPorCurso.forEach { (curso, prod) ->
-                // El producto ya tiene producto_id; usarlo directamente
-                put(curso, prod.producto_id)
+            CURSO_ORDEN.forEach { curso ->
+                val prodActual = prodPorCurso[curso]
+                val hayOpciones = menu.lineas.any { it.curso == curso }
+                when {
+                    prodActual != null -> put(curso, prodActual.producto_id)
+                    hayOpciones -> put(curso, -1)  // curso faltante, por defecto "no añadir"
+                }
             }
         }
     }
@@ -1055,23 +1259,38 @@ private fun ModificarMenuDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 CURSO_ORDEN.forEach { curso ->
-                    val prodActual = prodPorCurso[curso] ?: return@forEach
-                    val cursoLabel = CURSO_LABELS[curso] ?: curso
-
-                    // Opciones disponibles para este curso — siempre desde menu.lineas
+                    val prodActual = prodPorCurso[curso]
                     val opciones: List<MenuDiaLinea> = menu.lineas.filter { it.curso == curso }
+                    if (opciones.isEmpty()) return@forEach
+
+                    val cursoLabel = CURSO_LABELS[curso] ?: curso
+                    val faltante = prodActual == null
 
                     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            cursoLabel,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.outline,
-                            fontWeight = FontWeight.SemiBold
-                        )
-
-                        if (opciones.size <= 1) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
                             Text(
-                                prodActual.nombre,
+                                cursoLabel,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = if (faltante) ColorPlatoCancelado
+                                else MaterialTheme.colorScheme.outline,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            if (faltante) {
+                                Text(
+                                    "· sin añadir",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                            }
+                        }
+
+                        // Si ya existe y solo hay 1 opción → no se puede cambiar, solo mostrar
+                        if (!faltante && opciones.size == 1) {
+                            Text(
+                                prodActual!!.nombre,
                                 style = MaterialTheme.typography.bodyMedium,
                                 modifier = Modifier.padding(start = 8.dp)
                             )
@@ -1081,6 +1300,27 @@ private fun ModificarMenuDialog(
                                     .heightIn(max = 200.dp)
                                     .verticalScroll(rememberScrollState())
                             ) {
+                                // Opción "No añadir" solo para cursos faltantes
+                                if (faltante) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clickable { selecciones[curso] = -1 }
+                                            .padding(vertical = 2.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        RadioButton(
+                                            selected = selecciones[curso] == -1,
+                                            onClick = { selecciones[curso] = -1 }
+                                        )
+                                        Text(
+                                            "No añadir",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.outline,
+                                            fontWeight = if (selecciones[curso] == -1) FontWeight.SemiBold else FontWeight.Normal
+                                        )
+                                    }
+                                }
                                 opciones.forEach { opcion ->
                                     val sel = selecciones[curso] == opcion.producto_id
                                     Row(
@@ -1118,13 +1358,14 @@ private fun ModificarMenuDialog(
         },
         confirmButton = {
             Button(onClick = {
-                val cambios = mutableListOf<Pair<PedidoProducto, Int>>()
+                val cambios = mutableListOf<Pair<PedidoProducto?, Int>>()
                 CURSO_ORDEN.forEach { curso ->
-                    val prodActual = prodPorCurso[curso] ?: return@forEach
-                    val seleccionActualId = prodActual.producto_id
-                    val nuevaId = selecciones[curso]
-                    if (nuevaId != null && nuevaId != seleccionActualId) {
-                        cambios.add(prodActual to nuevaId)
+                    val nuevaId = selecciones[curso] ?: return@forEach
+                    if (nuevaId == -1) return@forEach  // "no añadir"
+                    val prodActual = prodPorCurso[curso]
+                    when {
+                        prodActual == null -> cambios.add(null to nuevaId)          // adición nueva
+                        nuevaId != prodActual.producto_id -> cambios.add(prodActual to nuevaId) // sustitución
                     }
                 }
                 onConfirm(cambios)
@@ -1141,40 +1382,72 @@ private fun CantidadMenusDialog(
 ) {
     var texto by remember { mutableStateOf("") }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("¿Cuántos menús?") },
-        text = {
-            OutlinedTextField(
-                value = texto,
-                onValueChange = { texto = it.filter { c -> c.isDigit() }.take(2) },
-                label = { Text("Número de menús") },
-                placeholder = { Text("1") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        confirmButton = {
-            Button(
-                onClick = { onConfirm(texto.toIntOrNull()?.coerceAtLeast(1) ?: 1) },
-            ) { Text("Empezar") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            modifier = Modifier.width(260.dp),
+            shape = MaterialTheme.shapes.extraLarge
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text("¿Cuántos menús?", style = MaterialTheme.typography.titleLarge)
+                OutlinedTextField(
+                    value = texto,
+                    onValueChange = { texto = it.filter { c -> c.isDigit() }.take(2) },
+                    label = { Text("Nº de menús") },
+                    placeholder = { Text("1") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) { Text("Cancelar") }
+                    Spacer(Modifier.width(8.dp))
+                    Button(onClick = { onConfirm(texto.toIntOrNull()?.coerceAtLeast(1) ?: 1) }) {
+                        Text("Empezar")
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
-private fun MenuCursoFila(label: String, nombre: String) {
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+private fun MenuCursoFila(
+    label: String,
+    nombre: String,
+    stockLabel: String? = null,
+    agotado: Boolean = false
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Text(
             label, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.outline, modifier = Modifier.width(60.dp)
         )
         Text(
             nombre, style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f)
+            fontWeight = FontWeight.Medium,
+            color = if (agotado) MaterialTheme.colorScheme.outline
+            else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f)
         )
+        if (stockLabel != null) {
+            Text(
+                stockLabel,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (agotado) ColorPlatoCancelado else MaterialTheme.colorScheme.outline,
+                fontWeight = if (agotado) FontWeight.Bold else FontWeight.Normal
+            )
+        }
     }
 }
 
@@ -1193,23 +1466,28 @@ private fun LineaPedidoItem(
     onCancelar: () -> Unit,
     onCambiarCantidad: (Int) -> Unit,
     onAplicarDescuento: () -> Unit,
+    onMarcarServida: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val cancelado = linea.estado == "cancelado"
+    val servido  = linea.estado == "servido"
+    val esBebida = linea.categoria == "bebida"
     val enCocina = linea.estado in listOf("en preparacion", "preparado", "servido")
     val estadoColor = when {
         cancelado -> ColorPlatoCancelado
+        servido   -> ColorPlatoListo
         linea.estado == "preparado" -> ColorPlatoListo
-        linea.estado == "en preparacion" -> ColorPlatoEnCocina
+        linea.estado == "en preparacion" && !esBebida -> ColorPlatoEnCocina
         else -> ColorPlatoDefault
     }
-    val totalLinea = if (cancelado) 0.0 else precioConDescuento(linea, descuento)
+    val totalLinea = if (cancelado || servido) 0.0 else precioConDescuento(linea, descuento)
 
     val bgColor by animateColorAsState(
         targetValue = when {
             cancelado -> ColorPlatoCancelado.copy(alpha = 0.05f)
+            servido   -> ColorPlatoListo.copy(alpha = 0.06f)
             linea.estado == "preparado" -> ColorPlatoListo.copy(alpha = 0.06f)
-            linea.estado == "en preparacion" -> ColorPlatoEnCocina.copy(alpha = 0.06f)
+            linea.estado == "en preparacion" && !esBebida -> ColorPlatoEnCocina.copy(alpha = 0.06f)
             else -> Color.Transparent
         },
         animationSpec = tween(600), label = "lineaBg"
@@ -1218,9 +1496,10 @@ private fun LineaPedidoItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .padding(vertical = 4.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(bgColor)
-            .padding(vertical = 8.dp),
+            .padding(top = 8.dp, bottom = 8.dp, end = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
@@ -1280,14 +1559,22 @@ private fun LineaPedidoItem(
                 )
             }
 
-            else -> {
-                // Vista idéntica siempre: − cantidad + precio % papelera
-                // Si ya en cocina: − reduce (hasta 0 = cancela), + aumenta, papelera cancela
-                // Si no en cocina: comportamiento normal (elimina al llegar a 0)
+            servido -> {
+                // Bebida ya servida — toca el check para desmarcar
+                IconButton(onClick = onMarcarServida, modifier = Modifier.size(36.dp)) {
+                    Icon(
+                        Icons.Default.CheckCircle, "Desmarcar servida",
+                        tint = ColorPlatoListo, modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            esBebida -> {
+                // Bebida pendiente — controles normales + botón Servir
                 IconButton(
                     onClick = {
                         if (linea.cantidad > 1) onCambiarCantidad(linea.cantidad - 1)
-                        else if (enCocina) onCancelar() else onEliminar()
+                        else onEliminar()
                     },
                     modifier = Modifier.size(32.dp)
                 ) { Icon(Icons.Default.Remove, "Menos", modifier = Modifier.size(16.dp)) }
@@ -1309,15 +1596,67 @@ private fun LineaPedidoItem(
                         tint = if (descuento != null) Color(0xFF43A047) else MaterialTheme.colorScheme.outline
                     )
                 }
-                IconButton(
-                    onClick = if (enCocina) onCancelar else onEliminar,
-                    modifier = Modifier.size(36.dp)
-                ) {
+                // Botón Servir
+                IconButton(onClick = onMarcarServida, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        Icons.Default.CheckCircle, "Marcar como servida",
+                        tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                IconButton(onClick = onEliminar, modifier = Modifier.size(36.dp)) {
                     Icon(
                         Icons.Default.Delete, "Eliminar",
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(20.dp)
                     )
+                }
+            }
+
+            else -> {
+                if (!enCocina) {
+                    IconButton(
+                        onClick = {
+                            if (linea.cantidad > 1) onCambiarCantidad(linea.cantidad - 1)
+                            else onEliminar()
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) { Icon(Icons.Default.Remove, "Menos", modifier = Modifier.size(16.dp)) }
+                    Text(
+                        "${linea.cantidad}", style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                    IconButton(
+                        onClick = { onCambiarCantidad(linea.cantidad + 1) },
+                        modifier = Modifier.size(32.dp)
+                    ) { Icon(Icons.Default.Add, "Más", modifier = Modifier.size(16.dp)) }
+                }
+                Text(
+                    "%.2f €".format(totalLinea), style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 6.dp)
+                )
+                IconButton(onClick = onAplicarDescuento, modifier = Modifier.size(32.dp)) {
+                    Icon(
+                        Icons.Default.Percent, "Descuento", modifier = Modifier.size(16.dp),
+                        tint = if (descuento != null) Color(0xFF43A047) else MaterialTheme.colorScheme.outline
+                    )
+                }
+                if (enCocina) {
+                    IconButton(onClick = onCancelar, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            Icons.Default.Cancel, "Cancelar",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                } else {
+                    IconButton(onClick = onEliminar, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            Icons.Default.Delete, "Eliminar",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }

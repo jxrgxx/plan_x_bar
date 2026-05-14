@@ -128,12 +128,15 @@ interface ApiService {
     @POST("menu_dia/menu_dia_guardar.php")
     suspend fun guardarMenuDia(@Body request: GuardarMenuDiaRequest): Response<CreateResponse>
 
+    @GET("menu_dia/menu_dia_uso.php")
+    suspend fun getMenuDiaUso(@Query("restaurante_id") restauranteId: Int): Response<MenuDiaUsoResponse>
+
     // --- Estadísticas ---
     @GET("estadisticas/estadisticas_obtener.php")
     suspend fun getEstadisticas(
         @Query("restaurante_id") restauranteId: Int,
-        @Query("fecha_inicio")   fechaInicio: String,
-        @Query("fecha_fin")      fechaFin: String
+        @Query("fecha_inicio") fechaInicio: String,
+        @Query("fecha_fin") fechaFin: String
     ): Response<EstadisticasResponse>
 
     // --- Trabajadores ---

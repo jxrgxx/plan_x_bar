@@ -135,11 +135,15 @@ object SessionManager {
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
-    val restauranteId: Int get() {
-        val id = _admin.value?.restaurante_id
-        if (id == null) Log.e("SessionManager", "restauranteId accessed with no admin logged in — falling back to 1")
-        return id ?: 1
-    }
+    val restauranteId: Int
+        get() {
+            val id = _admin.value?.restaurante_id
+            if (id == null) Log.e(
+                "SessionManager",
+                "restauranteId accessed with no admin logged in — falling back to 1"
+            )
+            return id ?: 1
+        }
     val adminEmail: String get() = _admin.value?.email ?: ""
     val restauranteNombre: String get() = _admin.value?.restaurante_nombre ?: ""
     val hayTrabajadorActivo: Boolean get() = _trabajador.value != null && _pinVerificado.value

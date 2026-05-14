@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.los_jorges.plan_bar.model.GuardarMenuDiaRequest
 import com.los_jorges.plan_bar.model.MenuDia
 import com.los_jorges.plan_bar.model.MenuDiaLineaRequest
+import com.los_jorges.plan_bar.model.MenuDiaUso
 import com.los_jorges.plan_bar.network.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -20,6 +21,23 @@ class MenuDiaViewModel : ViewModel() {
 
     private val _error   = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
+
+    /** Mapa producto_id → unidades ya usadas en pedidos activos de todos los camareros */
+    private val _usoMenu = MutableStateFlow<Map<Int, Int>>(emptyMap())
+    val usoMenu: StateFlow<Map<Int, Int>> = _usoMenu
+
+    fun cargarUso(restauranteId: Int) {
+        viewModelScope.launch {
+            try {
+                val r = RetrofitClient.api.getMenuDiaUso(restauranteId)
+                if (r.isSuccessful) {
+                    _usoMenu.value = r.body()?.uso
+                        ?.associate { it.producto_id to it.usado }
+                        ?: emptyMap()
+                }
+            } catch (_: Exception) {}
+        }
+    }
 
     fun cargar(restauranteId: Int) {
         viewModelScope.launch {

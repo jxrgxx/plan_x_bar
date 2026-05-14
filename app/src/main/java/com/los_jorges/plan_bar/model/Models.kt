@@ -19,7 +19,10 @@ data class Mesa(
     val estado: String,
     val posX: Float,
     val posY: Float,
-    val zona: String = "piso1"
+    val zona: String = "piso1",
+    val ancho: Float = 100f,
+    val alto: Float = 100f,
+    val rotacion: Float = 0f
 )
 
 data class Producto(
@@ -103,7 +106,8 @@ data class Estructura(
     val ancho: Float,
     val alto: Float,
     val color: String = "#BBDEFB",
-    val zona: String = "piso1"
+    val zona: String = "piso1",
+    val rotacion: Float = 0f
 )
 
 data class EstructurasResponse(val estructuras: List<Estructura>)
@@ -134,6 +138,7 @@ data class Pedido(
     val trabajador_id: Int?,
     val mesa_id: Int,
     val mesa_codigo: String?,
+    val comensales: Int = 1,
     val productos: List<PedidoProducto> = emptyList()
 )
 
@@ -174,6 +179,9 @@ data class MenuDia(
 )
 
 data class MenuDiaResponse(val menu: MenuDia?)
+
+data class MenuDiaUso(val producto_id: Int, val usado: Int)
+data class MenuDiaUsoResponse(val uso: List<MenuDiaUso>)
 
 data class MenuDiaLineaRequest(
     val producto_id: Int,

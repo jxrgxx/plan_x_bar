@@ -77,13 +77,14 @@ class PedidosViewModel : ViewModel() {
     }
 
     /** Crea un pedido nuevo para la mesa y lo carga. */
-    fun crearNuevoPedido(restauranteId: Int, mesaId: Int, trabajadorId: Int?) {
+    fun crearNuevoPedido(restauranteId: Int, mesaId: Int, trabajadorId: Int?, comensales: Int = 1) {
         viewModelScope.launch {
             _loading.value = true
             try {
                 val body = mutableMapOf<String, Any>(
                     "restaurante_id" to restauranteId,
-                    "mesa_id" to mesaId
+                    "mesa_id" to mesaId,
+                    "comensales" to comensales
                 )
                 if (trabajadorId != null) body["trabajador_id"] = trabajadorId
                 val r = RetrofitClient.api.crearPedido(body)

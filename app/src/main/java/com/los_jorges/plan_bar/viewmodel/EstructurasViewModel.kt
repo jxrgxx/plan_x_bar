@@ -37,7 +37,7 @@ class EstructurasViewModel : ViewModel() {
     fun crear(
         restauranteId: Int, nombre: String, color: String,
         posX: Float = 50f, posY: Float = 50f,
-        ancho: Float = 200f, alto: Float = 150f,
+        ancho: Float = 120f, alto: Float = 80f,
         zona: String = "piso1",
         onResult: (Boolean, String?) -> Unit
     ) {
@@ -52,7 +52,8 @@ class EstructurasViewModel : ViewModel() {
                         "posY" to posY,
                         "ancho" to ancho,
                         "alto" to alto,
-                        "zona" to zona
+                        "zona" to zona,
+                        "rotacion" to 0f
                     )
                 )
                 if (r.isSuccessful && r.body()?.success == true) {
@@ -67,10 +68,15 @@ class EstructurasViewModel : ViewModel() {
         }
     }
 
-    fun actualizarPosicion(id: Int, restauranteId: Int, posX: Float, posY: Float) {
+    fun actualizarTransforma(
+        id: Int, restauranteId: Int,
+        posX: Float, posY: Float,
+        ancho: Float, alto: Float,
+        rotacion: Float
+    ) {
         val actual = _estructuras.value.firstOrNull { it.id == id } ?: return
         _estructuras.value = _estructuras.value.map {
-            if (it.id == id) it.copy(posX = posX, posY = posY) else it
+            if (it.id == id) it.copy(posX = posX, posY = posY, ancho = ancho, alto = alto, rotacion = rotacion) else it
         }
         viewModelScope.launch {
             try {
@@ -80,13 +86,13 @@ class EstructurasViewModel : ViewModel() {
                         "nombre" to actual.nombre,
                         "posX" to posX,
                         "posY" to posY,
-                        "ancho" to actual.ancho,
-                        "alto" to actual.alto,
-                        "color" to actual.color
+                        "ancho" to ancho,
+                        "alto" to alto,
+                        "color" to actual.color,
+                        "rotacion" to rotacion
                     )
                 )
-            } catch (_: Exception) {
-            }
+            } catch (_: Exception) {}
         }
     }
 

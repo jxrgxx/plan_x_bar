@@ -206,7 +206,6 @@ private fun PedidoCocinaCard(
     val total = pedido.productos.count { it.estado != "cancelado" }
     // Todo listo si todos los activos están preparados
     val todoListo = listos == total && total > 0
-    val platosActivos = pedido.productos.filter { it.estado != "preparado" }
 
     val tiempoColor = when {
         minutos > 20 -> ColorUrgente
@@ -298,33 +297,20 @@ private fun PedidoCocinaCard(
             HorizontalDivider()
 
             // ── Lista de platos ──────────────────────────────────────────────
-            val platosOrdenados = platosActivos.sortedWith(
-                compareBy(
-                { it.estado == "cancelado" }
-            ))
+            // Orden: pendientes primero, preparados al final, cancelados al final del todo
+            val platosOrdenados = pedido.productos.sortedBy { prod ->
+                when (prod.estado) {
+                    "cancelado" -> 2
+                    "preparado" -> 1
+                    else        -> 0
+                }
+            }
             platosOrdenados.forEach { producto ->
                 PlatoItem(
                     producto = producto,
                     onClick = { if (producto.estado != "cancelado") onMarcarPlato(producto) }
                 )
             }
-            // ── Badge de cancelaciones ────────────────────────────────────
-            if (cancelados > 0) {
-                Surface(
-                    color = ColorUrgente.copy(alpha = 0.12f),
-                    shape = RoundedCornerShape(8.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        "⚠ $cancelados plato${if (cancelados > 1) "s" else ""} CANCELADO${if (cancelados > 1) "S" else ""}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = ColorUrgente,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
-                    )
-                }
-            }
-
             // Cuando todoListo, el ViewModel auto-marca y retira el pedido de cocina
         }
     }
@@ -350,15 +336,11 @@ private fun PlatoItem(producto: PedidoProducto, onClick: () -> Unit) {
             .fillMaxWidth()
             .background(bgColor, RoundedCornerShape(8.dp))
             .border(
-                width = when {
-                    cancelado -> 1.dp
-                    preparado -> 1.dp
-                    else -> 0.dp
-                },
+                width = 1.dp,
                 color = when {
                     cancelado -> ColorUrgente.copy(alpha = 0.5f)
                     preparado -> ColorListo.copy(alpha = 0.4f)
-                    else -> Color.Transparent
+                    else      -> ColorPendiente.copy(alpha = 0.4f)
                 },
                 shape = RoundedCornerShape(8.dp)
             )
@@ -377,7 +359,7 @@ private fun PlatoItem(producto: PedidoProducto, onClick: () -> Unit) {
             tint = when {
                 cancelado -> ColorUrgente
                 preparado -> ColorListo
-                else -> MaterialTheme.colorScheme.outline
+                else      -> ColorPendiente
             },
             modifier = Modifier.size(22.dp)
         )
@@ -390,10 +372,10 @@ private fun PlatoItem(producto: PedidoProducto, onClick: () -> Unit) {
                 ),
                 color = when {
                     cancelado -> MaterialTheme.colorScheme.outline
-                    preparado -> MaterialTheme.colorScheme.outline
-                    else -> MaterialTheme.colorScheme.onSurface
+                    preparado -> ColorListo
+                    else      -> ColorPendiente
                 },
-                fontWeight = if (!preparado && !cancelado) FontWeight.Medium else FontWeight.Normal
+                fontWeight = FontWeight.Medium
             )
             if (!producto.observaciones.isNullOrBlank()) {
                 Text(
@@ -418,7 +400,21 @@ private fun PlatoItem(producto: PedidoProducto, onClick: () -> Unit) {
                 )
             }
 
-            !preparado -> Surface(
+            preparado -> Surface(
+                color = ColorListo.copy(alpha = 0.15f),
+                shape = RoundedCornerShape(6.dp)
+            ) {
+                Text(
+                    "PREPARADO",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = ColorListo,
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                )
+            }
+
+            else -> Surface(
                 color = ColorPendiente.copy(alpha = 0.15f),
                 shape = RoundedCornerShape(6.dp)
             ) {

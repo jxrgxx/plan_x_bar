@@ -115,14 +115,22 @@ class MesasViewModel : ViewModel() {
         }
     }
 
-    fun actualizarPosicion(restauranteId: Int, id: Int, posX: Float, posY: Float) {
+    fun actualizarTransforma(
+        restauranteId: Int, id: Int,
+        posX: Float, posY: Float,
+        ancho: Float, alto: Float, rotacion: Float
+    ) {
+        _mesas.value = _mesas.value.map {
+            if (it.id == id) it.copy(posX = posX, posY = posY, ancho = ancho, alto = alto, rotacion = rotacion) else it
+        }
         viewModelScope.launch {
             try {
                 RetrofitClient.api.actualizarPosicionMesa(
-                    mapOf("id" to id, "posX" to posX, "posY" to posY)
+                    mapOf("id" to id, "posX" to posX, "posY" to posY,
+                        "ancho" to ancho, "alto" to alto, "rotacion" to rotacion)
                 )
             } catch (e: Exception) {
-                Log.e(TAG, "actualizarPosicion", e)
+                Log.e(TAG, "actualizarTransforma", e)
             }
         }
     }

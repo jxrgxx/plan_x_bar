@@ -8,24 +8,27 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.los_jorges.plan_bar.model.Estructura
 import com.los_jorges.plan_bar.model.Mesa
@@ -35,6 +38,10 @@ import com.los_jorges.plan_bar.viewmodel.MesasViewModel
 
 private const val MESA_W = 100f
 private const val MESA_H = 100f
+
+// Tamaño virtual de referencia (dp en el que se diseñó el plano originalmente)
+private const val VIRTUAL_W = 400f
+private const val VIRTUAL_H = 700f
 
 private fun parseColor(hex: String): Color = try {
     val clean = hex.trimStart('#')
@@ -72,7 +79,8 @@ fun PlanoCanvas(
     val todasMesas by vm.mesas.collectAsState()
     val loading by vm.loading.collectAsState()
     val todasEstructuras by vmEstructuras.estructuras.collectAsState()
-    var selectedId by remember { mutableStateOf<Int?>(null) }
+    var selectedMesaId by remember { mutableStateOf<Int?>(null) }
+    var selectedEstructuraId by remember { mutableStateOf<Int?>(null) }
 
     val mesas = todasMesas.filter { it.zona == zona }
     val estructuras = todasEstructuras.filter { it.zona == zona }
@@ -87,11 +95,12 @@ fun PlanoCanvas(
             .fillMaxSize()
             .background(Color(0xFF100E0C))
             .pointerInput(Unit) {
-                detectTapGestures(onTap = { selectedId = null })
+                detectTapGestures(onTap = { selectedMesaId = null; selectedEstructuraId = null })
             }
     ) {
         val canvasW = maxWidth.value
-        val canvasH = maxHeight.value
+        // Escala uniforme basada en el ancho — la app es siempre vertical
+        val scale = canvasW / VIRTUAL_W
 
         if (loading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
@@ -118,38 +127,42 @@ fun PlanoCanvas(
             )
         }
 
-        // Estructuras (fondo)
-        estructuras.forEach { estructura ->
-            key(estructura.id) {
-                EstructuraPlanoItem(
-                    estructura = estructura,
-                    modoEdicion = modoEdicion,
-                    isSeleccionado = selectedId == estructura.id,
-                    canvasW = canvasW,
-                    canvasH = canvasH,
-                    onSeleccionar = {
-                        selectedId = if (selectedId == estructura.id) null else estructura.id
-                    },
-                    onPosicionCambiada = { id, x, y ->
-                        vmEstructuras.actualizarPosicion(id, restauranteId, x, y)
-                    },
-                    onEliminar = onEliminarEstructura?.let { cb -> { cb(estructura) } }
-                )
-            }
-        }
-
-        // Mesas (encima)
+        // Mesas (fondo)
         mesas.forEach { mesa ->
             key(mesa.id) {
                 MesaPlanoItem(
                     mesa = mesa,
                     modoEdicion = modoEdicion,
-                    canvasW = canvasW,
-                    canvasH = canvasH,
-                    onPosicionCambiada = { id, x, y ->
-                        vm.actualizarPosicion(restauranteId, id, x, y)
+                    isSeleccionado = selectedMesaId == mesa.id,
+                    scale = scale,
+                    onSeleccionar = {
+                        selectedMesaId = if (selectedMesaId == mesa.id) null else mesa.id
+                        selectedEstructuraId = null
+                    },
+                    onTransformaCambiada = { id, x, y, w, h, r ->
+                        vm.actualizarTransforma(restauranteId, id, x, y, w, h, r)
                     },
                     onMesaTap = onMesaTap
+                )
+            }
+        }
+
+        // Estructuras (encima de las mesas)
+        estructuras.forEach { estructura ->
+            key(estructura.id) {
+                EstructuraPlanoItem(
+                    estructura = estructura,
+                    modoEdicion = modoEdicion,
+                    isSeleccionado = selectedEstructuraId == estructura.id,
+                    scale = scale,
+                    onSeleccionar = {
+                        selectedEstructuraId = if (selectedEstructuraId == estructura.id) null else estructura.id
+                        selectedMesaId = null
+                    },
+                    onTransformaCambiada = { id, x, y, w, h, r ->
+                        vmEstructuras.actualizarTransforma(id, restauranteId, x, y, w, h, r)
+                    },
+                    onEliminar = onEliminarEstructura?.let { cb -> { cb(estructura) } }
                 )
             }
         }
@@ -233,10 +246,11 @@ fun PlanoMesasScreen(
     if (showNuevaEstructura) {
         NuevaEstructuraDialog(
             onDismiss = { showNuevaEstructura = false },
-            onConfirm = { nombre, color, ancho, alto ->
+            onConfirm = { nombre, color ->
                 vmEstructuras.crear(
                     restauranteId, nombre, color,
-                    posX = 80f, posY = 12f, ancho = ancho, alto = alto,
+                    posX = (VIRTUAL_W - 120f) / 2f,
+                    posY = (VIRTUAL_H - 80f) / 2f,
                     zona = zonaActual
                 ) { ok, err ->
                     snackMsg = if (ok) "Elemento creado" else err ?: "Error"
@@ -274,78 +288,278 @@ private fun EstructuraPlanoItem(
     estructura: Estructura,
     modoEdicion: Boolean,
     isSeleccionado: Boolean = false,
-    canvasW: Float,
-    canvasH: Float,
+    scale: Float,
     onSeleccionar: () -> Unit = {},
-    onPosicionCambiada: (Int, Float, Float) -> Unit,
+    onTransformaCambiada: (Int, Float, Float, Float, Float, Float) -> Unit,
     onEliminar: (() -> Unit)? = null
 ) {
     val density = LocalDensity.current
-    var posX by remember(estructura.id) { mutableStateOf(estructura.posX) }
-    var posY by remember(estructura.id) { mutableStateOf(estructura.posY) }
+
+    var posX     by remember(estructura.id) { mutableStateOf(estructura.posX) }
+    var posY     by remember(estructura.id) { mutableStateOf(estructura.posY) }
+    var ancho    by remember(estructura.id) { mutableStateOf(estructura.ancho) }
+    var alto     by remember(estructura.id) { mutableStateOf(estructura.alto) }
+    var rotacion by remember(estructura.id) { mutableStateOf(estructura.rotacion) }
+
     val color = parseColor(estructura.color)
 
-    val interactionModifier = if (modoEdicion) {
-        Modifier
-            .pointerInput(estructura.id) {
-                detectDragGestures(
-                    onDragEnd = { onPosicionCambiada(estructura.id, posX, posY) }
-                ) { change, dragAmount ->
-                    change.consume()
-                    with(density) {
-                        posX = (posX + dragAmount.x.toDp().value).coerceIn(
-                            0f,
-                            canvasW - estructura.ancho
-                        )
-                        posY = (posY + dragAmount.y.toDp().value).coerceIn(
-                            0f,
-                            canvasH - estructura.alto
-                        )
-                    }
-                }
-            }
-            .pointerInput(estructura.id + 10000) {
-                detectTapGestures(onTap = { onSeleccionar() })
-            }
-    } else Modifier
+    val renderW = ancho * scale
+    val renderH = alto * scale
+
+    // Área táctil mínima de 44dp para poder seleccionar estructuras muy finas
+    val minTouch = 44f
+    val touchW = renderW.coerceAtLeast(minTouch)
+    val touchH = renderH.coerceAtLeast(minTouch)
+    val extraW = (touchW - renderW) / 2f  // padding invisible a cada lado en dp
+    val extraH = (touchH - renderH) / 2f
+
+    // Matriz de rotación para posicionar handles en esquinas visuales reales
+    val rad  = Math.toRadians(rotacion.toDouble())
+    val cosR = cos(rad).toFloat()
+    val sinR = sin(rad).toFloat()
+
+    // Posición visual de una esquina (en dp, relativa al top-left del VISUAL box)
+    // Para offset dentro del outer Box hay que sumar extraW/extraH
+    val halfW = renderW / 2f
+    val halfH = renderH / 2f
+    fun vx(lx: Float, ly: Float) = extraW + halfW + lx * cosR - ly * sinR
+    fun vy(lx: Float, ly: Float) = extraH + halfH + lx * sinR + ly * cosR
+
+    // Convierte drag de píxeles → dp → espacio local del elemento (desrotado) → virtual
+    fun localDx(pxX: Float, pxY: Float): Float {
+        val dp = with(density) { pxX.toDp().value }
+        val dpY = with(density) { pxY.toDp().value }
+        return (dp * cosR + dpY * sinR) / scale
+    }
+    fun localDy(pxX: Float, pxY: Float): Float {
+        val dp = with(density) { pxX.toDp().value }
+        val dpY = with(density) { pxY.toDp().value }
+        return (-dp * sinR + dpY * cosR) / scale
+    }
+
+    // Convierte drag de píxeles → dp → virtual (sin compensar rotación, para mover)
+    fun Float.toVirtual() = with(density) { this@toVirtual.toDp().value } / scale
 
     Box(
         modifier = Modifier
             .offset {
                 IntOffset(
-                    with(density) { posX.dp.roundToPx() },
-                    with(density) { posY.dp.roundToPx() }
+                    with(density) { (posX * scale - extraW).dp.roundToPx() },
+                    with(density) { (posY * scale - extraH).dp.roundToPx() }
                 )
             }
-            .size(width = estructura.ancho.dp, height = estructura.alto.dp)
-            .then(interactionModifier)
-            .clip(RoundedCornerShape(10.dp))
-            .background(color)
+            .size(width = touchW.dp, height = touchH.dp)
             .then(
-                if (isSeleccionado)
-                    Modifier.border(2.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(10.dp))
-                else Modifier
+                if (modoEdicion) Modifier.pointerInput(estructura.id) {
+                    detectDragGestures(
+                        onDragEnd = {
+                            onTransformaCambiada(estructura.id, posX, posY, ancho, alto, rotacion)
+                        }
+                    ) { change, drag ->
+                        change.consume()
+                        posX = (posX + drag.x.toVirtual()).coerceIn(0f, maxOf(0f, VIRTUAL_W - ancho))
+                        posY = (posY + drag.y.toVirtual()).coerceIn(0f, maxOf(0f, VIRTUAL_H - alto))
+                    }
+                } else Modifier
+            )
+            .then(
+                if (modoEdicion) Modifier.pointerInput(estructura.id + 10000) {
+                    detectTapGestures(onTap = { onSeleccionar() })
+                } else Modifier
             )
     ) {
-        // Botón eliminar — solo si está seleccionado
-        if (isSeleccionado && onEliminar != null) {
+        // Solo el fondo rota visualmente — tamaño real centrado dentro del área táctil
+        Box(
+            modifier = Modifier
+                .size(width = renderW.dp, height = renderH.dp)
+                .align(Alignment.Center)
+                .graphicsLayer { rotationZ = rotacion }
+                .clip(RoundedCornerShape(10.dp))
+                .background(color)
+                .then(
+                    if (isSeleccionado)
+                        Modifier.border(2.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(10.dp))
+                    else Modifier
+                )
+        )
+
+        if (isSeleccionado && modoEdicion) {
+            val btnSize = 28.dp
+            val handleSize = 22.dp
+            val btnHalf = 14f
+            val handleHalf = 11f
+
+            // ── Botón eliminar: esquina visual TL ────────────────────────────
+            if (onEliminar != null) {
+                val ex = vx(-halfW, -halfH); val ey = vy(-halfW, -halfH)
+                Box(
+                    modifier = Modifier
+                        .offset(x = (ex - btnHalf).dp, y = (ey - btnHalf).dp)
+                        .size(btnSize)
+                        .clip(CircleShape)
+                        .background(Color(0xFFEF4444))
+                        .clickable { onEliminar() },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Close, null, Modifier.size(15.dp), tint = Color.White)
+                }
+            }
+
+            // ── Botón rotar: esquina visual TR — arrastrar para rotar libremente ──
+            val rx = vx(halfW, -halfH); val ry = vy(halfW, -halfH)
             Box(
                 modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(4.dp)
-                    .size(24.dp)
+                    .offset(x = (rx - btnHalf).dp, y = (ry - btnHalf).dp)
+                    .size(btnSize)
                     .clip(CircleShape)
-                    .background(Color.Black.copy(alpha = 0.55f))
-                    .clickable { onEliminar() },
+                    .background(Color(0xFF3B82F6))
+                    .pointerInput("rot_${estructura.id}") {
+                        var startAngle = 0f
+                        var startRot   = 0f
+                        var centerXPx  = 0f
+                        var centerYPx  = 0f
+                        var touchXPx   = 0f
+                        var touchYPx   = 0f
+                        detectDragGestures(
+                            onDragStart = { startOffset ->
+                                val rW = ancho * scale
+                                val rH = alto  * scale
+                                val tW = rW.coerceAtLeast(44f)
+                                val tH = rH.coerceAtLeast(44f)
+                                val eW = (tW - rW) / 2f
+                                val eH = (tH - rH) / 2f
+                                val hW = rW / 2f; val hH = rH / 2f
+                                val rad = Math.toRadians(rotacion.toDouble())
+                                val c = cos(rad).toFloat(); val s = sin(rad).toFloat()
+                                // Posición del botón TL dentro del outer Box (dp)
+                                val btnTLx = eW + hW + hW * c + hH * s - btnHalf
+                                val btnTLy = eH + hH + hW * s - hH * c - btnHalf
+                                val dpToPx = density.density
+                                centerXPx = tW / 2f * dpToPx
+                                centerYPx = tH / 2f * dpToPx
+                                touchXPx  = btnTLx * dpToPx + startOffset.x
+                                touchYPx  = btnTLy * dpToPx + startOffset.y
+                                startAngle = Math.toDegrees(
+                                    atan2((touchYPx - centerYPx).toDouble(), (touchXPx - centerXPx).toDouble())
+                                ).toFloat()
+                                startRot = rotacion
+                            },
+                            onDragEnd = {
+                                onTransformaCambiada(estructura.id, posX, posY, ancho, alto, rotacion)
+                            }
+                        ) { change, drag ->
+                            change.consume()
+                            touchXPx += drag.x
+                            touchYPx += drag.y
+                            val currentAngle = Math.toDegrees(
+                                atan2((touchYPx - centerYPx).toDouble(), (touchXPx - centerXPx).toDouble())
+                            ).toFloat()
+                            var delta = currentAngle - startAngle
+                            if (delta >  180f) delta -= 360f
+                            if (delta < -180f) delta += 360f
+                            rotacion = startRot + delta
+                        }
+                    },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    Icons.Default.Close,
-                    contentDescription = "Eliminar",
-                    modifier = Modifier.size(13.dp),
-                    tint = Color.White
-                )
+                Icon(Icons.Default.Refresh, null, Modifier.size(15.dp), tint = Color.White)
             }
+
+            // ── Handle lado superior ─────────────────────────────────────────
+            // Solo dy en local; mantiene el lado inferior fijo
+            val topX = vx(0f, -halfH); val topY = vy(0f, -halfH)
+            Box(
+                modifier = Modifier
+                    .offset(x = (topX - handleHalf).dp, y = (topY - handleHalf).dp)
+                    .size(handleSize)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .pointerInput("top_${estructura.id}", rotacion) {
+                        detectDragGestures(
+                            onDragEnd = { onTransformaCambiada(estructura.id, posX, posY, ancho, alto, rotacion) }
+                        ) { change, drag ->
+                            change.consume()
+                            val dy = localDy(drag.x, drag.y)
+                            val newAlto = (alto - dy).coerceAtLeast(5f)
+                            val dH = alto - newAlto
+                            posX -= dH * sinR / 2f
+                            posY += dH * (1 + cosR) / 2f
+                            alto = newAlto
+                        }
+                    }
+            )
+
+            // ── Handle lado inferior ─────────────────────────────────────────
+            // Solo dy en local; mantiene el lado superior fijo
+            val botX = vx(0f, halfH); val botY = vy(0f, halfH)
+            Box(
+                modifier = Modifier
+                    .offset(x = (botX - handleHalf).dp, y = (botY - handleHalf).dp)
+                    .size(handleSize)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .pointerInput("bot_${estructura.id}", rotacion) {
+                        detectDragGestures(
+                            onDragEnd = { onTransformaCambiada(estructura.id, posX, posY, ancho, alto, rotacion) }
+                        ) { change, drag ->
+                            change.consume()
+                            val dy = localDy(drag.x, drag.y)
+                            val newAlto = (alto + dy).coerceAtLeast(5f)
+                            val dH = newAlto - alto
+                            posX -= dH * sinR / 2f
+                            posY += dH * (cosR - 1) / 2f
+                            alto = newAlto
+                        }
+                    }
+            )
+
+            // ── Handle lado izquierdo ────────────────────────────────────────
+            // Solo dx en local; mantiene el lado derecho fijo
+            val lefX = vx(-halfW, 0f); val lefY = vy(-halfW, 0f)
+            Box(
+                modifier = Modifier
+                    .offset(x = (lefX - handleHalf).dp, y = (lefY - handleHalf).dp)
+                    .size(handleSize)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .pointerInput("lef_${estructura.id}", rotacion) {
+                        detectDragGestures(
+                            onDragEnd = { onTransformaCambiada(estructura.id, posX, posY, ancho, alto, rotacion) }
+                        ) { change, drag ->
+                            change.consume()
+                            val dx = localDx(drag.x, drag.y)
+                            val newAncho = (ancho - dx).coerceAtLeast(5f)
+                            val dW = ancho - newAncho
+                            posX += dW * (1 + cosR) / 2f
+                            posY += dW * sinR / 2f
+                            ancho = newAncho
+                        }
+                    }
+            )
+
+            // ── Handle lado derecho ──────────────────────────────────────────
+            // Solo dx en local; mantiene el lado izquierdo fijo
+            val rigX = vx(halfW, 0f); val rigY = vy(halfW, 0f)
+            Box(
+                modifier = Modifier
+                    .offset(x = (rigX - handleHalf).dp, y = (rigY - handleHalf).dp)
+                    .size(handleSize)
+                    .clip(CircleShape)
+                    .background(Color.White)
+                    .pointerInput("rig_${estructura.id}", rotacion) {
+                        detectDragGestures(
+                            onDragEnd = { onTransformaCambiada(estructura.id, posX, posY, ancho, alto, rotacion) }
+                        ) { change, drag ->
+                            change.consume()
+                            val dx = localDx(drag.x, drag.y)
+                            val newAncho = (ancho + dx).coerceAtLeast(5f)
+                            val dW = newAncho - ancho
+                            posX += dW * (cosR - 1) / 2f
+                            posY += dW * sinR / 2f
+                            ancho = newAncho
+                        }
+                    }
+            )
         }
     }
 }
@@ -356,80 +570,209 @@ private fun EstructuraPlanoItem(
 private fun MesaPlanoItem(
     mesa: Mesa,
     modoEdicion: Boolean,
-    canvasW: Float,
-    canvasH: Float,
-    onPosicionCambiada: (Int, Float, Float) -> Unit,
+    isSeleccionado: Boolean = false,
+    scale: Float,
+    onSeleccionar: () -> Unit = {},
+    onTransformaCambiada: (Int, Float, Float, Float, Float, Float) -> Unit,
     onMesaTap: ((Mesa) -> Unit)?
 ) {
     val density = LocalDensity.current
-    var posX by remember(mesa.id) { mutableStateOf(mesa.posX) }
-    var posY by remember(mesa.id) { mutableStateOf(mesa.posY) }
+
+    var posX     by remember(mesa.id) { mutableStateOf(mesa.posX) }
+    var posY     by remember(mesa.id) { mutableStateOf(mesa.posY) }
+    var ancho    by remember(mesa.id) { mutableStateOf(mesa.ancho) }
+    var alto     by remember(mesa.id) { mutableStateOf(mesa.alto) }
+    var rotacion by remember(mesa.id) { mutableStateOf(mesa.rotacion) }
 
     val containerColor = when (mesa.estado) {
-        "ocupada" -> Color(0xFFDC2626)
+        "ocupada"   -> Color(0xFFDC2626)
         "reservada" -> Color(0xFFCA8A04)
-        else -> Color(0xFF16A34A)
+        else        -> Color(0xFF16A34A)
     }
 
-    val interactionModifier = when {
-        modoEdicion -> Modifier.pointerInput(mesa.id) {
-            detectDragGestures(
-                onDragEnd = { onPosicionCambiada(mesa.id, posX, posY) }
-            ) { change, dragAmount ->
-                change.consume()
-                with(density) {
-                    posX = (posX + dragAmount.x.toDp().value).coerceIn(0f, canvasW - MESA_W)
-                    posY = (posY + dragAmount.y.toDp().value).coerceIn(0f, canvasH - MESA_H)
-                }
-            }
-        }
+    val renderW = ancho * scale
+    val renderH = alto  * scale
+    val minTouch = 44f
+    val touchW = renderW.coerceAtLeast(minTouch)
+    val touchH = renderH.coerceAtLeast(minTouch)
+    val extraW = (touchW - renderW) / 2f
+    val extraH = (touchH - renderH) / 2f
 
-        onMesaTap != null -> Modifier.clickable { onMesaTap(mesa) }
-        else -> Modifier
+    val rad  = Math.toRadians(rotacion.toDouble())
+    val cosR = cos(rad).toFloat()
+    val sinR = sin(rad).toFloat()
+
+    val halfW = renderW / 2f
+    val halfH = renderH / 2f
+    fun vx(lx: Float, ly: Float) = extraW + halfW + lx * cosR - ly * sinR
+    fun vy(lx: Float, ly: Float) = extraH + halfH + lx * sinR + ly * cosR
+
+    fun localDx(pxX: Float, pxY: Float): Float {
+        val dp = with(density) { pxX.toDp().value }
+        val dpY = with(density) { pxY.toDp().value }
+        return (dp * cosR + dpY * sinR) / scale
     }
+    fun localDy(pxX: Float, pxY: Float): Float {
+        val dp = with(density) { pxX.toDp().value }
+        val dpY = with(density) { pxY.toDp().value }
+        return (-dp * sinR + dpY * cosR) / scale
+    }
+    fun Float.toVirtual() = with(density) { this@toVirtual.toDp().value } / scale
 
-    Card(
+    Box(
         modifier = Modifier
             .offset {
                 IntOffset(
-                    with(density) { posX.dp.roundToPx() },
-                    with(density) { posY.dp.roundToPx() }
+                    with(density) { (posX * scale - extraW).dp.roundToPx() },
+                    with(density) { (posY * scale - extraH).dp.roundToPx() }
                 )
             }
-            .size(width = MESA_W.dp, height = MESA_H.dp)
-            .then(interactionModifier),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor,
-            contentColor = Color.White
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+            .size(width = touchW.dp, height = touchH.dp)
+            .then(
+                if (modoEdicion) Modifier.pointerInput(mesa.id) {
+                    detectDragGestures(
+                        onDragEnd = { onTransformaCambiada(mesa.id, posX, posY, ancho, alto, rotacion) }
+                    ) { change, drag ->
+                        change.consume()
+                        posX = (posX + drag.x.toVirtual()).coerceIn(0f, maxOf(0f, VIRTUAL_W - ancho))
+                        posY = (posY + drag.y.toVirtual()).coerceIn(0f, maxOf(0f, VIRTUAL_H - alto))
+                    }
+                } else Modifier
+            )
+            .pointerInput(mesa.id + 20000) {
+                detectTapGestures(onTap = {
+                    if (modoEdicion) onSeleccionar() else onMesaTap?.invoke(mesa)
+                })
+            }
     ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                mesa.codigo,
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("${mesa.capacidad}", style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.width(3.dp))
-                Icon(
-                    Icons.Default.Person,
-                    null,
-                    modifier = Modifier.size(13.dp),
-                    tint = Color.White
+        Box(
+            modifier = Modifier
+                .size(width = renderW.dp, height = renderH.dp)
+                .align(Alignment.Center)
+                .graphicsLayer { rotationZ = rotacion }
+                .clip(RoundedCornerShape(12.dp))
+                .background(containerColor)
+                .then(
+                    if (isSeleccionado)
+                        Modifier.border(2.dp, Color.White.copy(alpha = 0.8f), RoundedCornerShape(12.dp))
+                    else Modifier
                 )
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(mesa.codigo, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = Color.White)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("${mesa.capacidad}", style = MaterialTheme.typography.bodySmall, color = Color.White)
+                    Spacer(Modifier.width(3.dp))
+                    Icon(Icons.Default.Person, null, modifier = Modifier.size(13.dp), tint = Color.White)
+                }
+                Text(mesa.estado, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
             }
-            Text(
-                mesa.estado,
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White.copy(alpha = 0.7f)
-            )
+        }
+
+        if (isSeleccionado && modoEdicion) {
+            val btnSize    = 28.dp
+            val handleSize = 22.dp
+            val btnHalf    = 14f
+            val handleHalf = 11f
+
+            // ── Botón rotar: esquina visual TR ───────────────────────────────
+            val rx = vx(halfW, -halfH); val ry = vy(halfW, -halfH)
+            Box(
+                modifier = Modifier
+                    .offset(x = (rx - btnHalf).dp, y = (ry - btnHalf).dp)
+                    .size(btnSize)
+                    .clip(CircleShape)
+                    .background(Color(0xFF3B82F6))
+                    .pointerInput("rot_m_${mesa.id}") {
+                        var startAngle = 0f; var startRot = 0f
+                        var centerXPx  = 0f; var centerYPx = 0f
+                        var touchXPx   = 0f; var touchYPx  = 0f
+                        detectDragGestures(
+                            onDragStart = { startOffset ->
+                                val rW = ancho * scale; val rH = alto * scale
+                                val tW = rW.coerceAtLeast(44f); val tH = rH.coerceAtLeast(44f)
+                                val eW = (tW - rW) / 2f; val eH = (tH - rH) / 2f
+                                val hW = rW / 2f; val hH = rH / 2f
+                                val r2 = Math.toRadians(rotacion.toDouble())
+                                val c = cos(r2).toFloat(); val s = sin(r2).toFloat()
+                                val btnTLx = eW + hW + hW * c + hH * s - btnHalf
+                                val btnTLy = eH + hH + hW * s - hH * c - btnHalf
+                                val dpToPx = density.density
+                                centerXPx = tW / 2f * dpToPx; centerYPx = tH / 2f * dpToPx
+                                touchXPx = btnTLx * dpToPx + startOffset.x
+                                touchYPx = btnTLy * dpToPx + startOffset.y
+                                startAngle = Math.toDegrees(atan2((touchYPx - centerYPx).toDouble(), (touchXPx - centerXPx).toDouble())).toFloat()
+                                startRot = rotacion
+                            },
+                            onDragEnd = { onTransformaCambiada(mesa.id, posX, posY, ancho, alto, rotacion) }
+                        ) { change, drag ->
+                            change.consume()
+                            touchXPx += drag.x; touchYPx += drag.y
+                            val currentAngle = Math.toDegrees(atan2((touchYPx - centerYPx).toDouble(), (touchXPx - centerXPx).toDouble())).toFloat()
+                            var delta = currentAngle - startAngle
+                            if (delta > 180f) delta -= 360f
+                            if (delta < -180f) delta += 360f
+                            rotacion = startRot + delta
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) { Icon(Icons.Default.Refresh, null, Modifier.size(15.dp), tint = Color.White) }
+
+            // ── Handle superior ──────────────────────────────────────────────
+            val topX = vx(0f, -halfH); val topY = vy(0f, -halfH)
+            Box(modifier = Modifier
+                .offset(x = (topX - handleHalf).dp, y = (topY - handleHalf).dp)
+                .size(handleSize).clip(CircleShape).background(Color.White)
+                .pointerInput("top_m_${mesa.id}", rotacion) {
+                    detectDragGestures(onDragEnd = { onTransformaCambiada(mesa.id, posX, posY, ancho, alto, rotacion) }) { change, drag ->
+                        change.consume()
+                        val dy = localDy(drag.x, drag.y); val newAlto = (alto - dy).coerceAtLeast(5f)
+                        val dH = alto - newAlto; posX -= dH * sinR / 2f; posY += dH * (1 + cosR) / 2f; alto = newAlto
+                    }
+                })
+
+            // ── Handle inferior ──────────────────────────────────────────────
+            val botX = vx(0f, halfH); val botY = vy(0f, halfH)
+            Box(modifier = Modifier
+                .offset(x = (botX - handleHalf).dp, y = (botY - handleHalf).dp)
+                .size(handleSize).clip(CircleShape).background(Color.White)
+                .pointerInput("bot_m_${mesa.id}", rotacion) {
+                    detectDragGestures(onDragEnd = { onTransformaCambiada(mesa.id, posX, posY, ancho, alto, rotacion) }) { change, drag ->
+                        change.consume()
+                        val dy = localDy(drag.x, drag.y); val newAlto = (alto + dy).coerceAtLeast(5f)
+                        val dH = newAlto - alto; posX -= dH * sinR / 2f; posY += dH * (cosR - 1) / 2f; alto = newAlto
+                    }
+                })
+
+            // ── Handle izquierdo ─────────────────────────────────────────────
+            val lefX = vx(-halfW, 0f); val lefY = vy(-halfW, 0f)
+            Box(modifier = Modifier
+                .offset(x = (lefX - handleHalf).dp, y = (lefY - handleHalf).dp)
+                .size(handleSize).clip(CircleShape).background(Color.White)
+                .pointerInput("lef_m_${mesa.id}", rotacion) {
+                    detectDragGestures(onDragEnd = { onTransformaCambiada(mesa.id, posX, posY, ancho, alto, rotacion) }) { change, drag ->
+                        change.consume()
+                        val dx = localDx(drag.x, drag.y); val newAncho = (ancho - dx).coerceAtLeast(5f)
+                        val dW = ancho - newAncho; posX += dW * (1 + cosR) / 2f; posY += dW * sinR / 2f; ancho = newAncho
+                    }
+                })
+
+            // ── Handle derecho ───────────────────────────────────────────────
+            val rigX = vx(halfW, 0f); val rigY = vy(halfW, 0f)
+            Box(modifier = Modifier
+                .offset(x = (rigX - handleHalf).dp, y = (rigY - handleHalf).dp)
+                .size(handleSize).clip(CircleShape).background(Color.White)
+                .pointerInput("rig_m_${mesa.id}", rotacion) {
+                    detectDragGestures(onDragEnd = { onTransformaCambiada(mesa.id, posX, posY, ancho, alto, rotacion) }) { change, drag ->
+                        change.consume()
+                        val dx = localDx(drag.x, drag.y); val newAncho = (ancho + dx).coerceAtLeast(5f)
+                        val dW = newAncho - ancho; posX += dW * (cosR - 1) / 2f; posY += dW * sinR / 2f; ancho = newAncho
+                    }
+                })
         }
     }
 }
@@ -440,12 +783,10 @@ private fun MesaPlanoItem(
 @Composable
 private fun NuevaEstructuraDialog(
     onDismiss: () -> Unit,
-    onConfirm: (String, String, Float, Float) -> Unit
+    onConfirm: (String, String) -> Unit
 ) {
     var nombre by remember { mutableStateOf("") }
-    var tipoSeleccionado by remember { mutableStateOf(TIPOS_ELEMENTO.first()) }
-    var ancho by remember { mutableStateOf("200") }
-    var alto by remember { mutableStateOf("150") }
+    var colorSeleccionado by remember { mutableStateOf(TIPOS_ELEMENTO.first()) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -453,9 +794,17 @@ private fun NuevaEstructuraDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
-                // Selector de tipo
+                OutlinedTextField(
+                    value = nombre,
+                    onValueChange = { nombre = it },
+                    label = { Text("Nombre") },
+                    placeholder = { Text("Ej: Pared, Barra, Columna…") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
                 Text(
-                    "Tipo:",
+                    "Color:",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -463,7 +812,7 @@ private fun NuevaEstructuraDialog(
                     TIPOS_ELEMENTO.chunked(3).forEach { fila ->
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             fila.forEach { tipo ->
-                                val seleccionado = tipoSeleccionado == tipo
+                                val seleccionado = colorSeleccionado == tipo
                                 Box(
                                     modifier = Modifier
                                         .weight(1f)
@@ -479,55 +828,24 @@ private fun NuevaEstructuraDialog(
                                                 )
                                             else Modifier
                                         )
-                                        .clickable { tipoSeleccionado = tipo }
+                                        .clickable { colorSeleccionado = tipo }
                                 )
                             }
-                            // Rellenar fila incompleta
                             repeat(3 - fila.size) { Spacer(Modifier.weight(1f)) }
                         }
                     }
                 }
-
-                // Nombre opcional
-                OutlinedTextField(
-                    value = nombre,
-                    onValueChange = { nombre = it },
-                    label = { Text("Nombre (opcional)") },
-                    placeholder = { Text("Ej: Entrada, Terraza…") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                // Dimensiones
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = ancho,
-                        onValueChange = { ancho = it.filter { c -> c.isDigit() } },
-                        label = { Text("Anchura") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        value = alto,
-                        onValueChange = { alto = it.filter { c -> c.isDigit() } },
-                        label = { Text("Altura") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
-                    )
-                }
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                onConfirm(
-                    nombre.trim().ifBlank { tipoSeleccionado.etiqueta },
-                    tipoSeleccionado.hex,
-                    ancho.toFloatOrNull()?.coerceAtLeast(30f) ?: 200f,
-                    alto.toFloatOrNull()?.coerceAtLeast(30f) ?: 150f
-                )
-            }) { Text("Crear") }
+            TextButton(
+                onClick = {
+                    onConfirm(
+                        nombre.trim().ifBlank { colorSeleccionado.etiqueta },
+                        colorSeleccionado.hex
+                    )
+                }
+            ) { Text("Crear") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
     )
