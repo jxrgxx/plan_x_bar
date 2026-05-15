@@ -4,6 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.Color
 
 // ── Dark Luxury ──────────────────────────────────────────────────────────────
@@ -63,7 +64,7 @@ private val LightColorScheme = lightColorScheme(
 
     background = LightBg,
     onBackground = DarkOnLight,
-    surface = LightBg,
+    surface = Color(0xFFFFFFFF),
     onSurface = DarkOnLight,
     surfaceVariant = LightSurf,
     onSurfaceVariant = Warm30,
@@ -74,11 +75,19 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun Plan_BarTheme(
     darkTheme: Boolean = true,
+    language: String = "es",
     content: @Composable () -> Unit
 ) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
-        typography = Typography,
-        content = content
-    )
+    val strings = when (language) {
+        "en" -> EnStrings
+        "fr" -> FrStrings
+        else -> EsStrings
+    }
+    CompositionLocalProvider(LocalStrings provides strings) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
+            typography = Typography,
+            content = content
+        )
+    }
 }

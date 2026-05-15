@@ -44,8 +44,8 @@ class EstadisticasViewModel : ViewModel() {
             }
         }
         viewModelScope.launch {
-            _loading.value = true
-            _error.value   = null
+            if (_stats.value == null) _loading.value = true
+            _error.value = null
             try {
                 val r = RetrofitClient.api.getEstadisticas(restauranteId, inicio, fin)
                 if (r.isSuccessful) _stats.value = r.body()

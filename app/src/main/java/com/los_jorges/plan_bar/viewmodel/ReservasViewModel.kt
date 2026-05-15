@@ -29,7 +29,7 @@ class ReservasViewModel : ViewModel() {
 
     fun cargar(restauranteId: Int, fecha: String) {
         viewModelScope.launch {
-            _loading.value = true
+            if (_reservas.value.isEmpty()) _loading.value = true
             try {
                 val r = RetrofitClient.api.getReservas(restauranteId, fecha)
                 if (r.isSuccessful) _reservas.value = r.body()?.reservas ?: emptyList()

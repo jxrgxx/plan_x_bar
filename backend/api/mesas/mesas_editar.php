@@ -10,10 +10,10 @@ $capacidad = (int)($body['capacidad'] ?? 0);
 $posX      = (float)($body['posX'] ?? 0);
 $posY      = (float)($body['posY'] ?? 0);
 $estado    = trim($body['estado'] ?? 'libre');
-$zona      = trim($body['zona'] ?? 'piso1');
+$zona_id   = (int)($body['zona_id'] ?? 0);
 
 $estadosValidos = ['libre', 'ocupada', 'reservada'];
-if (!$id || !$codigo || $capacidad < 1) jsonResponse(['error' => 'Datos inválidos'], 400);
+if (!$id || !$codigo || $capacidad < 1 || !$zona_id) jsonResponse(['error' => 'Datos inválidos'], 400);
 if (!in_array($estado, $estadosValidos)) jsonResponse(['error' => 'Estado no válido'], 400);
 
 $db = getDB();
@@ -22,7 +22,7 @@ $stmt = $db->prepare("SELECT id FROM Mesas WHERE codigo = ? AND id != ?");
 $stmt->execute([$codigo, $id]);
 if ($stmt->fetch()) jsonResponse(['error' => 'Ya existe otra mesa con ese código'], 409);
 
-$stmt = $db->prepare("UPDATE Mesas SET codigo = ?, capacidad = ?, posX = ?, posY = ?, estado = ?, zona = ? WHERE id = ?");
-$stmt->execute([$codigo, $capacidad, $posX, $posY, $estado, $zona, $id]);
+$stmt = $db->prepare("UPDATE Mesas SET codigo = ?, capacidad = ?, posX = ?, posY = ?, estado = ?, zona_id = ? WHERE id = ?");
+$stmt->execute([$codigo, $capacidad, $posX, $posY, $estado, $zona_id, $id]);
 
 jsonResponse(['success' => true]);

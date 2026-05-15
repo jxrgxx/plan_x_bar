@@ -16,8 +16,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
 import com.los_jorges.plan_bar.model.EstadisticasResponse
 import com.los_jorges.plan_bar.ui.theme.*
+import com.los_jorges.plan_bar.ui.theme.LocalStrings
 import com.los_jorges.plan_bar.viewmodel.EstadisticasViewModel
 import com.los_jorges.plan_bar.viewmodel.EstadisticasViewModel.Periodo
 
@@ -33,41 +35,47 @@ fun EstadisticasScreen(
     onBack: () -> Unit,
     vm: EstadisticasViewModel = viewModel()
 ) {
+    val str     = LocalStrings.current
     val periodo by vm.periodo.collectAsState()
     val stats   by vm.stats.collectAsState()
     val loading by vm.loading.collectAsState()
     val error   by vm.error.collectAsState()
     val snack   = remember { SnackbarHostState() }
 
-    LaunchedEffect(Unit) { vm.cargar(restauranteId) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            vm.cargar(restauranteId)
+            delay(5_000)
+        }
+    }
     LaunchedEffect(error) { error?.let { snack.showSnackbar(it); vm.clearError() } }
 
     Scaffold(
-        containerColor = DarkBase,
+        containerColor = MaterialTheme.colorScheme.background,
         snackbarHost   = { SnackbarHost(snack) },
         topBar = {
             TopAppBar(
                 title = {
                     Column {
                         Text(
-                            "Estadísticas",
+                            str.estadisticas,
                             style      = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color      = WarmWhite
+                            color      = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            "Panel del jefe",
+                            str.panelDelJefe,
                             style = MaterialTheme.typography.labelSmall,
-                            color = WarmMuted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, null, tint = WarmGray)
+                        Icon(Icons.Default.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkSurface1)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
             )
         }
     ) { padding ->
@@ -96,50 +104,50 @@ fun EstadisticasScreen(
                     Box(
                         Modifier.fillMaxWidth().padding(32.dp),
                         contentAlignment = Alignment.Center
-                    ) { Text("Sin datos para el período", color = WarmMuted) }
+                    ) { Text(str.sinDatosParaElPeriodo, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                 }
                 return@LazyColumn
             }
 
-            item { StatSectionLabel("Ventas") }
+            item { StatSectionLabel(str.ventas) }
             item { VentasCard(s) }
 
-            item { StatSectionLabel("Servicio") }
+            item { StatSectionLabel(str.servicio) }
             item {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     StatMetricCard(
                         modifier  = Modifier.weight(1f),
-                        titulo    = "Comensales",
+                        titulo    = str.comensales,
                         valor     = "${s.total_pax}",
-                        subtitulo = "pax totales",
+                        subtitulo = str.paxTotales,
                         color     = BlueAccent
                     )
                     StatMetricCard(
                         modifier  = Modifier.weight(1f),
-                        titulo    = "T. medio",
+                        titulo    = str.tiempoMedio,
                         valor     = "${s.tiempo_medio_minutos} min",
-                        subtitulo = "por mesa",
+                        subtitulo = str.porMesa,
                         color     = PurpleAccent
                     )
                 }
             }
 
             if (s.total_descuentos > 0 || s.total_cortesias > 0) {
-                item { StatSectionLabel("Ajustes") }
+                item { StatSectionLabel(str.ajustes) }
                 item {
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         StatMetricCard(
                             modifier  = Modifier.weight(1f),
-                            titulo    = "Descuentos",
+                            titulo    = str.descuentosLabel,
                             valor     = "%.2f €".format(s.total_descuentos),
-                            subtitulo = "aplicados",
+                            subtitulo = str.aplicados,
                             color     = AmberAccent
                         )
                         StatMetricCard(
                             modifier  = Modifier.weight(1f),
-                            titulo    = "Cortesías",
+                            titulo    = str.cortesias,
                             valor     = "%.2f €".format(s.total_cortesias),
-                            subtitulo = "invitadas",
+                            subtitulo = str.invitadas,
                             color     = AmberAccent
                         )
                     }
@@ -147,13 +155,13 @@ fun EstadisticasScreen(
             }
 
             if (s.top_platos.isNotEmpty()) {
-                item { StatSectionLabel("Top 3 platos") }
+                item { StatSectionLabel(str.top3Platos) }
                 s.top_platos.forEachIndexed { idx, plato ->
                     item {
                         StatRankCard(
                             posicion  = idx + 1,
                             nombre    = plato.nombre,
-                            subtitulo = "${plato.total_unidades} uds · ${plato.categoria}",
+                            subtitulo = "${plato.total_unidades} ${str.uds} · ${plato.categoria}",
                             importe   = plato.total_importe,
                             color     = when (idx) {
                                 0    -> Color(0xFFFFD700)
@@ -166,7 +174,7 @@ fun EstadisticasScreen(
             }
 
             if (s.ventas_categoria.isNotEmpty()) {
-                item { StatSectionLabel("Por categoría") }
+                item { StatSectionLabel(str.porCategoria) }
                 val totalCat = s.ventas_categoria.sumOf { it.total_importe }.takeIf { it > 0 } ?: 1.0
                 s.ventas_categoria.forEach { cat ->
                     item {
@@ -181,7 +189,7 @@ fun EstadisticasScreen(
             }
 
             if (s.ventas_mesero.isNotEmpty()) {
-                item { StatSectionLabel("Por mesero") }
+                item { StatSectionLabel(str.porMesero) }
                 s.ventas_mesero.forEach { mesero ->
                     item {
                         StatMeseroCard(
@@ -200,15 +208,16 @@ fun EstadisticasScreen(
 
 @Composable
 private fun PeriodoSelector(selected: Periodo, onSelect: (Periodo) -> Unit) {
+    val s = LocalStrings.current
     Row(
         Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(DarkSurface1)
+            .background(MaterialTheme.colorScheme.surface)
             .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        listOf(Periodo.HOY to "Hoy", Periodo.SEMANA to "Semana", Periodo.MES to "Mes")
+        listOf(Periodo.HOY to s.hoy, Periodo.SEMANA to s.semana, Periodo.MES to s.mes)
             .forEach { (p, label) ->
                 val active = p == selected
                 Button(
@@ -217,7 +226,7 @@ private fun PeriodoSelector(selected: Periodo, onSelect: (Periodo) -> Unit) {
                     shape          = RoundedCornerShape(8.dp),
                     colors         = ButtonDefaults.buttonColors(
                         containerColor = if (active) Platinum40 else Color.Transparent,
-                        contentColor   = if (active) DarkBase else WarmMuted
+                        contentColor   = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                     ),
                     contentPadding = PaddingValues(horizontal = 4.dp)
                 ) {
@@ -233,20 +242,21 @@ private fun PeriodoSelector(selected: Periodo, onSelect: (Periodo) -> Unit) {
 
 @Composable
 private fun VentasCard(s: EstadisticasResponse) {
-    Surface(shape = RoundedCornerShape(16.dp), color = DarkSurface1, modifier = Modifier.fillMaxWidth()) {
+    val str = LocalStrings.current
+    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Column {
-                    Text("Venta Bruta", style = MaterialTheme.typography.labelSmall, color = WarmMuted)
+                    Text(str.ventaBruta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         "%.2f €".format(s.venta_bruta),
                         style      = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color      = WarmGray
+                        color      = MaterialTheme.colorScheme.onSurface
                     )
                 }
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("Venta Neta", style = MaterialTheme.typography.labelSmall, color = WarmMuted)
+                    Text(str.ventaNeta, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(
                         "%.2f €".format(s.venta_neta),
                         style      = MaterialTheme.typography.titleLarge,
@@ -261,12 +271,12 @@ private fun VentasCard(s: EstadisticasResponse) {
                     progress   = { pct },
                     modifier   = Modifier.fillMaxWidth().height(4.dp).clip(RoundedCornerShape(2.dp)),
                     color      = GreenAccent,
-                    trackColor = DarkSurface3
+                    trackColor = MaterialTheme.colorScheme.outlineVariant
                 )
                 Text(
-                    "%.1f%% del bruto".format(pct * 100),
+                    "%.1f%% ${str.delBruto}".format(pct * 100),
                     style = MaterialTheme.typography.labelSmall,
-                    color = WarmMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -275,18 +285,18 @@ private fun VentasCard(s: EstadisticasResponse) {
 
 @Composable
 private fun StatMetricCard(modifier: Modifier, titulo: String, valor: String, subtitulo: String, color: Color) {
-    Surface(shape = RoundedCornerShape(16.dp), color = DarkSurface1, modifier = modifier) {
+    Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface, modifier = modifier) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(titulo, style = MaterialTheme.typography.labelSmall, color = WarmMuted)
+            Text(titulo, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(valor, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = color)
-            Text(subtitulo, style = MaterialTheme.typography.labelSmall, color = WarmMuted)
+            Text(subtitulo, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
 @Composable
 private fun StatRankCard(posicion: Int, nombre: String, subtitulo: String, importe: Double, color: Color) {
-    Surface(shape = RoundedCornerShape(12.dp), color = DarkSurface1, modifier = Modifier.fillMaxWidth()) {
+    Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()) {
         Row(
             Modifier.padding(14.dp),
             verticalAlignment     = Alignment.CenterVertically,
@@ -299,30 +309,31 @@ private fun StatRankCard(posicion: Int, nombre: String, subtitulo: String, impor
                 Text("#$posicion", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = color)
             }
             Column(Modifier.weight(1f)) {
-                Text(nombre, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = WarmWhite)
-                Text(subtitulo, style = MaterialTheme.typography.labelSmall, color = WarmMuted)
+                Text(nombre, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                Text(subtitulo, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Text("%.2f €".format(importe), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = WarmWhite)
+            Text("%.2f €".format(importe), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
         }
     }
 }
 
 @Composable
 private fun StatCategoriaCard(nombre: String, unidades: Int, importe: Double, pct: Float) {
-    Surface(shape = RoundedCornerShape(12.dp), color = DarkSurface1, modifier = Modifier.fillMaxWidth()) {
+    val str = LocalStrings.current
+    Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(nombre, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = WarmWhite)
+                Text(nombre, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("%.2f €".format(importe), style = MaterialTheme.typography.bodyMedium, color = WarmWhite, fontWeight = FontWeight.SemiBold)
-                    Text("$unidades uds", style = MaterialTheme.typography.labelSmall, color = WarmMuted)
+                    Text("%.2f €".format(importe), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold)
+                    Text("$unidades ${str.uds}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
             LinearProgressIndicator(
                 progress   = { pct },
                 modifier   = Modifier.fillMaxWidth().height(3.dp).clip(RoundedCornerShape(2.dp)),
                 color      = Platinum40,
-                trackColor = DarkSurface3
+                trackColor = MaterialTheme.colorScheme.outlineVariant
             )
         }
     }
@@ -330,15 +341,16 @@ private fun StatCategoriaCard(nombre: String, unidades: Int, importe: Double, pc
 
 @Composable
 private fun StatMeseroCard(nombre: String, pedidos: Int, importe: Double) {
-    Surface(shape = RoundedCornerShape(12.dp), color = DarkSurface1, modifier = Modifier.fillMaxWidth()) {
+    val str = LocalStrings.current
+    Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface, modifier = Modifier.fillMaxWidth()) {
         Row(
             Modifier.padding(14.dp),
             verticalAlignment     = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
-                Text(nombre, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = WarmWhite)
-                Text("$pedidos comandas", style = MaterialTheme.typography.labelSmall, color = WarmMuted)
+                Text(nombre, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSurface)
+                Text("$pedidos ${str.comandas}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text("%.2f €".format(importe), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = GreenAccent)
         }
@@ -350,7 +362,7 @@ private fun StatSectionLabel(text: String) {
     Text(
         text.uppercase(),
         style         = MaterialTheme.typography.labelSmall,
-        color         = WarmMuted,
+        color         = MaterialTheme.colorScheme.onSurfaceVariant,
         letterSpacing = 1.2.sp,
         modifier      = Modifier.padding(start = 2.dp, top = 4.dp)
     )

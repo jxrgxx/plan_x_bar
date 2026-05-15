@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: pdb1037.awardspace.net
--- Tiempo de generación: 27-04-2026 a las 18:52:16
+-- Tiempo de generación: 15-05-2026 a las 18:43:57
 -- Versión del servidor: 8.0.32
 -- Versión de PHP: 8.1.34
 
@@ -24,6 +24,56 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Estructura de tabla para la tabla `Estructuras`
+--
+
+CREATE TABLE `Estructuras` (
+  `id` int NOT NULL,
+  `restaurante_id` int NOT NULL,
+  `nombre` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `posX` float DEFAULT '0',
+  `posY` float DEFAULT '0',
+  `ancho` float DEFAULT '200',
+  `alto` float DEFAULT '150',
+  `color` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT '#BBDEFB',
+  `zona_id` int NOT NULL,
+  `rotacion` float DEFAULT '0'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `MenuDia`
+--
+
+CREATE TABLE `MenuDia` (
+  `id` int NOT NULL,
+  `restaurante_id` int NOT NULL,
+  `bebida_id` int DEFAULT NULL,
+  `primero_id` int DEFAULT NULL,
+  `segundo_id` int DEFAULT NULL,
+  `postre_id` int DEFAULT NULL,
+  `precio` decimal(10,2) NOT NULL DEFAULT '10.00',
+  `activo` tinyint(1) DEFAULT '1'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `MenuDiaLineas`
+--
+
+CREATE TABLE `MenuDiaLineas` (
+  `id` int NOT NULL,
+  `menu_dia_id` int NOT NULL,
+  `producto_id` int NOT NULL,
+  `curso` enum('bebida','primero','segundo','postre') NOT NULL,
+  `cantidad` int NOT NULL DEFAULT '-1'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Estructura de tabla para la tabla `Mesas`
 --
 
@@ -33,8 +83,12 @@ CREATE TABLE `Mesas` (
   `codigo` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
   `capacidad` int NOT NULL,
   `estado` enum('libre','ocupada','reservada') COLLATE utf8mb4_unicode_ci DEFAULT 'libre',
+  `zona_id` int NOT NULL,
   `posX` float DEFAULT '0',
-  `posY` float DEFAULT '0'
+  `posY` float DEFAULT '0',
+  `ancho` float NOT NULL DEFAULT '100',
+  `alto` float NOT NULL DEFAULT '100',
+  `rotacion` float NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -51,7 +105,7 @@ CREATE TABLE `PedidoProductos` (
   `precio_unitario` decimal(10,2) NOT NULL,
   `observaciones` text COLLATE utf8mb4_unicode_ci,
   `fecha_agregado` datetime DEFAULT CURRENT_TIMESTAMP,
-  `estado` enum('en preparacion','preparado','servido','') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL
+  `estado` enum('','en preparacion','preparado','servido','cancelado') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL DEFAULT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -66,11 +120,14 @@ CREATE TABLE `Pedidos` (
   `mesa_id` int NOT NULL,
   `reserva_id` int DEFAULT NULL,
   `trabajador_id` int DEFAULT NULL,
+  `comensales` int NOT NULL DEFAULT '1',
   `fecha_apertura` datetime DEFAULT CURRENT_TIMESTAMP,
   `fecha_cierre` datetime DEFAULT NULL,
   `estado` enum('abierto','en_cocina','listo','pagado') CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci DEFAULT 'abierto',
   `subtotal` decimal(10,2) DEFAULT '0.00',
   `total` decimal(10,2) DEFAULT '0.00',
+  `descuento` decimal(10,2) NOT NULL DEFAULT '0.00',
+  `cortesia` decimal(10,2) NOT NULL DEFAULT '0.00',
   `metodo_pago` enum('efectivo','tarjeta','otro') COLLATE utf8mb4_unicode_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -152,9 +209,25 @@ CREATE TABLE `Trabajadores` (
   `nombre` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
   `rol` enum('admin','camarero','cocina') COLLATE utf8mb4_unicode_ci NOT NULL,
   `email` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `password_hash` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `pin` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `activo` tinyint(1) DEFAULT '1',
-  `fecha_creacion` datetime DEFAULT CURRENT_TIMESTAMP
+  `fecha_creacion` datetime DEFAULT CURRENT_TIMESTAMP,
+  `password_hash` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `Zonas`
+--
+
+CREATE TABLE `Zonas` (
+  `id` int NOT NULL,
+  `restaurante_id` int NOT NULL,
+  `clave` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `nombre` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `orden` int NOT NULL DEFAULT '1',
+  `activo` tinyint(1) NOT NULL DEFAULT '1'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
@@ -162,12 +235,34 @@ CREATE TABLE `Trabajadores` (
 --
 
 --
+-- Indices de la tabla `Estructuras`
+--
+ALTER TABLE `Estructuras`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `restaurante_id` (`restaurante_id`),
+  ADD KEY `fk_estructuras_zona` (`zona_id`);
+
+--
+-- Indices de la tabla `MenuDia`
+--
+ALTER TABLE `MenuDia`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indices de la tabla `MenuDiaLineas`
+--
+ALTER TABLE `MenuDiaLineas`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `menu_dia_id` (`menu_dia_id`);
+
+--
 -- Indices de la tabla `Mesas`
 --
 ALTER TABLE `Mesas`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `uk_restaurante_codigo` (`restaurante_id`,`codigo`),
-  ADD KEY `idx_estado` (`estado`);
+  ADD KEY `idx_estado` (`estado`),
+  ADD KEY `fk_mesas_zona` (`zona_id`);
 
 --
 -- Indices de la tabla `PedidoProductos`
@@ -234,8 +329,34 @@ ALTER TABLE `Trabajadores`
   ADD KEY `idx_email` (`email`);
 
 --
+-- Indices de la tabla `Zonas`
+--
+ALTER TABLE `Zonas`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uk_restaurante_clave` (`restaurante_id`,`clave`),
+  ADD KEY `idx_restaurante` (`restaurante_id`);
+
+--
 -- AUTO_INCREMENT de las tablas volcadas
 --
+
+--
+-- AUTO_INCREMENT de la tabla `Estructuras`
+--
+ALTER TABLE `Estructuras`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de la tabla `MenuDia`
+--
+ALTER TABLE `MenuDia`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de la tabla `MenuDiaLineas`
+--
+ALTER TABLE `MenuDiaLineas`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `Mesas`
@@ -286,13 +407,33 @@ ALTER TABLE `Trabajadores`
   MODIFY `id` int NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT de la tabla `Zonas`
+--
+ALTER TABLE `Zonas`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- Restricciones para tablas volcadas
 --
+
+--
+-- Filtros para la tabla `Estructuras`
+--
+ALTER TABLE `Estructuras`
+  ADD CONSTRAINT `Estructuras_ibfk_1` FOREIGN KEY (`restaurante_id`) REFERENCES `Restaurante` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `fk_estructuras_zona` FOREIGN KEY (`zona_id`) REFERENCES `Zonas` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+--
+-- Filtros para la tabla `MenuDiaLineas`
+--
+ALTER TABLE `MenuDiaLineas`
+  ADD CONSTRAINT `MenuDiaLineas_ibfk_1` FOREIGN KEY (`menu_dia_id`) REFERENCES `MenuDia` (`id`) ON DELETE CASCADE;
 
 --
 -- Filtros para la tabla `Mesas`
 --
 ALTER TABLE `Mesas`
+  ADD CONSTRAINT `fk_mesas_zona` FOREIGN KEY (`zona_id`) REFERENCES `Zonas` (`id`) ON DELETE RESTRICT ON UPDATE CASCADE,
   ADD CONSTRAINT `Mesas_ibfk_1` FOREIGN KEY (`restaurante_id`) REFERENCES `Restaurante` (`id`) ON DELETE CASCADE;
 
 --
@@ -335,6 +476,12 @@ ALTER TABLE `Reservas`
 --
 ALTER TABLE `Trabajadores`
   ADD CONSTRAINT `Trabajadores_ibfk_1` FOREIGN KEY (`restaurante_id`) REFERENCES `Restaurante` (`id`) ON DELETE CASCADE;
+
+--
+-- Filtros para la tabla `Zonas`
+--
+ALTER TABLE `Zonas`
+  ADD CONSTRAINT `Zonas_ibfk_1` FOREIGN KEY (`restaurante_id`) REFERENCES `Restaurante` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

@@ -32,13 +32,14 @@ try {
     $placeholders = implode(',', array_fill(0, count($producto_ids), '?'));
     $params = array_merge([$restaurante_id], $producto_ids);
 
-    // Sumar unidades ya usadas en pedidos activos (abierto o en cocina), sin canceladas
+    // Sumar unidades ya usadas hoy (incluye pagados para que no se "reseteen" al cobrar)
     $stmt = $db->prepare("
         SELECT pp.producto_id, SUM(pp.cantidad) AS usado
         FROM PedidoProductos pp
         JOIN Pedidos p ON p.id = pp.pedido_id
         WHERE p.restaurante_id = ?
-          AND p.estado IN ('abierto', 'en_cocina', 'listo', 'cerrado')
+          AND p.estado IN ('abierto', 'en_cocina', 'listo', 'pagado')
+          AND DATE(p.fecha_apertura) = CURDATE()
           AND pp.estado != 'cancelado'
           AND pp.producto_id IN ($placeholders)
           AND pp.observaciones LIKE 'Menú del día #%'

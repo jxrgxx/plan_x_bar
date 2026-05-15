@@ -59,6 +59,8 @@ $stmt = $db->prepare("INSERT INTO Trabajadores (restaurante_id, nombre, rol, ema
 $stmt->execute([$restaurante_id, $admin_nombre, $admin_email, $password_hash]);
 $trabajador_id = $db->lastInsertId();
 
+// Las zonas las crea el admin desde su panel (Espacios de trabajo)
+
 jsonResponse([
     'success'        => true,
     'restaurante_id' => (int) $restaurante_id,

@@ -21,7 +21,7 @@ class EstructurasViewModel : ViewModel() {
 
     fun cargar(restauranteId: Int) {
         viewModelScope.launch {
-            _loading.value = true
+            if (_estructuras.value.isEmpty()) _loading.value = true
             try {
                 val r = RetrofitClient.api.getEstructuras(restauranteId)
                 if (r.isSuccessful) _estructuras.value = r.body()?.estructuras ?: emptyList()
@@ -38,7 +38,7 @@ class EstructurasViewModel : ViewModel() {
         restauranteId: Int, nombre: String, color: String,
         posX: Float = 50f, posY: Float = 50f,
         ancho: Float = 120f, alto: Float = 80f,
-        zona: String = "piso1",
+        zonaId: Int = 0,
         onResult: (Boolean, String?) -> Unit
     ) {
         viewModelScope.launch {
@@ -52,7 +52,7 @@ class EstructurasViewModel : ViewModel() {
                         "posY" to posY,
                         "ancho" to ancho,
                         "alto" to alto,
-                        "zona" to zona,
+                        "zona_id" to zonaId,
                         "rotacion" to 0f
                     )
                 )

@@ -8,10 +8,8 @@ $restaurante_id = (int)($body['restaurante_id'] ?? 0);
 $nombre         = trim($body['nombre'] ?? '');
 $rol            = trim($body['rol'] ?? '');
 $email          = trim($body['email'] ?? '');
-$password       = trim($body['password'] ?? '');
-
 $roles = ['admin', 'camarero', 'cocina'];
-if (!$restaurante_id || !$nombre || !in_array($rol, $roles) || !$email || !$password) {
+if (!$restaurante_id || !$nombre || !in_array($rol, $roles) || !$email) {
     jsonResponse(['success' => false, 'error' => 'Todos los campos son obligatorios']);
 }
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -27,9 +25,9 @@ try {
         jsonResponse(['success' => false, 'error' => 'Ya existe un trabajador con ese email']);
     }
 
-    $hash = password_hash($password, PASSWORD_BCRYPT);
-    $stmt = $db->prepare("INSERT INTO Trabajadores (restaurante_id, nombre, rol, email, password_hash) VALUES (?, ?, ?, ?, ?)");
-    $stmt->execute([$restaurante_id, $nombre, $rol, $email, $hash]);
+    // Los trabajadores usan PIN, no necesitan contraseña
+    $stmt = $db->prepare("INSERT INTO Trabajadores (restaurante_id, nombre, rol, email) VALUES (?, ?, ?, ?)");
+    $stmt->execute([$restaurante_id, $nombre, $rol, $email]);
 
     jsonResponse(['success' => true, 'id' => (int)$db->lastInsertId()]);
 } catch (Exception $e) {

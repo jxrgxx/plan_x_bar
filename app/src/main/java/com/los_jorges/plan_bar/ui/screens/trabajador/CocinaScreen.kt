@@ -1,5 +1,10 @@
 package com.los_jorges.plan_bar.ui.screens.trabajador
 
+import android.media.AudioAttributes
+import android.media.AudioManager
+import android.media.MediaPlayer
+import android.media.RingtoneManager
+import android.media.ToneGenerator
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -19,6 +24,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
@@ -27,7 +33,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.los_jorges.plan_bar.model.PedidoCocina
 import com.los_jorges.plan_bar.model.PedidoProducto
 import com.los_jorges.plan_bar.session.SessionManager
+import com.los_jorges.plan_bar.ui.theme.LocalStrings
 import com.los_jorges.plan_bar.viewmodel.PedidosViewModel
+import com.los_jorges.plan_bar.viewmodel.SettingsViewModel
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.*
@@ -48,8 +56,8 @@ private fun minutosDesde(fechaStr: String?): Int {
     }
 }
 
-private fun formatTiempo(minutos: Int): String = when {
-    minutos < 1 -> "Ahora"
+private fun formatTiempo(minutos: Int, ahoraStr: String = "Ahora"): String = when {
+    minutos < 1 -> ahoraStr
     minutos < 60 -> "${minutos}min"
     else -> "${minutos / 60}h ${minutos % 60}min"
 }
@@ -58,13 +66,17 @@ private fun formatTiempo(minutos: Int): String = when {
 @Composable
 fun CocinaScreen(
     onCerrarSesion: () -> Unit,
-    vm: PedidosViewModel = viewModel()
+    vm: PedidosViewModel = viewModel(),
+    settingsVm: SettingsViewModel = viewModel()
 ) {
+    val s = LocalStrings.current
     val restauranteId = SessionManager.restauranteId
     val pedidosActivos by vm.pedidosActivos.collectAsState()
     val loading by vm.loading.collectAsState()
+    val sonidoEnabled by settingsVm.sonidoCocina.collectAsState()
     var snackMsg by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
 
     // Ticker para actualizar tiempos cada minuto
     var tick by remember { mutableStateOf(0) }
@@ -76,6 +88,42 @@ fun CocinaScreen(
 
     LaunchedEffect(restauranteId) {
         vm.iniciarPollingCocina(restauranteId)
+    }
+
+    // Sonido al detectar pedidos nuevos
+    // Usamos MutableSet normal (no state) para evitar recomposiciones y race conditions
+    val knownPedidoIds = remember { mutableSetOf<Int>() }
+    LaunchedEffect(pedidosActivos) {
+        val currentIds = pedidosActivos.map { it.id }.toSet()
+        if (knownPedidoIds.isNotEmpty()) {
+            val nuevos = currentIds - knownPedidoIds
+            if (nuevos.isNotEmpty() && sonidoEnabled) {
+                try {
+                    val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+                    val mp = MediaPlayer().apply {
+                        setAudioAttributes(
+                            AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                .build()
+                        )
+                        setDataSource(context, uri)
+                        prepare()
+                        setOnCompletionListener { release() }
+                        start()
+                    }
+                } catch (_: Exception) {
+                    // Fallback: tono del sistema
+                    try {
+                        ToneGenerator(AudioManager.STREAM_NOTIFICATION, ToneGenerator.MAX_VOLUME)
+                            .startTone(ToneGenerator.TONE_PROP_BEEP2, 600)
+                    } catch (_: Exception) {
+                    }
+                }
+            }
+        }
+        knownPedidoIds.clear()
+        knownPedidoIds.addAll(currentIds)
     }
 
     LaunchedEffect(snackMsg) {
@@ -96,11 +144,11 @@ fun CocinaScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Cocina")
+                        Text(s.cocina)
                         if (pedidosSinBebidas.isNotEmpty()) {
                             Text(
-                                if (pendientesPorTerminar == 0) "Todo al día"
-                                else "$pendientesPorTerminar pedido${if (pendientesPorTerminar > 1) "s" else ""} en marcha",
+                                if (pendientesPorTerminar == 0) s.todoAlDia
+                                else "$pendientesPorTerminar ${if (pendientesPorTerminar > 1) s.pedidosEnMarcha else s.pedidoEnMarcha}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = if (pendientesPorTerminar == 0)
                                     ColorListo
@@ -112,7 +160,7 @@ fun CocinaScreen(
                 },
                 actions = {
                     IconButton(onClick = onCerrarSesion) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, "Salir")
+                        Icon(Icons.AutoMirrored.Filled.Logout, s.salir)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -147,11 +195,11 @@ fun CocinaScreen(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        "Sin pedidos en cocina", style = MaterialTheme.typography.titleMedium,
+                        s.sinPedidosEnCocina, style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.outline
                     )
                     Text(
-                        "Actualizando cada 5 segundos…",
+                        s.actualizandoCada5s,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.outline
                     )
@@ -201,6 +249,7 @@ private fun PedidoCocinaCard(
     minutos: Int,
     onMarcarPlato: (PedidoProducto) -> Unit
 ) {
+    val s = LocalStrings.current
     val cancelados = pedido.productos.count { it.estado == "cancelado" }
     val listos = pedido.productos.count { it.estado == "preparado" }
     val total = pedido.productos.count { it.estado != "cancelado" }
@@ -236,7 +285,7 @@ private fun PedidoCocinaCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Mesa ${pedido.mesa_codigo}",
+                    "${s.mesaLabel} ${pedido.mesa_codigo}",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
@@ -251,14 +300,14 @@ private fun PedidoCocinaCard(
                         modifier = Modifier.size(16.dp)
                     )
                     Text(
-                        formatTiempo(minutos),
+                        formatTiempo(minutos, s.ahora),
                         style = MaterialTheme.typography.labelMedium,
                         color = tiempoColor
                     )
                     if (todoListo) {
                         Surface(color = ColorListo, shape = RoundedCornerShape(12.dp)) {
                             Text(
-                                "LISTO", style = MaterialTheme.typography.labelMedium,
+                                s.estadoListo, style = MaterialTheme.typography.labelMedium,
                                 color = Color.White,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                             )
@@ -274,11 +323,11 @@ private fun PedidoCocinaCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        "Progreso", style = MaterialTheme.typography.labelSmall,
+                        s.progreso, style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline
                     )
                     Text(
-                        "$listos / $total platos",
+                        "$listos / $total ${s.platosLabel}",
                         style = MaterialTheme.typography.labelSmall,
                         color = if (todoListo) ColorListo else MaterialTheme.colorScheme.outline,
                         fontWeight = if (todoListo) FontWeight.Bold else FontWeight.Normal
@@ -302,7 +351,7 @@ private fun PedidoCocinaCard(
                 when (prod.estado) {
                     "cancelado" -> 2
                     "preparado" -> 1
-                    else        -> 0
+                    else -> 0
                 }
             }
             platosOrdenados.forEach { producto ->
@@ -318,6 +367,7 @@ private fun PedidoCocinaCard(
 
 @Composable
 private fun PlatoItem(producto: PedidoProducto, onClick: () -> Unit) {
+    val s = LocalStrings.current
     val cancelado = producto.estado == "cancelado"
     val preparado = producto.estado == "preparado"
 
@@ -340,7 +390,7 @@ private fun PlatoItem(producto: PedidoProducto, onClick: () -> Unit) {
                 color = when {
                     cancelado -> ColorUrgente.copy(alpha = 0.5f)
                     preparado -> ColorListo.copy(alpha = 0.4f)
-                    else      -> ColorPendiente.copy(alpha = 0.4f)
+                    else -> ColorPendiente.copy(alpha = 0.4f)
                 },
                 shape = RoundedCornerShape(8.dp)
             )
@@ -359,7 +409,7 @@ private fun PlatoItem(producto: PedidoProducto, onClick: () -> Unit) {
             tint = when {
                 cancelado -> ColorUrgente
                 preparado -> ColorListo
-                else      -> ColorPendiente
+                else -> ColorPendiente
             },
             modifier = Modifier.size(22.dp)
         )
@@ -373,7 +423,7 @@ private fun PlatoItem(producto: PedidoProducto, onClick: () -> Unit) {
                 color = when {
                     cancelado -> MaterialTheme.colorScheme.outline
                     preparado -> ColorListo
-                    else      -> ColorPendiente
+                    else -> ColorPendiente
                 },
                 fontWeight = FontWeight.Medium
             )
@@ -391,7 +441,7 @@ private fun PlatoItem(producto: PedidoProducto, onClick: () -> Unit) {
                 shape = RoundedCornerShape(6.dp)
             ) {
                 Text(
-                    "CANCELADO",
+                    s.estadoCancelado,
                     style = MaterialTheme.typography.labelSmall,
                     color = ColorUrgente,
                     fontSize = 10.sp,
@@ -405,7 +455,7 @@ private fun PlatoItem(producto: PedidoProducto, onClick: () -> Unit) {
                 shape = RoundedCornerShape(6.dp)
             ) {
                 Text(
-                    "PREPARADO",
+                    s.estadoPreparado,
                     style = MaterialTheme.typography.labelSmall,
                     color = ColorListo,
                     fontSize = 10.sp,
@@ -419,7 +469,7 @@ private fun PlatoItem(producto: PedidoProducto, onClick: () -> Unit) {
                 shape = RoundedCornerShape(6.dp)
             ) {
                 Text(
-                    "PENDIENTE",
+                    s.estadoPendiente,
                     style = MaterialTheme.typography.labelSmall,
                     color = ColorPendiente,
                     fontSize = 10.sp,

@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.los_jorges.plan_bar.viewmodel.AuthState
 import com.los_jorges.plan_bar.viewmodel.AuthViewModel
 import com.los_jorges.plan_bar.ui.theme.*
+import com.los_jorges.plan_bar.ui.theme.LocalStrings
 
 @Composable
 fun RegisterScreen(
@@ -31,6 +32,7 @@ fun RegisterScreen(
     onRegistroExitoso: () -> Unit,
     onGoToLogin: () -> Unit
 ) {
+    val s = LocalStrings.current
     var nombre by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var direccion by remember { mutableStateOf("") }
@@ -44,34 +46,34 @@ fun RegisterScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBase)
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // ── Cabecera ──────────────────────────────────────────────────────
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(DarkSurface1)
+                .background(MaterialTheme.colorScheme.surface)
                 .padding(start = 4.dp, top = 12.dp, end = 16.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onGoToLogin) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack, null,
-                    tint = WarmGray
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Spacer(Modifier.width(4.dp))
             Column {
                 Text(
-                    "Registro",
+                    s.registro,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = WarmWhite
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    "Crea la cuenta de tu restaurante",
+                    s.creaLaCuenta,
                     style = MaterialTheme.typography.bodySmall,
-                    color = WarmMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -86,16 +88,16 @@ fun RegisterScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            SectionLabel(icon = Icons.Default.Storefront, title = "Datos del restaurante")
+            SectionLabel(icon = Icons.Default.Storefront, title = s.datosDelRestaurante)
 
             OutlinedTextField(
                 value = nombre, onValueChange = { nombre = it },
-                label = { Text("Nombre *") },
+                label = { Text(s.nombreRestaurante) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Badge,
                         null,
-                        tint = WarmMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 },
@@ -104,12 +106,12 @@ fun RegisterScreen(
             )
             OutlinedTextField(
                 value = email, onValueChange = { email = it },
-                label = { Text("Email del restaurante *") },
+                label = { Text(s.emailRestaurante) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Email,
                         null,
-                        tint = WarmMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 },
@@ -120,12 +122,12 @@ fun RegisterScreen(
             )
             OutlinedTextField(
                 value = direccion, onValueChange = { direccion = it },
-                label = { Text("Dirección") },
+                label = { Text(s.direccion) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.LocationOn,
                         null,
-                        tint = WarmMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 },
@@ -134,12 +136,12 @@ fun RegisterScreen(
             )
             OutlinedTextField(
                 value = telefono, onValueChange = { telefono = it },
-                label = { Text("Teléfono") },
+                label = { Text(s.telefono) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Phone,
                         null,
-                        tint = WarmMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 },
@@ -150,19 +152,19 @@ fun RegisterScreen(
             )
 
             Spacer(Modifier.height(4.dp))
-            HorizontalDivider(color = DarkSurface3)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(Modifier.height(4.dp))
 
-            SectionLabel(icon = Icons.Default.AdminPanelSettings, title = "Cuenta de administrador")
+            SectionLabel(icon = Icons.Default.AdminPanelSettings, title = s.cuentaDeAdministrador)
 
             OutlinedTextField(
                 value = adminNombre, onValueChange = { adminNombre = it },
-                label = { Text("Nombre del administrador *") },
+                label = { Text(s.nombreDelAdministrador) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Person,
                         null,
-                        tint = WarmMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 },
@@ -171,12 +173,12 @@ fun RegisterScreen(
             )
             OutlinedTextField(
                 value = adminEmail, onValueChange = { adminEmail = it },
-                label = { Text("Email *") },
+                label = { Text(s.emailAdmin) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Email,
                         null,
-                        tint = WarmMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 },
@@ -187,12 +189,12 @@ fun RegisterScreen(
             )
             OutlinedTextField(
                 value = adminPassword, onValueChange = { adminPassword = it },
-                label = { Text("Contraseña *") },
+                label = { Text(s.contrasenaAdmin) },
                 leadingIcon = {
                     Icon(
                         Icons.Default.Lock,
                         null,
-                        tint = WarmMuted,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.size(20.dp)
                     )
                 },
@@ -229,9 +231,9 @@ fun RegisterScreen(
                     .height(50.dp),
                 shape = RoundedCornerShape(12.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Platinum40,
-                    contentColor = DarkBase,
-                    disabledContainerColor = DarkSurface3
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    disabledContainerColor = MaterialTheme.colorScheme.outlineVariant
                 )
             ) {
                 if (state is AuthState.Loading) {
@@ -242,7 +244,7 @@ fun RegisterScreen(
                     )
                 } else {
                     Text(
-                        "Registrar restaurante",
+                        s.registrarRestaurante,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
                         letterSpacing = 0.sp
@@ -252,9 +254,9 @@ fun RegisterScreen(
 
             TextButton(onClick = onGoToLogin) {
                 Text(
-                    "¿Ya tienes cuenta? Inicia sesión",
+                    s.yaTienesCuenta,
                     style = MaterialTheme.typography.bodySmall,
-                    color = WarmMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -273,7 +275,7 @@ private fun SectionLabel(icon: ImageVector, title: String) {
             title,
             style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.SemiBold,
-            color = WarmGray
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

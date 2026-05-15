@@ -131,6 +131,13 @@ interface ApiService {
     @GET("menu_dia/menu_dia_uso.php")
     suspend fun getMenuDiaUso(@Query("restaurante_id") restauranteId: Int): Response<MenuDiaUsoResponse>
 
+    // --- Zonas ---
+    @GET("zonas/zonas_obtener.php")
+    suspend fun getZonas(@Query("restaurante_id") restauranteId: Int): Response<ZonasResponse>
+
+    @POST("zonas/zonas_actualizar.php")
+    suspend fun actualizarZonas(@Body body: Map<String, @JvmSuppressWildcards Any>): Response<SimpleResponse>
+
     // --- Estadísticas ---
     @GET("estadisticas/estadisticas_obtener.php")
     suspend fun getEstadisticas(

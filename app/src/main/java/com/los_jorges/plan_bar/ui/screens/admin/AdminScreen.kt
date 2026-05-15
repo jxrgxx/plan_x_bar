@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.los_jorges.plan_bar.ui.theme.*
+import com.los_jorges.plan_bar.ui.theme.LocalStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,8 +36,9 @@ fun AdminScreen(
     onEspacios: () -> Unit = {},
     onBack: () -> Unit = {},
 ) {
+    val s = LocalStrings.current
     Scaffold(
-        containerColor = DarkBase,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 title = {
@@ -45,23 +47,23 @@ fun AdminScreen(
                             text = restauranteNombre.ifBlank { "Administración" },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color = WarmWhite
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "Panel de gestión",
+                            text = s.panelDeGestion,
                             style = MaterialTheme.typography.labelSmall,
-                            color = WarmMuted
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, null, tint = WarmGray)
+                        Icon(Icons.Default.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DarkSurface1,
-                    titleContentColor = WarmWhite
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    titleContentColor = MaterialTheme.colorScheme.onSurface
                 )
             )
         }
@@ -75,59 +77,59 @@ fun AdminScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "¿Qué quieres gestionar?",
+                text = s.queQuieresGestionar,
                 style = MaterialTheme.typography.labelMedium,
-                color = WarmMuted,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 letterSpacing = 0.5.sp,
                 modifier = Modifier.padding(bottom = 6.dp, start = 2.dp)
             )
 
             AdminMenuCard(
                 icon = Icons.Default.TableBar,
-                titulo = "Mesas",
-                descripcion = "Disposición y estado del salón",
+                titulo = s.mesas,
+                descripcion = s.disposicionSalon,
                 accentColor = Platinum40,
                 onClick = onMesas
             )
             AdminMenuCard(
                 icon = Icons.Default.Restaurant,
-                titulo = "Productos",
-                descripcion = "Gestionar la carta",
+                titulo = s.productos,
+                descripcion = s.gestionarLaCarta,
                 accentColor = Color(0xFF83C9A5),
                 onClick = onProductos
             )
             AdminMenuCard(
                 icon = Icons.Default.Group,
-                titulo = "Trabajadores",
-                descripcion = "Gestionar el equipo",
+                titulo = s.trabajadores,
+                descripcion = s.gestionarElEquipo,
                 accentColor = Color(0xFF8B7AE8),
                 onClick = onTrabajadores
             )
             AdminMenuCard(
                 icon = Icons.Default.CalendarMonth,
-                titulo = "Reservas",
-                descripcion = "Ver y gestionar reservas por día",
+                titulo = s.reservas,
+                descripcion = s.verYGestionarReservas,
                 accentColor = Color(0xFF06B6D4),
                 onClick = onReservas
             )
             AdminMenuCard(
                 icon = Icons.Default.BarChart,
-                titulo = "Estadísticas",
-                descripcion = "Ventas, platos, meseros y más",
+                titulo = s.estadisticas,
+                descripcion = s.ventasPlatosYMas,
                 accentColor = Color(0xFF83C9A5),
                 onClick = onEstadisticas
             )
             AdminMenuCard(
                 icon = Icons.Default.MenuBook,
-                titulo = "Menú del Día",
-                descripcion = "Configura la oferta diaria",
+                titulo = s.menuDelDia,
+                descripcion = s.configurarOfertaDiaria,
                 accentColor = Color(0xFFF4A261),
                 onClick = onMenuDia
             )
             AdminMenuCard(
                 icon = Icons.Default.GridView,
-                titulo = "Espacios de trabajo",
-                descripcion = "Número y nombres de las zonas del local",
+                titulo = s.espaciosDeTrabajo,
+                descripcion = s.numeroYNombresZonas,
                 accentColor = Color(0xFF60A5FA),
                 onClick = onEspacios
             )
@@ -147,11 +149,11 @@ private fun AdminMenuCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = DarkSurface1),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = CardDefaults.outlinedCardBorder().copy(
             width = 1.dp,
-        ).let { androidx.compose.foundation.BorderStroke(1.dp, Color(0xFF282420)) }
+        ).let { androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) }
     ) {
         Row(
             modifier = Modifier.padding(18.dp),
@@ -173,18 +175,18 @@ private fun AdminMenuCard(
                     titulo,
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color = WarmWhite
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     descripcion,
                     style = MaterialTheme.typography.bodySmall,
-                    color = WarmMuted
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Icon(
                 Icons.Default.ChevronRight,
                 null,
-                tint = Color(0xFF4D4844),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp)
             )
         }

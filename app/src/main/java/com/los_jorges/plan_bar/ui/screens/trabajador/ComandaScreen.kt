@@ -36,6 +36,7 @@ import com.los_jorges.plan_bar.model.MenuDiaLinea
 import com.los_jorges.plan_bar.model.PedidoProducto
 import com.los_jorges.plan_bar.model.Producto
 import com.los_jorges.plan_bar.session.SessionManager
+import com.los_jorges.plan_bar.ui.theme.LocalStrings
 import com.los_jorges.plan_bar.viewmodel.MenuDiaViewModel
 import com.los_jorges.plan_bar.viewmodel.PedidosViewModel
 import com.los_jorges.plan_bar.viewmodel.ProductosViewModel
@@ -114,6 +115,7 @@ fun ComandaScreen(
     productosVm: ProductosViewModel = viewModel(),
     menuDiaVm: MenuDiaViewModel = viewModel()
 ) {
+    val s = LocalStrings.current
     val trabajador by SessionManager.trabajador.collectAsState()
     val pedido by pedidosVm.pedido.collectAsState()
     val loading by pedidosVm.loading.collectAsState()
@@ -131,6 +133,7 @@ fun ComandaScreen(
     var showCobrarDialog by remember { mutableStateOf(false) }
     var showCancelarDialog by remember { mutableStateOf(false) }
     var showEnviarDialog by remember { mutableStateOf(false) }
+    var showConfirmarSalidaDialog by remember { mutableStateOf(false) }
     var snackMsg by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -178,10 +181,12 @@ fun ComandaScreen(
         }
         productosVm.cargar(SessionManager.restauranteId)
         menuDiaVm.cargar(SessionManager.restauranteId)
-        menuDiaVm.cargarUso(SessionManager.restauranteId)
+        menuDiaVm.cargar(SessionManager.restauranteId)
     }
 
-    val handleBack: () -> Unit = { onBack() }
+    val handleBack: () -> Unit = {
+        if (tieneNoEnviados) showConfirmarSalidaDialog = true else onBack()
+    }
 
     BackHandler(onBack = handleBack)
 
@@ -195,7 +200,7 @@ fun ComandaScreen(
     LaunchedEffect(Unit) {
         while (true) {
             kotlinx.coroutines.delay(5_000)
-            menuDiaVm.cargarUso(SessionManager.restauranteId)
+            menuDiaVm.cargar(SessionManager.restauranteId)
             menuDiaVm.cargar(SessionManager.restauranteId)
         }
     }
@@ -269,11 +274,11 @@ fun ComandaScreen(
                     if (pedido != null) {
                         if (pedidoVacio) {
                             TextButton(onClick = { showCancelarDialog = true }) {
-                                Text("Cancelar pedido", color = MaterialTheme.colorScheme.error)
+                                Text(s.cancelarPedido, color = MaterialTheme.colorScheme.error)
                             }
                         } else if (tieneNoEnviados) {
                             TextButton(onClick = { showEnviarDialog = true }) {
-                                Text("Enviar a cocina")
+                                Text(s.enviarACocina)
                             }
                         }
                     }
@@ -308,7 +313,7 @@ fun ComandaScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            "Sin pedido abierto", style = MaterialTheme.typography.bodyLarge,
+                            s.sinPedidoAbierto, style = MaterialTheme.typography.bodyLarge,
                             color = MaterialTheme.colorScheme.outline
                         )
                     }
@@ -347,7 +352,7 @@ fun ComandaScreen(
                                                 tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.35f)
                                             )
                                             Text(
-                                                "Sin productos aún",
+                                                s.sinProductosAun,
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.outline
                                             )
@@ -382,7 +387,8 @@ fun ComandaScreen(
                                         },
                                         onAplicarDescuento = { lineaDescuento = linea },
                                         onMarcarServida = {
-                                            val nuevo = if (linea.estado == "servido") "en preparacion" else "servido"
+                                            val nuevo =
+                                                if (linea.estado == "servido") "en preparacion" else "servido"
                                             pedidosVm.marcarPlato(linea.id, nuevo) { ok, err ->
                                                 if (ok) pedidosVm.cargarPedido(pedido.id)
                                                 else snackMsg = err ?: "Error al marcar"
@@ -407,8 +413,12 @@ fun ComandaScreen(
                                                     grupoAEliminar = clave to prods
                                                 },
                                                 onMarcarServida = { prod ->
-                                                    val nuevo = if (prod.estado == "servido") "en preparacion" else "servido"
-                                                    pedidosVm.marcarPlato(prod.id, nuevo) { ok, err ->
+                                                    val nuevo =
+                                                        if (prod.estado == "servido") "en preparacion" else "servido"
+                                                    pedidosVm.marcarPlato(
+                                                        prod.id,
+                                                        nuevo
+                                                    ) { ok, err ->
                                                         if (ok) pedidosVm.cargarPedido(pedido.id)
                                                         else snackMsg = err ?: "Error al marcar"
                                                     }
@@ -455,7 +465,7 @@ fun ComandaScreen(
                                             )
                                         }
                                         Text(
-                                            "Total  %.2f €".format(totalConDescuentos),
+                                            "${s.totalLabel}  %.2f €".format(totalConDescuentos),
                                             style = MaterialTheme.typography.titleLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = MaterialTheme.colorScheme.primary
@@ -465,8 +475,7 @@ fun ComandaScreen(
                                         onClick = {
                                             val sinEnviar = productosActivos.any { it.estado == "" }
                                             if (sinEnviar) {
-                                                snackMsg =
-                                                    "Envía los productos a cocina antes de cobrar"
+                                                snackMsg = s.enviaProductosAntesDeCobrar
                                             } else {
                                                 showCobrarDialog = true
                                             }
@@ -483,7 +492,7 @@ fun ComandaScreen(
                                             modifier = Modifier.size(18.dp)
                                         )
                                         Spacer(Modifier.width(6.dp))
-                                        Text("Cobrar", fontWeight = FontWeight.SemiBold)
+                                        Text(s.cobrar, fontWeight = FontWeight.SemiBold)
                                     }
                                 }
                             }
@@ -561,7 +570,6 @@ fun ComandaScreen(
                         var showCantidadDialog by remember { mutableStateOf(false) }
                         MenuDiaSelectorPanel(
                             menu = menu!!,
-                            usoMenu = usoMenu,
                             onIniciar = { showCantidadDialog = true }
                         )
                         if (showCantidadDialog) {
@@ -595,9 +603,8 @@ fun ComandaScreen(
                         LazyColumn(
                             modifier = Modifier.weight(1f),
                             contentPadding = PaddingValues(
-                                start = 16.dp,
-                                end = 16.dp,
-                                bottom = 16.dp
+                                horizontal = 10.dp,
+                                vertical = 8.dp
                             )
                         ) {
                             items(listaActual, key = { it.id }) { producto ->
@@ -613,13 +620,12 @@ fun ComandaScreen(
                                                 ""
                                             ) { ok, err ->
                                                 snackMsg =
-                                                    if (ok) "${producto.nombre} añadido" else err
+                                                    if (ok) s.anadidoFmt.format(producto.nombre) else err
                                                         ?: "Error"
                                             }
                                         }
                                     }
                                 )
-                                HorizontalDivider()
                             }
                         }
                     }
@@ -632,43 +638,35 @@ fun ComandaScreen(
     if (menuFlowSteps.isNotEmpty() && menuFlowIndex < menuFlowSteps.size) {
         val step = menuFlowSteps[menuFlowIndex]
 
-        // Helper: unidades ya usadas de un producto en TODOS los pedidos activos del restaurante.
-        // maxOf garantiza que si el servidor va ligeramente por detrás usamos el conteo local.
-        fun usoProducto(productoId: Int): Int {
-            val serverUso = usoMenu[productoId] ?: 0
-            val localUso  = productosActivos
-                .filter { it.observaciones.orEmpty().startsWith("Menú del día #") && it.producto_id == productoId }
-                .sumOf { it.cantidad }
-            return maxOf(serverUso, localUso)
-        }
-        fun MenuDiaLinea.agotado() = cantidad > 0 && usoProducto(producto_id) >= cantidad
-        fun MenuDiaLinea.restantes() = if (cantidad > 0) cantidad - usoProducto(producto_id) else -1
+        fun MenuDiaLinea.agotado() = cantidad == 0
+        fun MenuDiaLinea.restantes() = cantidad
 
         // Bebida: siempre pide elección (catálogo completo). Otros cursos: auto-añadir si solo hay 1 opción.
         LaunchedEffect(menuFlowIndex) {
-            val s = menuFlowSteps.getOrNull(menuFlowIndex) ?: return@LaunchedEffect
-            if (s.curso != "bebida" && s.opciones.size == 1 && !menuFlowAdding) {
-                val opcion = s.opciones[0]
+            val flowStep = menuFlowSteps.getOrNull(menuFlowIndex) ?: return@LaunchedEffect
+            if (flowStep.curso != "bebida" && flowStep.opciones.size == 1 && !menuFlowAdding) {
+                val opcion = flowStep.opciones[0]
                 // Si el único plato disponible está agotado, saltar el paso
                 if (opcion.agotado()) {
-                    snackMsg = "${opcion.nombre} agotado"
+                    snackMsg = s.agotadoFmt.format(opcion.nombre)
                     val next = menuFlowIndex + 1
-                    if (next >= menuFlowSteps.size) { menuFlowSteps = emptyList(); menuFlowIndex = 0 }
-                    else menuFlowIndex = next
+                    if (next >= menuFlowSteps.size) {
+                        menuFlowSteps = emptyList(); menuFlowIndex = 0
+                    } else menuFlowIndex = next
                     return@LaunchedEffect
                 }
                 val p = pedido ?: return@LaunchedEffect
                 menuFlowAdding = true
                 pedidosVm.agregarProducto(
-                    p.id, opcion.producto_id, 1, "Menú del día #${s.menuNum}"
+                    p.id, opcion.producto_id, 1, "Menú del día #${flowStep.menuNum}"
                 ) { ok, err ->
                     menuFlowAdding = false
                     if (ok) {
-                        menuDiaVm.cargarUso(SessionManager.restauranteId)
+                        menuDiaVm.cargar(SessionManager.restauranteId)
                         val next = menuFlowIndex + 1
                         if (next >= menuFlowSteps.size) {
                             menuFlowSteps = emptyList(); menuFlowIndex = 0
-                            snackMsg = "Menú del día añadido"
+                            snackMsg = s.menuDelDiaAnadido
                         } else menuFlowIndex = next
                     } else {
                         snackMsg = err ?: "Error al añadir"
@@ -682,12 +680,15 @@ fun ComandaScreen(
         val esBebida = step.curso == "bebida"
         val bebidasCatalogo = if (esBebida)
             productos.filter { it.categoria == "bebida" && it.disponible }
-                .map {
+                .map { prod ->
+                    val cantidadMenu =
+                        menu?.lineas?.firstOrNull { it.producto_id == prod.id }?.cantidad ?: -1
                     MenuDiaLinea(
-                        producto_id = it.id,
-                        nombre = it.nombre,
-                        precio = it.precio,
-                        curso = "bebida"
+                        producto_id = prod.id,
+                        nombre = prod.nombre,
+                        precio = prod.precio,
+                        curso = "bebida",
+                        cantidad = cantidadMenu
                     )
                 }
         else emptyList()
@@ -698,84 +699,158 @@ fun ComandaScreen(
                 // Preseleccionar la primera opción no agotada
                 mutableStateOf(opcionesEfectivas.firstOrNull { !it.agotado() })
             }
-            AlertDialog(
-                onDismissRequest = { menuFlowSteps = emptyList(); menuFlowIndex = 0 },
-                title = {
-                    Text(
-                        "${step.cursoLabel}  ${step.menuNum}/${step.totalMenus}",
-                        style = MaterialTheme.typography.titleMedium
-                    )
-                },
-                text = {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            val menuAccent = Color(0xFF7C9EE8)
+            Dialog(onDismissRequest = { menuFlowSteps = emptyList(); menuFlowIndex = 0 }) {
+                Surface(
+                    shape = RoundedCornerShape(24.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    border = androidx.compose.foundation.BorderStroke(
+                        1.dp,
+                        MaterialTheme.colorScheme.outlineVariant
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column {
+                        // Cabecera
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(menuAccent.copy(alpha = 0.08f))
+                                .padding(18.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(14.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(46.dp)
+                                    .clip(RoundedCornerShape(13.dp))
+                                    .background(menuAccent.copy(alpha = 0.18f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    Icons.Default.MenuBook,
+                                    null,
+                                    tint = menuAccent,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Column {
+                                Text(
+                                    step.cursoLabel,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(
+                                    "${s.menuDelDiaLabel} ${step.menuNum} ${s.deLabel} ${step.totalMenus}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
                         if (opcionesEfectivas.isEmpty()) {
-                            Text(
-                                "No hay bebidas disponibles en la carta.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.outline
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    s.noHayBebidasDisponibles,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                            }
                         } else {
-                            // Lista scrollable con indicador de desplazamiento
                             val scrollState = rememberScrollState()
                             val mostrarFlecha by remember {
                                 derivedStateOf { scrollState.value == 0 && scrollState.maxValue > 0 }
                             }
-                            Box {
+                            Box(
+                                modifier = Modifier
+                                    .heightIn(max = 340.dp)
+                                    .padding(horizontal = 8.dp)
+                            ) {
                                 Column(
-                                    modifier = Modifier
-                                        .heightIn(max = 320.dp)
-                                        .verticalScroll(scrollState),
-                                    verticalArrangement = Arrangement.spacedBy(0.dp)
+                                    modifier = Modifier.verticalScroll(scrollState)
                                 ) {
                                     opcionesEfectivas.forEach { opcion ->
                                         val agotado = !esBebida && opcion.agotado()
                                         val restantes = if (!esBebida) opcion.restantes() else -1
                                         val seleccionado =
                                             opcionSeleccionada?.producto_id == opcion.producto_id
-                                        Row(
+                                        Surface(
+                                            shape = RoundedCornerShape(10.dp),
+                                            color = when {
+                                                seleccionado -> menuAccent.copy(alpha = 0.10f)
+                                                agotado -> MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                    alpha = 0.3f
+                                                )
+
+                                                else -> Color.Transparent
+                                            },
+                                            border = if (seleccionado)
+                                                androidx.compose.foundation.BorderStroke(
+                                                    1.5.dp,
+                                                    menuAccent.copy(alpha = 0.5f)
+                                                )
+                                            else null,
                                             modifier = Modifier
                                                 .fillMaxWidth()
+                                                .padding(vertical = 3.dp)
                                                 .clickable(enabled = !agotado) {
                                                     opcionSeleccionada = opcion
                                                 }
-                                                .padding(vertical = 4.dp),
-                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            RadioButton(
-                                                selected = seleccionado,
-                                                enabled = !agotado,
-                                                onClick = { opcionSeleccionada = opcion }
-                                            )
-                                            Column(modifier = Modifier.weight(1f)) {
-                                                Text(
-                                                    opcion.nombre,
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    fontWeight = if (seleccionado) FontWeight.SemiBold else FontWeight.Normal,
-                                                    color = if (agotado) MaterialTheme.colorScheme.outline
-                                                    else MaterialTheme.colorScheme.onSurface
+                                            Row(
+                                                modifier = Modifier.padding(
+                                                    horizontal = 8.dp,
+                                                    vertical = 6.dp
+                                                ),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                RadioButton(
+                                                    selected = seleccionado,
+                                                    enabled = !agotado,
+                                                    onClick = { opcionSeleccionada = opcion },
+                                                    colors = RadioButtonDefaults.colors(
+                                                        selectedColor = menuAccent
+                                                    )
                                                 )
-                                                when {
-                                                    agotado -> Text(
-                                                        "Agotado",
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = ColorPlatoCancelado
+                                                Column(modifier = Modifier.weight(1f)) {
+                                                    Text(
+                                                        opcion.nombre,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        fontWeight = if (seleccionado) FontWeight.SemiBold else FontWeight.Normal,
+                                                        color = if (agotado) MaterialTheme.colorScheme.outline
+                                                        else MaterialTheme.colorScheme.onSurface
                                                     )
-                                                    restantes > 0 -> Text(
-                                                        "$restantes disponibles",
-                                                        style = MaterialTheme.typography.bodySmall,
-                                                        color = MaterialTheme.colorScheme.outline
-                                                    )
+                                                    when {
+                                                        agotado -> Text(
+                                                            s.agotado,
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = ColorPlatoCancelado
+                                                        )
+
+                                                        restantes > 0 -> Text(
+                                                            "$restantes ${s.disponibles}",
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.outline
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
                                     }
+                                    Spacer(Modifier.height(4.dp))
                                 }
-                                // Flecha: visible solo mientras el usuario no ha hecho scroll
                                 if (mostrarFlecha) {
                                     Icon(
                                         imageVector = Icons.Default.ExpandMore,
                                         contentDescription = "Más opciones",
-                                        tint = MaterialTheme.colorScheme.primary,
+                                        tint = menuAccent,
                                         modifier = Modifier
                                             .align(Alignment.BottomCenter)
                                             .padding(bottom = 2.dp)
@@ -783,44 +858,69 @@ fun ComandaScreen(
                                 }
                             }
                         }
-                        if (menuFlowAdding) LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    }
-                },
-                confirmButton = {
-                    Button(
-                        enabled = !menuFlowAdding && opcionSeleccionada != null
-                                && !(esBebida.not() && (opcionSeleccionada?.agotado() == true)),
-                        onClick = {
-                            val sel = opcionSeleccionada ?: return@Button
-                            val p = pedido ?: return@Button
-                            menuFlowAdding = true
-                            scope.launch {
-                                pedidosVm.agregarProducto(
-                                    p.id, sel.producto_id, 1, "Menú del día #${step.menuNum}"
-                                ) { ok, err ->
-                                    menuFlowAdding = false
-                                    if (ok) {
-                                        menuDiaVm.cargarUso(SessionManager.restauranteId)
-                                        val next = menuFlowIndex + 1
-                                        if (next >= menuFlowSteps.size) {
-                                            menuFlowSteps = emptyList(); menuFlowIndex = 0
-                                            snackMsg = "Menú del día añadido"
-                                        } else menuFlowIndex = next
-                                    } else {
-                                        snackMsg = err ?: "Error al añadir"
-                                        menuFlowSteps = emptyList(); menuFlowIndex = 0
+
+                        if (menuFlowAdding) {
+                            LinearProgressIndicator(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = menuAccent
+                            )
+                        }
+
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                        ) {
+                            TextButton(onClick = {
+                                menuFlowSteps = emptyList(); menuFlowIndex = 0
+                            }) {
+                                Text(s.cancelar)
+                            }
+                            Button(
+                                enabled = !menuFlowAdding && opcionSeleccionada != null
+                                        && !(esBebida.not() && (opcionSeleccionada?.agotado() == true)),
+                                onClick = {
+                                    val sel = opcionSeleccionada ?: return@Button
+                                    val p = pedido ?: return@Button
+                                    menuFlowAdding = true
+                                    scope.launch {
+                                        pedidosVm.agregarProducto(
+                                            p.id,
+                                            sel.producto_id,
+                                            1,
+                                            "Menú del día #${step.menuNum}"
+                                        ) { ok, err ->
+                                            menuFlowAdding = false
+                                            if (ok) {
+                                                menuDiaVm.cargar(SessionManager.restauranteId)
+                                                val next = menuFlowIndex + 1
+                                                if (next >= menuFlowSteps.size) {
+                                                    menuFlowSteps = emptyList(); menuFlowIndex = 0
+                                                    snackMsg = "Menú del día añadido"
+                                                } else menuFlowIndex = next
+                                            } else {
+                                                snackMsg = err ?: "Error al añadir"
+                                                menuFlowSteps = emptyList(); menuFlowIndex = 0
+                                            }
+                                        }
                                     }
-                                }
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = menuAccent,
+                                    contentColor = Color.White
+                                )
+                            ) {
+                                Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(6.dp))
+                                Text("Confirmar", fontWeight = FontWeight.SemiBold)
                             }
                         }
-                    ) { Text("Confirmar") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { menuFlowSteps = emptyList(); menuFlowIndex = 0 }) {
-                        Text("Cancelar")
                     }
                 }
-            )
+            }
         }
     }
 
@@ -835,22 +935,32 @@ fun ComandaScreen(
             if (numero != null) "Menú del día · $numero" else "Menú del día"
         AlertDialog(
             onDismissRequest = { grupoAEliminar = null },
+            icon = {
+                Icon(
+                    Icons.Default.DeleteSweep,
+                    null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
             title = { Text("Eliminar $titulo") },
             text = { Text("¿Quitar todos los productos de este menú del pedido?") },
             confirmButton = {
-                TextButton(onClick = {
-                    grupoAEliminar = null
-                    prods.forEach { prod ->
-                        val p = pedido ?: return@forEach
-                        if (prod.estado == "") {
-                            pedidosVm.eliminarProducto(prod.id, p.id) { _, _ -> }
-                        } else {
-                            pedidosVm.cancelarProducto(prod.id, p.id) { _, _ -> }
+                Button(
+                    onClick = {
+                        grupoAEliminar = null
+                        prods.forEach { prod ->
+                            val p = pedido ?: return@forEach
+                            if (prod.estado == "") pedidosVm.eliminarProducto(
+                                prod.id,
+                                p.id
+                            ) { _, _ -> }
+                            else pedidosVm.cancelarProducto(prod.id, p.id) { _, _ -> }
                         }
-                    }
-                }) { Text("Eliminar", color = MaterialTheme.colorScheme.error) }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Eliminar") }
             },
-            dismissButton = { TextButton(onClick = { grupoAEliminar = null }) { Text("Cancelar") } }
+            dismissButton = { TextButton(onClick = { grupoAEliminar = null }) { Text(s.cancelar) } }
         )
     }
 
@@ -873,9 +983,13 @@ fun ComandaScreen(
                         }
                         when {
                             oldProd == null -> doAgregar()  // adición nueva sin producto previo
-                            oldProd.estado == "" -> pedidosVm.eliminarProducto(oldProd.id, p.id) { ok, _ ->
+                            oldProd.estado == "" -> pedidosVm.eliminarProducto(
+                                oldProd.id,
+                                p.id
+                            ) { ok, _ ->
                                 if (ok) doAgregar()
                             }
+
                             else -> pedidosVm.cancelarProducto(oldProd.id, p.id) { ok, _ ->
                                 if (ok) doAgregar()
                             }
@@ -904,20 +1018,33 @@ fun ComandaScreen(
     productoAEliminar?.let { linea ->
         AlertDialog(
             onDismissRequest = { productoAEliminar = null },
-            title = { Text("¿Eliminar producto?") },
-            text = { Text("¿Seguro que quieres quitar \"${linea.nombre}\" del pedido?") },
+            icon = {
+                Icon(
+                    Icons.Default.RemoveShoppingCart,
+                    null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = { Text("¿Quitar del pedido?") },
+            text = { Text("Se eliminará \"${linea.nombre}\" del pedido.") },
             confirmButton = {
-                TextButton(onClick = {
-                    pedido?.let { p ->
-                        pedidosVm.eliminarProducto(linea.id, p.id) { ok, err ->
-                            if (!ok) snackMsg = err ?: "Error al eliminar"
+                Button(
+                    onClick = {
+                        pedido?.let { p ->
+                            pedidosVm.eliminarProducto(
+                                linea.id,
+                                p.id
+                            ) { ok, err -> if (!ok) snackMsg = err ?: "Error al eliminar" }
                         }
-                    }
-                    productoAEliminar = null
-                }) { Text("Eliminar", color = MaterialTheme.colorScheme.error) }
+                        productoAEliminar = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Quitar") }
             },
             dismissButton = {
-                TextButton(onClick = { productoAEliminar = null }) { Text("Mantener") }
+                TextButton(onClick = {
+                    productoAEliminar = null
+                }) { Text("Mantener") }
             }
         )
     }
@@ -925,17 +1052,21 @@ fun ComandaScreen(
     if (showCancelarDialog) {
         AlertDialog(
             onDismissRequest = { showCancelarDialog = false },
+            icon = { Icon(Icons.Default.Cancel, null, tint = MaterialTheme.colorScheme.error) },
             title = { Text("¿Cancelar pedido?") },
-            text = { Text("¿Quieres cancelar el pedido y liberar la mesa?") },
+            text = { Text("Se cancelará el pedido y la mesa quedará libre.") },
             confirmButton = {
-                TextButton(onClick = {
-                    pedido?.let { p ->
-                        pedidosVm.cancelarPedido(p.id) { ok, err ->
-                            if (ok) onBack() else snackMsg = err ?: "Error al cancelar"
+                Button(
+                    onClick = {
+                        pedido?.let { p ->
+                            pedidosVm.cancelarPedido(p.id) { ok, err ->
+                                if (ok) onBack() else snackMsg = err ?: "Error al cancelar"
+                            }
                         }
-                    }
-                    showCancelarDialog = false
-                }) { Text("Cancelar pedido", color = MaterialTheme.colorScheme.error) }
+                        showCancelarDialog = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) { Text("Cancelar pedido") }
             },
             dismissButton = {
                 TextButton(onClick = {
@@ -945,13 +1076,39 @@ fun ComandaScreen(
         )
     }
 
+    if (showConfirmarSalidaDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmarSalidaDialog = false },
+            icon = { Icon(Icons.Default.Warning, null, tint = Color(0xFFD4A853)) },
+            title = { Text("Productos sin enviar") },
+            text = { Text("Tienes productos que aún no han ido a cocina. ¿Qué quieres hacer?") },
+            confirmButton = {
+                Button(onClick = {
+                    pedido?.let { p ->
+                        pedidosVm.enviarACocina(p.id) { ok, err ->
+                            snackMsg = if (ok) "Enviado a cocina" else err ?: "Error al enviar"
+                        }
+                    }
+                    showConfirmarSalidaDialog = false
+                    onBack()
+                }) { Text("Enviar y salir") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showConfirmarSalidaDialog = false; onBack()
+                }) { Text("Salir sin enviar") }
+            }
+        )
+    }
+
     if (showEnviarDialog) {
         AlertDialog(
             onDismissRequest = { showEnviarDialog = false },
+            icon = { Icon(Icons.Default.Kitchen, null, tint = MaterialTheme.colorScheme.primary) },
             title = { Text("¿Enviar a cocina?") },
             text = { Text("Se enviarán todos los productos pendientes a cocina.") },
             confirmButton = {
-                TextButton(onClick = {
+                Button(onClick = {
                     pedido?.let { p ->
                         pedidosVm.enviarACocina(p.id) { ok, err ->
                             snackMsg =
@@ -962,7 +1119,7 @@ fun ComandaScreen(
                 }) { Text("Enviar") }
             },
             dismissButton = {
-                TextButton(onClick = { showEnviarDialog = false }) { Text("Cancelar") }
+                TextButton(onClick = { showEnviarDialog = false }) { Text(s.cancelar) }
             }
         )
     }
@@ -988,109 +1145,191 @@ fun ComandaScreen(
 @Composable
 private fun MenuDiaSelectorPanel(
     menu: MenuDia,
-    usoMenu: Map<Int, Int>,
     onIniciar: () -> Unit
 ) {
-    // Helper local: unidades restantes de una línea (-1 = sin límite)
-    fun restantes(linea: com.los_jorges.plan_bar.model.MenuDiaLinea): Int {
-        if (linea.cantidad <= 0) return -1
-        return (linea.cantidad - (usoMenu[linea.producto_id] ?: 0)).coerceAtLeast(0)
-    }
+    val s = LocalStrings.current
+    val menuAccent = Color(0xFF7C9EE8)
+
+    fun restantes(linea: com.los_jorges.plan_bar.model.MenuDiaLinea): Int = linea.cantidad
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        Text(
-            "Menú del día", style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary
-        )
-
-        // Resumen de opciones por curso
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                modifier = Modifier.padding(12.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+        // Cabecera con precio
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = menuAccent.copy(alpha = 0.08f),
+            border = androidx.compose.foundation.BorderStroke(1.dp, menuAccent.copy(alpha = 0.20f)),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                CURSO_ORDEN.forEach { curso ->
-                    val lineasCurso = menu.lineas.filter { it.curso == curso }
-                    if (lineasCurso.isNotEmpty()) {
-                        val cursoLabel = CURSO_LABELS[curso] ?: curso
-                        if (lineasCurso.size == 1) {
-                            val linea = lineasCurso[0]
-                            val r = restantes(linea)
-                            MenuCursoFila(
-                                label = cursoLabel,
-                                nombre = linea.nombre,
-                                stockLabel = when {
-                                    r == 0  -> "Agotado"
-                                    r == -1 -> null
-                                    else    -> "$r restantes"
-                                },
-                                agotado = r == 0
-                            )
-                        } else {
-                            Text(
-                                cursoLabel, style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                            lineasCurso.forEach { linea ->
-                                val r = restantes(linea)
-                                val agotado = r == 0
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(start = 8.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        "• ${linea.nombre}",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Medium,
-                                        color = if (agotado) MaterialTheme.colorScheme.outline
-                                        else MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.weight(1f)
-                                    )
-                                    when {
-                                        agotado -> Text(
-                                            "Agotado",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = ColorPlatoCancelado,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        r > 0 -> Text(
-                                            "$r restantes",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.outline
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(menuAccent.copy(alpha = 0.18f)),
+                    contentAlignment = Alignment.Center
                 ) {
+                    Icon(
+                        Icons.Default.MenuBook,
+                        null,
+                        tint = menuAccent,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Precio menú", style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.outline
+                        "Menú del día",
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        "%.2f €".format(menu.precio), style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary
+                        "Selección del día",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = menuAccent.copy(alpha = 0.16f)
+                ) {
+                    Text(
+                        "%.2f €".format(menu.precio),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = menuAccent,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
                     )
                 }
             }
         }
 
-        Button(onClick = onIniciar, modifier = Modifier.fillMaxWidth()) {
+        // Cursos
+        CURSO_ORDEN.forEach { curso ->
+            val lineasCurso = menu.lineas.filter { it.curso == curso }
+            if (lineasCurso.isEmpty()) return@forEach
+
+            val cursoLabel = CURSO_LABELS[curso] ?: curso
+
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.surface,
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Text(
+                        cursoLabel.uppercase(),
+                        style = MaterialTheme.typography.labelSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = menuAccent,
+                        letterSpacing = 1.sp
+                    )
+                    if (lineasCurso.size == 1) {
+                        val linea = lineasCurso[0]
+                        val r = restantes(linea)
+                        val agotado = r == 0
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                linea.nombre,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = if (agotado) MaterialTheme.colorScheme.outline
+                                else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f)
+                            )
+                            when {
+                                agotado -> Surface(
+                                    shape = RoundedCornerShape(4.dp),
+                                    color = ColorPlatoCancelado.copy(alpha = 0.12f)
+                                ) {
+                                    Text(
+                                        s.agotado,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = ColorPlatoCancelado,
+                                        modifier = Modifier.padding(
+                                            horizontal = 6.dp,
+                                            vertical = 2.dp
+                                        )
+                                    )
+                                }
+
+                                r > 0 -> Text(
+                                    "$r restantes",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.outline
+                                )
+                            }
+                        }
+                    } else {
+                        lineasCurso.forEach { linea ->
+                            val r = restantes(linea)
+                            val agotado = r == 0
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(start = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    "• ${linea.nombre}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (agotado) MaterialTheme.colorScheme.outline
+                                    else MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                when {
+                                    agotado -> Text(
+                                        s.agotado,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = ColorPlatoCancelado,
+                                        fontWeight = FontWeight.Bold
+                                    )
+
+                                    r > 0 -> Text(
+                                        "$r",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Botón comandar
+        Button(
+            onClick = onIniciar,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = menuAccent,
+                contentColor = Color.White
+            ),
+            contentPadding = PaddingValues(vertical = 14.dp)
+        ) {
             Icon(Icons.Default.Restaurant, null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
             Text("Comandar menú del día", fontWeight = FontWeight.SemiBold)
@@ -1116,7 +1355,12 @@ private fun MenuGrupoCard(
     val productosNoCancel = productos.filter { it.estado != "cancelado" }
     val todosListos =
         productosNoCancel.isNotEmpty() && productosNoCancel.all { it.estado == "preparado" || it.estado == "servido" }
-    val algunEnCocina = productosNoCancel.any { it.categoria != "bebida" && it.estado in listOf("en preparacion", "preparado") }
+    val algunEnCocina = productosNoCancel.any {
+        it.categoria != "bebida" && it.estado in listOf(
+            "en preparacion",
+            "preparado"
+        )
+    }
     val todoEnCocina = algunEnCocina
     val algunCancelado = productos.any { it.estado == "cancelado" }
 
@@ -1232,6 +1476,7 @@ private fun ModificarMenuDialog(
     // oldProd == null → adición nueva; oldProd != null → sustitución
     onConfirm: (List<Pair<PedidoProducto?, Int>>) -> Unit
 ) {
+    val s = LocalStrings.current
     val prodPorCurso: Map<String, PedidoProducto> = buildMap {
         productosEnGrupo.forEach { prod ->
             val curso = menu.lineas.firstOrNull { it.producto_id == prod.producto_id }?.curso
@@ -1253,99 +1498,169 @@ private fun ModificarMenuDialog(
         }
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Modificar $clave") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                CURSO_ORDEN.forEach { curso ->
-                    val prodActual = prodPorCurso[curso]
-                    val opciones: List<MenuDiaLinea> = menu.lineas.filter { it.curso == curso }
-                    if (opciones.isEmpty()) return@forEach
+    val menuAccent = Color(0xFF7C9EE8)
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                // Cabecera
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(menuAccent.copy(alpha = 0.08f))
+                        .padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(13.dp))
+                            .background(menuAccent.copy(alpha = 0.18f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.EditNote,
+                            null,
+                            tint = menuAccent,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            "Modificar menú",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            clave,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                    val cursoLabel = CURSO_LABELS[curso] ?: curso
-                    val faltante = prodActual == null
+                Column(
+                    modifier = Modifier
+                        .heightIn(max = 400.dp)
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    CURSO_ORDEN.forEach { curso ->
+                        val prodActual = prodPorCurso[curso]
+                        val opciones: List<MenuDiaLinea> = menu.lineas.filter { it.curso == curso }
+                        if (opciones.isEmpty()) return@forEach
 
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        val cursoLabel = CURSO_LABELS[curso] ?: curso
+                        val faltante = prodActual == null
+
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)
                         ) {
-                            Text(
-                                cursoLabel,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = if (faltante) ColorPlatoCancelado
-                                else MaterialTheme.colorScheme.outline,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            if (faltante) {
-                                Text(
-                                    "· sin añadir",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.outline
-                                )
-                            }
-                        }
-
-                        // Si ya existe y solo hay 1 opción → no se puede cambiar, solo mostrar
-                        if (!faltante && opciones.size == 1) {
-                            Text(
-                                prodActual!!.nombre,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(start = 8.dp)
-                            )
-                        } else {
                             Column(
-                                modifier = Modifier
-                                    .heightIn(max = 200.dp)
-                                    .verticalScroll(rememberScrollState())
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                // Opción "No añadir" solo para cursos faltantes
-                                if (faltante) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { selecciones[curso] = -1 }
-                                            .padding(vertical = 2.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        RadioButton(
-                                            selected = selecciones[curso] == -1,
-                                            onClick = { selecciones[curso] = -1 }
-                                        )
-                                        Text(
-                                            "No añadir",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.outline,
-                                            fontWeight = if (selecciones[curso] == -1) FontWeight.SemiBold else FontWeight.Normal
-                                        )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        cursoLabel,
+                                        style = MaterialTheme.typography.labelMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = if (faltante) ColorPlatoCancelado
+                                        else menuAccent
+                                    )
+                                    if (faltante) {
+                                        Surface(
+                                            shape = RoundedCornerShape(4.dp),
+                                            color = ColorPlatoCancelado.copy(alpha = 0.12f)
+                                        ) {
+                                            Text(
+                                                "sin añadir",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = ColorPlatoCancelado,
+                                                modifier = Modifier.padding(
+                                                    horizontal = 6.dp,
+                                                    vertical = 2.dp
+                                                )
+                                            )
+                                        }
                                     }
                                 }
-                                opciones.forEach { opcion ->
-                                    val sel = selecciones[curso] == opcion.producto_id
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clickable { selecciones[curso] = opcion.producto_id }
-                                            .padding(vertical = 2.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        RadioButton(
-                                            selected = sel,
-                                            onClick = { selecciones[curso] = opcion.producto_id }
-                                        )
-                                        Column {
-                                            Text(
-                                                opcion.nombre,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Normal
+
+                                if (!faltante && opciones.size == 1) {
+                                    Text(
+                                        prodActual!!.nombre,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        modifier = Modifier.padding(start = 4.dp)
+                                    )
+                                } else {
+                                    // Opción "No añadir" solo para cursos faltantes
+                                    if (faltante) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable { selecciones[curso] = -1 }
+                                                .padding(vertical = 2.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            RadioButton(
+                                                selected = selecciones[curso] == -1,
+                                                onClick = { selecciones[curso] = -1 },
+                                                colors = RadioButtonDefaults.colors(selectedColor = menuAccent)
                                             )
-                                            if (curso != "bebida" && opcion.cantidad > 0) {
+                                            Text(
+                                                "No añadir",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.outline,
+                                                fontWeight = if (selecciones[curso] == -1) FontWeight.SemiBold else FontWeight.Normal
+                                            )
+                                        }
+                                    }
+                                    opciones.forEach { opcion ->
+                                        val sel = selecciones[curso] == opcion.producto_id
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    selecciones[curso] = opcion.producto_id
+                                                }
+                                                .padding(vertical = 2.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            RadioButton(
+                                                selected = sel,
+                                                onClick = {
+                                                    selecciones[curso] = opcion.producto_id
+                                                },
+                                                colors = RadioButtonDefaults.colors(selectedColor = menuAccent)
+                                            )
+                                            Column {
                                                 Text(
-                                                    "${opcion.cantidad} disponibles",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.outline
+                                                    opcion.nombre,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    fontWeight = if (sel) FontWeight.SemiBold else FontWeight.Normal
                                                 )
+                                                if (curso != "bebida" && opcion.cantidad > 0) {
+                                                    Text(
+                                                        "${opcion.cantidad} disponibles",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.outline
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -1354,25 +1669,43 @@ private fun ModificarMenuDialog(
                         }
                     }
                 }
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                val cambios = mutableListOf<Pair<PedidoProducto?, Int>>()
-                CURSO_ORDEN.forEach { curso ->
-                    val nuevaId = selecciones[curso] ?: return@forEach
-                    if (nuevaId == -1) return@forEach  // "no añadir"
-                    val prodActual = prodPorCurso[curso]
-                    when {
-                        prodActual == null -> cambios.add(null to nuevaId)          // adición nueva
-                        nuevaId != prodActual.producto_id -> cambios.add(prodActual to nuevaId) // sustitución
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                ) {
+                    TextButton(onClick = onDismiss) { Text(s.cancelar) }
+                    Button(
+                        onClick = {
+                            val cambios = mutableListOf<Pair<PedidoProducto?, Int>>()
+                            CURSO_ORDEN.forEach { curso ->
+                                val nuevaId = selecciones[curso] ?: return@forEach
+                                if (nuevaId == -1) return@forEach
+                                val prodActual = prodPorCurso[curso]
+                                when {
+                                    prodActual == null -> cambios.add(null to nuevaId)
+                                    nuevaId != prodActual.producto_id -> cambios.add(prodActual to nuevaId)
+                                }
+                            }
+                            onConfirm(cambios)
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = menuAccent,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(Icons.Default.Save, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Guardar cambios", fontWeight = FontWeight.SemiBold)
                     }
                 }
-                onConfirm(cambios)
-            }) { Text("Guardar cambios") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
+            }
+        }
+    }
 }
 
 @Composable
@@ -1380,36 +1713,100 @@ private fun CantidadMenusDialog(
     onDismiss: () -> Unit,
     onConfirm: (Int) -> Unit
 ) {
+    val s = LocalStrings.current
     var texto by remember { mutableStateOf("") }
+    val accent = Color(0xFF7C9EE8)
 
     Dialog(onDismissRequest = onDismiss) {
-        Card(
-            modifier = Modifier.width(260.dp),
-            shape = MaterialTheme.shapes.extraLarge
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant
+            ),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Text("¿Cuántos menús?", style = MaterialTheme.typography.titleLarge)
-                OutlinedTextField(
-                    value = texto,
-                    onValueChange = { texto = it.filter { c -> c.isDigit() }.take(2) },
-                    label = { Text("Nº de menús") },
-                    placeholder = { Text("1") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
+            Column {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(accent.copy(alpha = 0.08f))
+                        .padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Cancelar") }
-                    Spacer(Modifier.width(8.dp))
-                    Button(onClick = { onConfirm(texto.toIntOrNull()?.coerceAtLeast(1) ?: 1) }) {
-                        Text("Empezar")
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(13.dp))
+                            .background(accent.copy(alpha = 0.18f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.MenuBook,
+                            null,
+                            tint = accent,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            "Menú del día",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "¿Cuántos menús?",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    OutlinedTextField(
+                        value = texto,
+                        onValueChange = { texto = it.filter { c -> c.isDigit() }.take(2) },
+                        label = { Text("Nº de menús") },
+                        placeholder = { Text("1") },
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Tag,
+                                null,
+                                tint = accent,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                ) {
+                    TextButton(onClick = onDismiss) { Text(s.cancelar) }
+                    Button(
+                        onClick = { onConfirm(texto.toIntOrNull()?.coerceAtLeast(1) ?: 1) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = accent,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Empezar", fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -1470,12 +1867,12 @@ private fun LineaPedidoItem(
     modifier: Modifier = Modifier
 ) {
     val cancelado = linea.estado == "cancelado"
-    val servido  = linea.estado == "servido"
+    val servido = linea.estado == "servido"
     val esBebida = linea.categoria == "bebida"
     val enCocina = linea.estado in listOf("en preparacion", "preparado", "servido")
     val estadoColor = when {
         cancelado -> ColorPlatoCancelado
-        servido   -> ColorPlatoListo
+        servido -> ColorPlatoListo
         linea.estado == "preparado" -> ColorPlatoListo
         linea.estado == "en preparacion" && !esBebida -> ColorPlatoEnCocina
         else -> ColorPlatoDefault
@@ -1485,7 +1882,7 @@ private fun LineaPedidoItem(
     val bgColor by animateColorAsState(
         targetValue = when {
             cancelado -> ColorPlatoCancelado.copy(alpha = 0.05f)
-            servido   -> ColorPlatoListo.copy(alpha = 0.06f)
+            servido -> ColorPlatoListo.copy(alpha = 0.06f)
             linea.estado == "preparado" -> ColorPlatoListo.copy(alpha = 0.06f)
             linea.estado == "en preparacion" && !esBebida -> ColorPlatoEnCocina.copy(alpha = 0.06f)
             else -> Color.Transparent
@@ -1671,109 +2068,391 @@ private fun DescuentoDialog(
     onDismiss: () -> Unit,
     onConfirm: (Double, Boolean) -> Unit
 ) {
+    val s = LocalStrings.current
     var valorTexto by remember { mutableStateOf(descuentoActual?.valor?.toString() ?: "") }
     var esPorcentaje by remember { mutableStateOf(descuentoActual?.esPorcentaje ?: true) }
+    val accent = Color(0xFFFFB74D)
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Descuento — $nombreProducto") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = esPorcentaje,
-                        onClick = { esPorcentaje = true },
-                        label = { Text("Porcentaje (%)") }
-                    )
-                    FilterChip(
-                        selected = !esPorcentaje,
-                        onClick = { esPorcentaje = false },
-                        label = { Text("Fijo (€)") }
-                    )
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                // Cabecera
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(accent.copy(alpha = 0.08f))
+                        .padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(13.dp))
+                            .background(accent.copy(alpha = 0.18f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            Icons.Default.LocalOffer,
+                            null,
+                            tint = accent,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    Column {
+                        Text(
+                            "Descuento",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            nombreProducto,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-                OutlinedTextField(
-                    value = valorTexto,
-                    onValueChange = { valorTexto = it.replace(',', '.') },
-                    label = { Text(if (esPorcentaje) "Porcentaje (%)" else "Importe (€)") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                if (descuentoActual != null) {
-                    TextButton(onClick = { onConfirm(0.0, esPorcentaje) }) {
-                        Text("Quitar descuento", color = MaterialTheme.colorScheme.error)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    // Tipo de descuento
+                    Text(
+                        "Tipo de descuento",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = esPorcentaje,
+                            onClick = { esPorcentaje = true },
+                            label = { Text("Porcentaje (%)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                        FilterChip(
+                            selected = !esPorcentaje,
+                            onClick = { esPorcentaje = false },
+                            label = { Text("Fijo (€)") },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    OutlinedTextField(
+                        value = valorTexto,
+                        onValueChange = { valorTexto = it.replace(',', '.') },
+                        label = { Text(if (esPorcentaje) "Porcentaje (%)" else "Importe (€)") },
+                        leadingIcon = {
+                            Text(
+                                if (esPorcentaje) "%" else "€",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = accent,
+                                modifier = Modifier.padding(start = 4.dp)
+                            )
+                        },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    if (descuentoActual != null) {
+                        OutlinedButton(
+                            onClick = { onConfirm(0.0, esPorcentaje) },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                MaterialTheme.colorScheme.error.copy(alpha = 0.5f)
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.RemoveCircleOutline,
+                                null,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Quitar descuento", fontWeight = FontWeight.Medium)
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                ) {
+                    TextButton(onClick = onDismiss) { Text(s.cancelar) }
+                    Button(
+                        onClick = {
+                            val v = valorTexto.toDoubleOrNull() ?: 0.0
+                            onConfirm(v.coerceAtLeast(0.0), esPorcentaje)
+                        },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = accent,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Aplicar", fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                val v = valorTexto.toDoubleOrNull() ?: 0.0
-                onConfirm(v.coerceAtLeast(0.0), esPorcentaje)
-            }) { Text("Aplicar") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
+        }
+    }
 }
 
 @Composable
 private fun ProductoSelectorItem(producto: Producto, enabled: Boolean, onClick: () -> Unit) {
-    Row(
+    val accent = Color(0xFF83C9A5)
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(vertical = 3.dp),
+        shape = RoundedCornerShape(14.dp),
+        color = if (enabled) MaterialTheme.colorScheme.surface
+        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+        ),
+        tonalElevation = if (enabled) 1.dp else 0.dp
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                producto.nombre,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = if (enabled) MaterialTheme.colorScheme.onSurface
-                else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-            )
-            Text(
-                "%.2f €".format(producto.precio),
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.SemiBold,
-                color = if (enabled) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.outline
-            )
-        }
-        FilledTonalIconButton(onClick = onClick, enabled = enabled) {
-            Icon(Icons.Default.Add, "Añadir")
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 14.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    producto.nombre,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (enabled) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                )
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (enabled) accent.copy(alpha = 0.14f)
+                    else MaterialTheme.colorScheme.surfaceVariant
+                ) {
+                    Text(
+                        "%.2f €".format(producto.precio),
+                        style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (enabled) accent.copy(alpha = 0.9f)
+                        else MaterialTheme.colorScheme.outline,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                    )
+                }
+            }
+            FilledTonalIconButton(
+                onClick = onClick,
+                enabled = enabled,
+                colors = IconButtonDefaults.filledTonalIconButtonColors(
+                    containerColor = accent.copy(alpha = 0.20f),
+                    contentColor = accent,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledContentColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.38f)
+                ),
+                modifier = Modifier.size(42.dp)
+            ) {
+                Icon(Icons.Default.Add, "Añadir", modifier = Modifier.size(20.dp))
+            }
         }
     }
 }
 
 @Composable
 private fun CobrarDialog(total: Double, onDismiss: () -> Unit, onConfirm: (String) -> Unit) {
+    val s = LocalStrings.current
     var metodoPago by remember { mutableStateOf("efectivo") }
+    val accent = Color(0xFF4CAF82)
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Cobrar pedido") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    "Total: %.2f €".format(total), style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Spacer(Modifier.height(4.dp))
-                METODOS_PAGO.forEach { metodo ->
+    val metodoIcono = mapOf(
+        "efectivo" to Icons.Default.Money,
+        "tarjeta" to Icons.Default.CreditCard,
+        "otro" to Icons.Default.MoreHoriz
+    )
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                // Cabecera con total
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(accent.copy(alpha = 0.08f))
+                        .padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(46.dp)
+                                .clip(RoundedCornerShape(13.dp))
+                                .background(accent.copy(alpha = 0.18f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.EuroSymbol,
+                                null,
+                                tint = accent,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                "Cobrar pedido",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                "Selecciona el método de pago",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    // Total destacado
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = accent.copy(alpha = 0.12f),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        RadioButton(
-                            selected = metodoPago == metodo,
-                            onClick = { metodoPago = metodo })
-                        Text(metodo.replaceFirstChar { it.uppercase() })
+                        Row(
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                "Total a cobrar",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                "%.2f €".format(total),
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = accent
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                // Métodos de pago
+                Column(
+                    modifier = Modifier.padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        "Método de pago",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 2.dp)
+                    )
+                    METODOS_PAGO.forEach { metodo ->
+                        val seleccionado = metodoPago == metodo
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (seleccionado) accent.copy(alpha = 0.10f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            border = if (seleccionado)
+                                androidx.compose.foundation.BorderStroke(
+                                    1.5.dp,
+                                    accent.copy(alpha = 0.6f)
+                                )
+                            else null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { metodoPago = metodo }
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    metodoIcono[metodo] ?: Icons.Default.MoreHoriz,
+                                    null,
+                                    tint = if (seleccionado) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    metodo.replaceFirstChar { it.uppercase() },
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (seleccionado) FontWeight.SemiBold else FontWeight.Normal,
+                                    color = if (seleccionado) MaterialTheme.colorScheme.onSurface
+                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                if (seleccionado) {
+                                    Icon(
+                                        Icons.Default.CheckCircle,
+                                        null,
+                                        tint = accent,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                ) {
+                    TextButton(onClick = onDismiss) { Text(s.cancelar) }
+                    Button(
+                        onClick = { onConfirm(metodoPago) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = accent,
+                            contentColor = Color.White
+                        )
+                    ) {
+                        Icon(Icons.Default.EuroSymbol, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Cobrar", fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
-        },
-        confirmButton = { TextButton(onClick = { onConfirm(metodoPago) }) { Text("Cobrar") } },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
+        }
+    }
 }

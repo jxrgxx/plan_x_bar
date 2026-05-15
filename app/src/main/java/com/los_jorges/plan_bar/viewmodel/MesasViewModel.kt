@@ -41,7 +41,7 @@ class MesasViewModel : ViewModel() {
         restauranteId: Int,
         codigo: String,
         capacidad: Int,
-        zona: String = "piso1",
+        zonaId: Int,
         onDone: (Boolean, String?) -> Unit
     ) {
         viewModelScope.launch {
@@ -51,7 +51,7 @@ class MesasViewModel : ViewModel() {
                         "restaurante_id" to restauranteId,
                         "codigo" to codigo,
                         "capacidad" to capacidad,
-                        "zona" to zona
+                        "zona_id" to zonaId
                     )
                 )
                 if (r.isSuccessful && r.body()?.success == true) {
@@ -73,7 +73,7 @@ class MesasViewModel : ViewModel() {
         estado: String,
         posX: Float,
         posY: Float,
-        zona: String,
+        zonaId: Int,
         onDone: (Boolean, String?) -> Unit
     ) {
         viewModelScope.launch {
@@ -86,7 +86,7 @@ class MesasViewModel : ViewModel() {
                         "estado" to estado,
                         "posX" to posX,
                         "posY" to posY,
-                        "zona" to zona
+                        "zona_id" to zonaId
                     )
                 )
                 if (r.isSuccessful && r.body()?.success == true) {

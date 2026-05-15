@@ -24,7 +24,7 @@ class ProductosViewModel : ViewModel() {
 
     fun cargar(restauranteId: Int) {
         viewModelScope.launch {
-            _loading.value = true
+            if (_productos.value.isEmpty()) _loading.value = true
             try {
                 val r = RetrofitClient.api.getProductos(restauranteId)
                 if (r.isSuccessful) _productos.value = r.body()?.productos ?: emptyList()

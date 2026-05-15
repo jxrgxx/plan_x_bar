@@ -1,45 +1,58 @@
 package com.los_jorges.plan_bar.ui.screens.admin
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.delay
+import com.los_jorges.plan_bar.ui.theme.premiumInputColors
+import com.los_jorges.plan_bar.ui.theme.LocalStrings
 import com.los_jorges.plan_bar.model.MenuDiaLineaRequest
 import com.los_jorges.plan_bar.model.Producto
-import com.los_jorges.plan_bar.ui.theme.DarkBase
-import com.los_jorges.plan_bar.ui.theme.DarkSurface1
-import com.los_jorges.plan_bar.ui.theme.WarmMuted
-import com.los_jorges.plan_bar.ui.theme.WarmWhite
 import com.los_jorges.plan_bar.viewmodel.MenuDiaViewModel
 import com.los_jorges.plan_bar.viewmodel.ProductosViewModel
 
-// Cursos disponibles con etiqueta y categoría de producto asociada
-private val CURSOS = listOf(
-    Triple("bebida", "Bebida", "bebida"),
-    Triple("primero", "Primero", "primero"),
-    Triple("segundo", "Segundo", "segundo"),
-    Triple("postre", "Postre", "postre")
+// Cursos con etiqueta, categoría de producto, color e icono
+private data class CursoConfig(
+    val key: String,
+    val label: String,
+    val categoria: String,
+    val color: Color,
+    val icon: ImageVector
 )
 
-// Línea en edición local (antes de guardar)
+private val CURSOS_CONFIG = listOf(
+    CursoConfig("bebida",  "Bebida",  "bebida",  Color(0xFF06B6D4), Icons.Default.LocalBar),
+    CursoConfig("primero", "Primero", "primero", Color(0xFFF4A261), Icons.Default.DinnerDining),
+    CursoConfig("segundo", "Segundo", "segundo", Color(0xFFD4A853), Icons.Default.Restaurant),
+    CursoConfig("postre",  "Postre",  "postre",  Color(0xFF8B7AE8), Icons.Default.Cake)
+)
+
 private data class LineaLocal(
     val producto_id: Int,
     val nombre: String,
     val precio: Double,
     val curso: String,
-    var cantidad: Int = 0   // 0 = sin límite
+    var cantidad: Int = -1  // -1 = sin límite, 0 = agotado, >0 = stock
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,31 +61,32 @@ fun MenuDiaAdminScreen(
     restauranteId: Int,
     onBack: () -> Unit
 ) {
-    val menuVm: MenuDiaViewModel = viewModel()
+    val menuVm: MenuDiaViewModel    = viewModel()
     val productosVm: ProductosViewModel = viewModel()
 
-    val menu by menuVm.menu.collectAsState()
-    val loading by menuVm.loading.collectAsState()
+    val menu     by menuVm.menu.collectAsState()
+    val loading  by menuVm.loading.collectAsState()
     val productos by productosVm.productos.collectAsState()
 
+    val s = LocalStrings.current
     val snackbarHostState = remember { SnackbarHostState() }
     var snackMsg by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(restauranteId) {
-        menuVm.cargar(restauranteId)
-        productosVm.cargar(restauranteId)
+        while (true) {
+            menuVm.cargar(restauranteId)
+            productosVm.cargar(restauranteId)
+            delay(5_000)
+        }
     }
-
     LaunchedEffect(snackMsg) {
         snackMsg?.let { snackbarHostState.showSnackbar(it); snackMsg = null }
     }
 
-    // Estado local del formulario
-    var precioTexto by remember { mutableStateOf("") }
-    val lineas = remember { mutableStateListOf<LineaLocal>() }
+    var precioTexto  by remember { mutableStateOf("") }
+    val lineas       = remember { mutableStateListOf<LineaLocal>() }
     var inicializado by remember { mutableStateOf(false) }
 
-    // Inicializar desde el menú guardado cuando llega
     LaunchedEffect(menu, productos) {
         if (!inicializado && menu != null && productos.isNotEmpty()) {
             if (precioTexto.isEmpty()) precioTexto = menu!!.precio.toString()
@@ -82,10 +96,10 @@ fun MenuDiaAdminScreen(
                 lineas.add(
                     LineaLocal(
                         producto_id = l.producto_id,
-                        nombre = l.nombre,
-                        precio = prod?.precio ?: l.precio,
-                        curso = l.curso,
-                        cantidad = l.cantidad
+                        nombre      = l.nombre,
+                        precio      = prod?.precio ?: l.precio,
+                        curso       = l.curso,
+                        cantidad    = l.cantidad
                     )
                 )
             }
@@ -93,29 +107,37 @@ fun MenuDiaAdminScreen(
         }
     }
 
-    // Diálogo para añadir producto a un curso
-    var cursoDialogo by remember { mutableStateOf<Triple<String, String, String>?>(null) }
+    var cursoDialogo by remember { mutableStateOf<CursoConfig?>(null) }
 
     Scaffold(
-        containerColor = DarkBase,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost   = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
                     Column {
-                        Text("Menú del Día", fontWeight = FontWeight.SemiBold, color = WarmWhite)
                         Text(
-                            "Configura la oferta de hoy",
-                            style = MaterialTheme.typography.labelSmall, color = WarmMuted
+                            s.menuDelDia,
+                            style      = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            s.configurarOfertaHoy,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, null, tint = WarmMuted)
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = DarkSurface1)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         },
         floatingActionButton = {
@@ -123,35 +145,30 @@ fun MenuDiaAdminScreen(
                 onClick = {
                     val precio = precioTexto.replace(',', '.').toDoubleOrNull()
                     if (precio == null || precio <= 0) {
-                        snackMsg = null
-                        snackMsg = "Introduce un precio válido"
+                        snackMsg = s.introducePrecioValido
                         return@ExtendedFloatingActionButton
                     }
                     if (loading) return@ExtendedFloatingActionButton
                     menuVm.guardar(
                         restauranteId = restauranteId,
-                        precio = precio,
-                        lineas = lineas.map {
-                            MenuDiaLineaRequest(it.producto_id, it.curso, it.cantidad)
-                        }
+                        precio        = precio,
+                        lineas        = lineas.map { MenuDiaLineaRequest(it.producto_id, it.curso, it.cantidad) }
                     ) { ok, err ->
-                        snackMsg = null
-                        snackMsg = if (ok) "Menú guardado ✓" else err ?: "Error al guardar"
-                        if (ok) {
-                            inicializado = false
-                            menuVm.cargar(restauranteId)
-                        }
+                        snackMsg = if (ok) s.menuGuardado else err ?: s.errorAlGuardar
+                        if (ok) { inicializado = false; menuVm.cargar(restauranteId) }
                     }
                 },
-                icon = { Icon(Icons.Default.Check, null) },
-                text = { Text("Guardar menú") }
+                icon        = { Icon(Icons.Default.Check, null) },
+                text        = { Text(s.guardarMenu, fontWeight = FontWeight.SemiBold) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor   = MaterialTheme.colorScheme.onPrimary
             )
         }
     ) { padding ->
 
         if (loading && menu == null && productos.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color(0xFFF4A261))
             }
             return@Scaffold
         }
@@ -162,70 +179,91 @@ fun MenuDiaAdminScreen(
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 16.dp, vertical = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-
-            // ── Precio ────────────────────────────────────────────────────
-            OutlinedTextField(
-                value = precioTexto,
-                onValueChange = { precioTexto = it.replace(',', '.') },
-                label = { Text("Precio del menú (€)") },
-                leadingIcon = { Icon(Icons.Default.Euro, null) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+            // ── Precio del menú ───────────────────────────────────────────────
+            Surface(
+                shape  = RoundedCornerShape(16.dp),
+                color  = MaterialTheme.colorScheme.surface,
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp, MaterialTheme.colorScheme.outlineVariant
+                ),
                 modifier = Modifier.fillMaxWidth()
-            )
-
-            // ── Secciones por curso ───────────────────────────────────────
-            CURSOS.forEach { (cursoKey, cursoLabel, categoriaProducto) ->
-                val lineasCurso = lineas.filter { it.curso == cursoKey }
-                val productosDisponibles =
-                    productos.filter { it.categoria == categoriaProducto && it.disponible }
-                // Excluir los ya añadidos
-                val productosNoAñadidos = productosDisponibles.filter { p ->
-                    lineasCurso.none { l -> l.producto_id == p.id }
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
+                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.Euro, null,
+                            tint     = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp))
+                    }
+                    OutlinedTextField(
+                        value         = precioTexto,
+                        onValueChange = { precioTexto = it.replace(',', '.') },
+                        label         = { Text(s.precioDelMenu) },
+                        singleLine    = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier      = Modifier.weight(1f),
+                        shape         = RoundedCornerShape(12.dp)
+                    )
                 }
+            }
+
+            Spacer(Modifier.height(4.dp))
+
+            // ── Secciones por curso ───────────────────────────────────────────
+            CURSOS_CONFIG.forEach { config ->
+                val lineasCurso       = lineas.filter { it.curso == config.key }
+                val prodDisponibles   = productos.filter { it.categoria == config.categoria && it.disponible }
+                val prodNoAñadidos    = prodDisponibles.filter { p -> lineasCurso.none { l -> l.producto_id == p.id } }
 
                 CursoSection(
-                    label = cursoLabel,
-                    lineas = lineasCurso,
-                    hayProductos = productosDisponibles.isNotEmpty(),
-                    onCantidadCambia = { linea, nuevaCantidad ->
+                    config       = config,
+                    lineas       = lineasCurso,
+                    hayProductos = prodDisponibles.isNotEmpty(),
+                    onCantidadCambia = { linea, nueva ->
                         val idx = lineas.indexOf(linea)
-                        if (idx >= 0) lineas[idx] = linea.copy(cantidad = nuevaCantidad)
+                        if (idx >= 0) lineas[idx] = linea.copy(cantidad = nueva)
                     },
                     onEliminar = { lineas.remove(it) },
-                    onAñadir = {
-                        if (productosNoAñadidos.isNotEmpty()) cursoDialogo =
-                            Triple(cursoKey, cursoLabel, categoriaProducto)
-                        else snackMsg = "No hay más productos de esta categoría"
+                    onAñadir   = {
+                        if (prodNoAñadidos.isNotEmpty()) cursoDialogo = config
+                        else snackMsg = s.noHayMasProductosCat
                     }
                 )
             }
 
-            Spacer(Modifier.height(72.dp)) // espacio para FAB
+            Spacer(Modifier.height(72.dp))
         }
     }
 
-    // ── Diálogo añadir producto ───────────────────────────────────────────────
-    cursoDialogo?.let { (cursoKey, cursoLabel, categoriaProducto) ->
-        val productosDisponibles =
-            productos.filter { it.categoria == categoriaProducto && it.disponible }
-        val productosNoAñadidos =
-            productosDisponibles.filter { p -> lineas.none { it.curso == cursoKey && it.producto_id == p.id } }
+    cursoDialogo?.let { config ->
+        val prodDisponibles = productos.filter { it.categoria == config.categoria && it.disponible }
+        val prodNoAñadidos  = prodDisponibles.filter { p -> lineas.none { it.curso == config.key && it.producto_id == p.id } }
 
         AñadirProductoDialog(
-            cursoLabel = cursoLabel,
-            opciones = productosNoAñadidos,
-            onDismiss = { cursoDialogo = null },
-            onConfirm = { producto, cantidad ->
+            cursoLabel = config.label,
+            opciones   = prodNoAñadidos,
+            accentColor = config.color,
+            onDismiss  = { cursoDialogo = null },
+            onConfirm  = { producto, cantidad ->
                 lineas.add(
                     LineaLocal(
                         producto_id = producto.id,
-                        nombre = producto.nombre,
-                        precio = producto.precio,
-                        curso = cursoKey,
-                        cantidad = cantidad
+                        nombre      = producto.nombre,
+                        precio      = producto.precio,
+                        curso       = config.key,
+                        cantidad    = cantidad
                     )
                 )
                 cursoDialogo = null
@@ -238,52 +276,75 @@ fun MenuDiaAdminScreen(
 
 @Composable
 private fun CursoSection(
-    label: String,
+    config: CursoConfig,
     lineas: List<LineaLocal>,
     hayProductos: Boolean,
     onCantidadCambia: (LineaLocal, Int) -> Unit,
     onEliminar: (LineaLocal) -> Unit,
     onAñadir: () -> Unit
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    val s = LocalStrings.current
+    Surface(
+        shape  = RoundedCornerShape(16.dp),
+        color  = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp, MaterialTheme.colorScheme.outlineVariant
+        ),
+        modifier = Modifier.fillMaxWidth()
+    ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Cabecera del curso
+            // Cabecera del curso con icono de color
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(config.color.copy(alpha = 0.12f))
+                        .border(1.dp, config.color.copy(alpha = 0.25f), RoundedCornerShape(10.dp)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(config.icon, null, tint = config.color, modifier = Modifier.size(18.dp))
+                }
                 Text(
-                    label,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
+                    config.label,
+                    style      = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color      = MaterialTheme.colorScheme.onSurface,
+                    modifier   = Modifier.weight(1f)
                 )
                 if (hayProductos) {
                     FilledTonalIconButton(
-                        onClick = onAñadir,
+                        onClick  = onAñadir,
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Add, "Añadir $label", modifier = Modifier.size(18.dp))
+                        Icon(Icons.Default.Add, "${s.anadir} ${config.label}", modifier = Modifier.size(16.dp))
                     }
                 }
             }
 
             if (lineas.isEmpty()) {
                 Text(
-                    if (hayProductos) "Pulsa + para añadir opciones" else "Sin productos en esta categoría",
+                    if (hayProductos) s.pulsaPlusParaAnadir
+                    else s.sinProductosEnCategoria,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline,
-                    modifier = Modifier.padding(vertical = 4.dp)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 50.dp, bottom = 4.dp)
                 )
             } else {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 lineas.forEach { linea ->
                     LineaItem(
-                        linea = linea,
+                        linea            = linea,
+                        accentColor      = config.color,
                         onCantidadCambia = { nueva -> onCantidadCambia(linea, nueva) },
-                        onEliminar = { onEliminar(linea) }
+                        onEliminar       = { onEliminar(linea) }
                     )
                 }
             }
@@ -296,49 +357,54 @@ private fun CursoSection(
 @Composable
 private fun LineaItem(
     linea: LineaLocal,
+    accentColor: Color,
     onCantidadCambia: (Int) -> Unit,
     onEliminar: () -> Unit
 ) {
+    val s = LocalStrings.current
     var cantidadTexto by remember(linea.producto_id, linea.curso) {
-        mutableStateOf(if (linea.cantidad > 0) linea.cantidad.toString() else "")
+        mutableStateOf(linea.cantidad.toString())
     }
 
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 linea.nombre,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium
+                style      = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Medium,
+                color      = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 "%.2f €".format(linea.precio),
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.outline
+                color = accentColor
             )
         }
 
         OutlinedTextField(
-            value = cantidadTexto,
+            value       = cantidadTexto,
             onValueChange = { v ->
-                cantidadTexto = v.filter { it.isDigit() }.take(4)
-                onCantidadCambia(cantidadTexto.toIntOrNull() ?: 0)
+                // Permite "-1" para sin límite, o cualquier número positivo
+                val filtrado = v.filter { it.isDigit() || it == '-' }.take(4)
+                cantidadTexto = filtrado
+                onCantidadCambia(filtrado.toIntOrNull() ?: -1)
             },
-            label = { Text("Uds.") },
+            label       = { Text(s.udsLabel, style = MaterialTheme.typography.labelSmall) },
             placeholder = { Text("∞") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.width(90.dp)
+            singleLine  = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+            modifier    = Modifier.width(82.dp),
+            shape       = RoundedCornerShape(10.dp)
         )
 
-        IconButton(onClick = onEliminar) {
-            Icon(
-                Icons.Default.Delete, "Quitar",
-                tint = MaterialTheme.colorScheme.error
-            )
+        IconButton(onClick = onEliminar, modifier = Modifier.size(36.dp)) {
+            Icon(Icons.Default.Delete, s.quitar,
+                tint     = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -350,90 +416,143 @@ private fun LineaItem(
 private fun AñadirProductoDialog(
     cursoLabel: String,
     opciones: List<Producto>,
+    accentColor: Color,
     onDismiss: () -> Unit,
     onConfirm: (Producto, Int) -> Unit
 ) {
+    val s = LocalStrings.current
     var productoSeleccionado by remember { mutableStateOf<Producto?>(opciones.firstOrNull()) }
-    var cantidadTexto by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
+    var cantidadTexto        by remember { mutableStateOf("") }
+    var expanded             by remember { mutableStateOf(false) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Añadir $cursoLabel") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-
-                // Selector de producto
-                ExposedDropdownMenuBox(
-                    expanded = expanded,
-                    onExpandedChange = { expanded = it }
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape    = RoundedCornerShape(24.dp),
+            color    = MaterialTheme.colorScheme.surface,
+            border   = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                // ── Cabecera ──────────────────────────────────────────────
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                        .background(accentColor.copy(alpha = 0.07f))
+                        .padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    OutlinedTextField(
-                        value = productoSeleccionado?.nombre ?: "",
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text("Producto") },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                        modifier = Modifier
-                            .menuAnchor()
-                            .fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expanded,
-                        onDismissRequest = { expanded = false }
+                    Box(
+                        modifier = Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
+                            .background(accentColor.copy(alpha = 0.15f))
+                            .border(1.dp, accentColor.copy(alpha = 0.30f), RoundedCornerShape(12.dp)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        opciones.forEach { p ->
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Text(p.nombre)
-                                        Text(
-                                            "%.2f €".format(p.precio),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.outline
-                                        )
-                                    }
-                                },
-                                onClick = { productoSeleccionado = p; expanded = false }
-                            )
+                        Icon(Icons.Default.AddCircleOutline, null, tint = accentColor, modifier = Modifier.size(22.dp))
+                    }
+                    Column {
+                        Text(
+                            "${s.anadir} $cursoLabel",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            s.seleccionaProductoYUnidades,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                // ── Campos ────────────────────────────────────────────────
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+                        OutlinedTextField(
+                            value = productoSeleccionado?.nombre ?: "",
+                            onValueChange = {}, readOnly = true,
+                            label = { Text(s.productoLabel) },
+                            leadingIcon = { Icon(Icons.Default.Restaurant, null, tint = accentColor, modifier = Modifier.size(18.dp)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp), colors = premiumInputColors()
+                        )
+                        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                            opciones.forEach { p ->
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween) {
+                                            Text(p.nombre)
+                                            Text("%.2f €".format(p.precio),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = accentColor)
+                                        }
+                                    },
+                                    onClick = { productoSeleccionado = p; expanded = false }
+                                )
+                            }
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = cantidadTexto,
+                        onValueChange = { cantidadTexto = it.filter { c -> c.isDigit() || c == '-' }.take(4) },
+                        label       = { Text(s.cantidadDisponible) },
+                        placeholder = { Text(s.dejarVacioSinLimite) },
+                        singleLine  = true,
+                        leadingIcon = { Icon(Icons.Default.Numbers, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
+                        modifier    = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp), colors = premiumInputColors()
+                    )
+
+                    Surface(
+                        shape  = RoundedCornerShape(10.dp),
+                        color  = accentColor.copy(alpha = 0.06f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.15f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(Icons.Default.Info, null,
+                                tint = accentColor.copy(alpha = 0.7f), modifier = Modifier.size(14.dp).padding(top = 1.dp))
+                            Text(s.stockHint,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
 
-                // Cantidad disponible
-                OutlinedTextField(
-                    value = cantidadTexto,
-                    onValueChange = { cantidadTexto = it.filter { c -> c.isDigit() }.take(4) },
-                    label = { Text("Cantidad disponible") },
-                    placeholder = { Text("Dejar vacío = sin límite") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
-                Text(
-                    "Si dejas la cantidad vacía o en 0, no habrá límite de raciones.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.outline
-                )
-            }
-        },
-        confirmButton = {
-            TextButton(
-                onClick = {
-                    productoSeleccionado?.let {
-                        onConfirm(
-                            it,
-                            cantidadTexto.toIntOrNull() ?: 0
+                // ── Acciones ──────────────────────────────────────────────
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                ) {
+                    TextButton(onClick = onDismiss) { Text(s.cancelar) }
+                    Button(
+                        onClick  = { productoSeleccionado?.let { onConfirm(it, cantidadTexto.toIntOrNull() ?: -1) } },
+                        enabled  = productoSeleccionado != null,
+                        shape    = RoundedCornerShape(10.dp),
+                        colors   = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor   = MaterialTheme.colorScheme.onPrimary
                         )
+                    ) {
+                        Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(s.anadirLabel, fontWeight = FontWeight.SemiBold)
                     }
-                },
-                enabled = productoSeleccionado != null
-            ) { Text("Añadir") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
+                }
+            }
+        }
+    }
 }

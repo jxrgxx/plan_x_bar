@@ -1,17 +1,24 @@
 package com.los_jorges.plan_bar.ui.screens.auth
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.window.Dialog
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,6 +30,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.los_jorges.plan_bar.model.Reserva
 import com.los_jorges.plan_bar.model.Trabajador
@@ -31,6 +39,7 @@ import com.los_jorges.plan_bar.viewmodel.AuthState
 import com.los_jorges.plan_bar.viewmodel.AuthViewModel
 import com.los_jorges.plan_bar.viewmodel.ReservasViewModel
 import com.los_jorges.plan_bar.viewmodel.TrabajadoresViewModel
+import com.los_jorges.plan_bar.ui.theme.LocalStrings
 import java.util.Calendar
 import java.util.TimeZone
 
@@ -38,8 +47,10 @@ import java.util.TimeZone
 @Composable
 fun SelectorPersonalScreen(
     onTrabajadorSeleccionado: (Trabajador) -> Unit,
-    onCerrarSesionRestaurante: () -> Unit
+    onCerrarSesionRestaurante: () -> Unit,
+    onGoToAjustes: () -> Unit = {}
 ) {
+    val s = LocalStrings.current
     val vm: TrabajadoresViewModel = viewModel()
     val reservasVm: ReservasViewModel = viewModel()
     val authVm: AuthViewModel = viewModel()
@@ -65,14 +76,41 @@ fun SelectorPersonalScreen(
     }
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
-                title = { Text(restauranteNombre) },
+                title = {
+                    Column {
+                        Text(
+                            restauranteNombre,
+                            style      = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            s.seleccionaTuPerfil,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
                 actions = {
-                    TextButton(onClick = {
-                        authVm.resetState(); showConfirmarCierre = true
-                    }) { Text("Cerrar sesión") }
-                }
+                    IconButton(onClick = onGoToAjustes) {
+                        Icon(
+                            Icons.Default.Settings, s.ajustes,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    IconButton(onClick = { authVm.resetState(); showConfirmarCierre = true }) {
+                        Icon(
+                            Icons.AutoMirrored.Filled.Logout, s.cerrarSesion,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
@@ -81,32 +119,23 @@ fun SelectorPersonalScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "¿Quién eres?",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(vertical = 20.dp)
-            )
-
             if (loading) {
                 Box(
-                    Modifier
-                        .weight(1f)
-                        .fillMaxWidth(), contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
+                    Modifier.weight(1f).fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) { CircularProgressIndicator() }
             } else {
-                val personal =
-                    trabajadores.filter { it.activo }.sortedBy { if (it.rol == "admin") 0 else 1 }
+                val personal = trabajadores
+                    .filter { it.activo }
+                    .sortedBy { if (it.rol == "admin") 0 else 1 }
+
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.weight(1f)
+                    verticalArrangement   = Arrangement.spacedBy(12.dp),
+                    contentPadding        = PaddingValues(16.dp),
+                    modifier              = Modifier.weight(1f)
                 ) {
                     items(personal, key = { it.id }) { t ->
                         TrabajadorCard(t, onClick = { onTrabajadorSeleccionado(t) })
@@ -115,42 +144,33 @@ fun SelectorPersonalScreen(
             }
 
             // ── Botones de reservas ───────────────────────────────────────
-            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
-            Box(
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 16.dp)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Button(
-                    onClick = { showReservasMenu = true },
-                    modifier = Modifier.fillMaxWidth()
+                OutlinedButton(
+                    onClick   = {
+                        reservasVm.cargar(restauranteId, reservasVm.fechaHoy())
+                        showVerReservas = true
+                    },
+                    modifier  = Modifier.weight(1f),
+                    shape     = RoundedCornerShape(12.dp)
                 ) {
-                    Icon(Icons.Default.CalendarMonth, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Reservas")
+                    Icon(Icons.Default.CalendarMonth, null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(s.verReservas, fontWeight = FontWeight.Medium)
                 }
-                DropdownMenu(
-                    expanded = showReservasMenu,
-                    onDismissRequest = { showReservasMenu = false },
-                    modifier = Modifier.fillMaxWidth()
+                Button(
+                    onClick  = { showNuevaReserva = true },
+                    modifier = Modifier.weight(1f),
+                    shape    = RoundedCornerShape(12.dp)
                 ) {
-                    DropdownMenuItem(
-                        text = { Text("Ver reservas de hoy") },
-                        leadingIcon = { Icon(Icons.Default.CalendarMonth, null) },
-                        onClick = {
-                            showReservasMenu = false
-                            reservasVm.cargar(restauranteId, reservasVm.fechaHoy())
-                            showVerReservas = true
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Nueva reserva") },
-                        leadingIcon = { Icon(Icons.Default.Add, null) },
-                        onClick = {
-                            showReservasMenu = false
-                            showNuevaReserva = true
-                        }
-                    )
+                    Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(s.nuevaReserva, fontWeight = FontWeight.Medium)
                 }
             }
         }
@@ -207,48 +227,103 @@ private fun ConfirmarCierreSesionDialog(
     onDismiss: () -> Unit,
     onConfirmar: (String) -> Unit
 ) {
+    val s = LocalStrings.current
     var password by remember { mutableStateOf("") }
     val isLoading = authState is AuthState.Loading
-    val errorMsg = (authState as? AuthState.Error)?.mensaje
+    val errorMsg  = (authState as? AuthState.Error)?.mensaje
+    val accent    = Color(0xFFE57373)
 
-    AlertDialog(
-        onDismissRequest = { if (!isLoading) onDismiss() },
-        title = { Text("Cerrar sesión") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Introduce la contraseña de administrador para salir.")
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
-                    label = { Text("Contraseña") },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = !isLoading
-                )
-                if (errorMsg != null) {
-                    Text(
-                        errorMsg,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
+    Dialog(onDismissRequest = { if (!isLoading) onDismiss() }) {
+        Surface(
+            shape    = RoundedCornerShape(24.dp),
+            color    = MaterialTheme.colorScheme.surface,
+            border   = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                // Cabecera
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(accent.copy(alpha = 0.08f))
+                        .padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(13.dp))
+                            .background(accent.copy(alpha = 0.15f))
+                            .border(1.dp, accent.copy(alpha = 0.30f), RoundedCornerShape(13.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.Logout, null, tint = accent, modifier = Modifier.size(22.dp))
+                    }
+                    Column {
+                        Text(
+                            s.cerrarSesion,
+                            style      = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color      = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            s.introducirContrasenaAdmin,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    OutlinedTextField(
+                        value                = password,
+                        onValueChange        = { password = it },
+                        label                = { Text(s.contrasena) },
+                        singleLine           = true,
+                        leadingIcon          = { Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)) },
+                        visualTransformation = PasswordVisualTransformation(),
+                        keyboardOptions      = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        modifier             = Modifier.fillMaxWidth(),
+                        enabled              = !isLoading,
+                        shape                = RoundedCornerShape(12.dp)
                     )
+                    if (errorMsg != null) {
+                        Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.errorContainer) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment     = Alignment.CenterVertically
+                            ) {
+                                Icon(Icons.Default.ErrorOutline, null, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(16.dp))
+                                Text(errorMsg, color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+                    }
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Row(
+                    modifier              = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                ) {
+                    TextButton(onClick = onDismiss, enabled = !isLoading) { Text(s.cancelar) }
+                    Button(
+                        onClick  = { onConfirmar(password) },
+                        enabled  = !isLoading,
+                        shape    = RoundedCornerShape(12.dp),
+                        colors   = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Color.White)
+                    ) {
+                        if (isLoading) CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                        else {
+                            Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(s.confirmar, fontWeight = FontWeight.SemiBold)
+                        }
+                    }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = { onConfirmar(password) }, enabled = !isLoading) {
-                if (isLoading) CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp
-                )
-                else Text("Confirmar")
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss, enabled = !isLoading) { Text("Cancelar") }
         }
-    )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -257,6 +332,7 @@ private fun NuevaReservaRapidaDialog(
     onDismiss: () -> Unit,
     onConfirm: (nombre: String, telefono: String, personas: Int, fecha: String, hora: String, notas: String) -> Unit
 ) {
+    val s = LocalStrings.current
     var nombre by remember { mutableStateOf("") }
     var telefono by remember { mutableStateOf("") }
     var personas by remember { mutableStateOf("2") }
@@ -287,98 +363,264 @@ private fun NuevaReservaRapidaDialog(
             "agosto", "septiembre", "octubre", "noviembre", "diciembre"
         )
         "${cal.get(Calendar.DAY_OF_MONTH)} de ${meses[cal.get(Calendar.MONTH)]}"
-    } ?: "Selecciona fecha"
+    } ?: s.seleccionarFecha
 
     val horaMostrada = "%02d:%02d".format(timePickerState.hour, timePickerState.minute)
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Nueva reserva") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(
-                    value = nombre,
-                    onValueChange = { nombre = it },
-                    label = { Text("Nombre *") },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = telefono,
-                    onValueChange = { telefono = it },
-                    label = { Text("Teléfono *") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = personas,
-                    onValueChange = { personas = it.filter { c -> c.isDigit() } },
-                    label = { Text("Personas *") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
+    val ReservaAccent = Color(0xFF06B6D4)
 
-                // ── Selector de fecha ─────────────────────────────────
-                OutlinedButton(
-                    onClick = { showDatePicker = true },
-                    modifier = Modifier.fillMaxWidth()
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape    = RoundedCornerShape(24.dp),
+            color    = MaterialTheme.colorScheme.surface,
+            border   = androidx.compose.foundation.BorderStroke(
+                1.dp, MaterialTheme.colorScheme.outlineVariant
+            ),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                // ── Cabecera ──────────────────────────────────────────
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(ReservaAccent.copy(alpha = 0.08f))
+                        .padding(20.dp)
                 ) {
-                    Icon(Icons.Default.CalendarToday, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(fechaMostrada)
+                    Row(
+                        verticalAlignment      = Alignment.CenterVertically,
+                        horizontalArrangement  = Arrangement.spacedBy(14.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(RoundedCornerShape(14.dp))
+                                .background(ReservaAccent.copy(alpha = 0.18f))
+                                .border(1.dp, ReservaAccent.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                Icons.Default.CalendarMonth, null,
+                                tint     = ReservaAccent,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Column {
+                            Text(
+                                s.nuevaReserva,
+                                style      = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color      = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                s.anadirAlRestaurante,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
 
-                // ── Selector de hora ──────────────────────────────────
-                OutlinedButton(
-                    onClick = { showTimePicker = true },
-                    modifier = Modifier.fillMaxWidth()
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                // ── Campos ────────────────────────────────────────────
+                Column(
+                    modifier = Modifier
+                        .verticalScroll(rememberScrollState())
+                        .padding(horizontal = 18.dp, vertical = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Icon(Icons.Default.Schedule, null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(horaMostrada)
+                    // Sección cliente
+                    Row(
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(Icons.Default.Person, null, tint = ReservaAccent, modifier = Modifier.size(14.dp))
+                        Text(
+                            s.datosDelCliente,
+                            style      = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = ReservaAccent
+                        )
+                    }
+                    Surface(
+                        shape  = RoundedCornerShape(14.dp),
+                        color  = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp, MaterialTheme.colorScheme.outlineVariant
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            OutlinedTextField(
+                                value          = nombre,
+                                onValueChange  = { nombre = it },
+                                label          = { Text(s.nombreCliente) },
+                                singleLine     = true,
+                                leadingIcon    = { Icon(Icons.Default.Badge, null, tint = ReservaAccent, modifier = Modifier.size(18.dp)) },
+                                modifier       = Modifier.fillMaxWidth(),
+                                shape          = RoundedCornerShape(10.dp)
+                            )
+                            OutlinedTextField(
+                                value          = telefono,
+                                onValueChange  = { telefono = it },
+                                label          = { Text(s.telefonoCliente) },
+                                singleLine     = true,
+                                leadingIcon    = { Icon(Icons.Default.Phone, null, tint = ReservaAccent, modifier = Modifier.size(18.dp)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                                modifier       = Modifier.fillMaxWidth(),
+                                shape          = RoundedCornerShape(10.dp)
+                            )
+                        }
+                    }
+
+                    // Sección detalles
+                    Row(
+                        verticalAlignment     = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(Icons.Default.EventNote, null, tint = ReservaAccent, modifier = Modifier.size(14.dp))
+                        Text(
+                            s.detallesReserva,
+                            style      = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = ReservaAccent
+                        )
+                    }
+                    Surface(
+                        shape  = RoundedCornerShape(14.dp),
+                        color  = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp, MaterialTheme.colorScheme.outlineVariant
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            OutlinedTextField(
+                                value          = personas,
+                                onValueChange  = { personas = it.filter { c -> c.isDigit() } },
+                                label          = { Text(s.personas) },
+                                singleLine     = true,
+                                leadingIcon    = { Icon(Icons.Default.Group, null, tint = ReservaAccent, modifier = Modifier.size(18.dp)) },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier       = Modifier.fillMaxWidth(),
+                                shape          = RoundedCornerShape(10.dp)
+                            )
+                            // Fecha
+                            OutlinedButton(
+                                onClick   = { showDatePicker = true },
+                                modifier  = Modifier.fillMaxWidth(),
+                                shape     = RoundedCornerShape(10.dp),
+                                colors    = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = ReservaAccent
+                                )
+                            ) {
+                                Icon(Icons.Default.CalendarToday, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(fechaMostrada, fontWeight = FontWeight.Medium)
+                            }
+                            // Hora
+                            OutlinedButton(
+                                onClick   = { showTimePicker = true },
+                                modifier  = Modifier.fillMaxWidth(),
+                                shape     = RoundedCornerShape(10.dp),
+                                colors    = ButtonDefaults.outlinedButtonColors(
+                                    contentColor = ReservaAccent
+                                )
+                            ) {
+                                Icon(Icons.Default.Schedule, null, modifier = Modifier.size(16.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text(horaMostrada, fontWeight = FontWeight.Medium)
+                            }
+                            OutlinedTextField(
+                                value         = notas,
+                                onValueChange = { notas = it },
+                                label         = { Text(s.comentarioOpcional) },
+                                placeholder   = { Text("Cumpleaños, quieren ver el fútbol…") },
+                                leadingIcon   = { Icon(Icons.Default.Notes, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)) },
+                                modifier      = Modifier.fillMaxWidth(),
+                                maxLines      = 3,
+                                shape         = RoundedCornerShape(10.dp)
+                            )
+                        }
+                    }
+
+                    // Error
+                    if (errorMsg != null) {
+                        Surface(
+                            shape  = RoundedCornerShape(10.dp),
+                            color  = MaterialTheme.colorScheme.errorContainer
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalAlignment     = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    Icons.Default.ErrorOutline, null,
+                                    tint     = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    errorMsg!!,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
                 }
 
-                OutlinedTextField(
-                    value = notas,
-                    onValueChange = { notas = it },
-                    label = { Text("Comentario (opcional)") },
-                    placeholder = { Text("Ej: cumpleaños, quieren ver el fútbol…") },
-                    modifier = Modifier.fillMaxWidth(),
-                    maxLines = 3
-                )
-                if (errorMsg != null) {
-                    Text(
-                        errorMsg!!, color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall
-                    )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+
+                // ── Acciones ──────────────────────────────────────────
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                    verticalAlignment     = Alignment.CenterVertically
+                ) {
+                    TextButton(onClick = onDismiss) {
+                        Text(s.cancelar, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Button(
+                        onClick = {
+                            val p = personas.toIntOrNull() ?: 0
+                            when {
+                                nombre.isBlank()   -> errorMsg = "Introduce un nombre"
+                                telefono.isBlank() -> errorMsg = "Introduce un teléfono"
+                                fechaISO.isBlank() -> errorMsg = s.seleccionarFecha
+                                p < 1              -> errorMsg = "Indica el número de personas"
+                                else -> onConfirm(nombre, telefono, p, fechaISO, horaMostrada, notas)
+                            }
+                        },
+                        shape  = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = ReservaAccent,
+                            contentColor   = Color.White
+                        )
+                    ) {
+                        Icon(Icons.Default.CalendarMonth, null, modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(s.crearReserva, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = {
-                val p = personas.toIntOrNull() ?: 0
-                when {
-                    nombre.isBlank() -> errorMsg = "Introduce un nombre"
-                    telefono.isBlank() -> errorMsg = "Introduce un teléfono"
-                    fechaISO.isBlank() -> errorMsg = "Selecciona una fecha"
-                    p < 1 -> errorMsg = "Indica el número de personas"
-                    else -> onConfirm(nombre, telefono, p, fechaISO, horaMostrada, notas)
-                }
-            }) { Text("Crear") }
-        },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancelar") } }
-    )
+        }
+    }
 
     if (showDatePicker) {
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Aceptar") }
+                TextButton(onClick = { showDatePicker = false }) { Text(s.aceptar) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+                TextButton(onClick = { showDatePicker = false }) { Text(s.cancelar) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -388,17 +630,17 @@ private fun NuevaReservaRapidaDialog(
     if (showTimePicker) {
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
-            title = { Text("Selecciona la hora") },
+            title = { Text(s.seleccionarLaHora) },
             text = {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     TimePicker(state = timePickerState)
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Aceptar") }
+                TextButton(onClick = { showTimePicker = false }) { Text(s.aceptar) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Cancelar") }
+                TextButton(onClick = { showTimePicker = false }) { Text(s.cancelar) }
             }
         )
     }
@@ -410,34 +652,82 @@ private fun VerReservasDialog(
     onDismiss: () -> Unit,
     onMarcarLlegado: (Reserva) -> Unit
 ) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Reservas de hoy") },
-        text = {
-            if (reservas.isEmpty()) {
-                Box(
+    val s = LocalStrings.current
+    val accent = Color(0xFF06B6D4)
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape    = RoundedCornerShape(24.dp),
+            color    = MaterialTheme.colorScheme.surface,
+            border   = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column {
+                // Cabecera
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    contentAlignment = Alignment.Center
+                        .background(accent.copy(alpha = 0.08f))
+                        .padding(18.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    Text("Sin reservas hoy", color = MaterialTheme.colorScheme.outline)
-                }
-            } else {
-                LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.heightIn(max = 400.dp)
-                ) {
-                    items(reservas, key = { it.id }) { r ->
-                        ReservaResumenItem(r, onMarcarLlegado = { onMarcarLlegado(r) })
+                    Box(
+                        modifier = Modifier
+                            .size(46.dp)
+                            .clip(RoundedCornerShape(13.dp))
+                            .background(accent.copy(alpha = 0.18f))
+                            .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(13.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.CalendarMonth, null, tint = accent, modifier = Modifier.size(22.dp))
+                    }
+                    Column {
+                        Text(
+                            s.reservasDeHoy,
+                            style      = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color      = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            "${reservas.size} reserva${if (reservas.size != 1) "s" else ""}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = accent
+                        )
                     }
                 }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                if (reservas.isEmpty()) {
+                    Box(
+                        modifier         = Modifier.fillMaxWidth().padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Icon(Icons.Default.EventBusy, null, tint = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.size(36.dp))
+                            Text(s.sinReservasHoy, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding      = PaddingValues(14.dp),
+                        modifier            = Modifier.heightIn(max = 400.dp)
+                    ) {
+                        items(reservas, key = { it.id }) { r ->
+                            ReservaResumenItem(r, onMarcarLlegado = { onMarcarLlegado(r) })
+                        }
+                    }
+                }
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Box(
+                    modifier         = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    TextButton(onClick = onDismiss) { Text(s.cerrar) }
+                }
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Cerrar") }
         }
-    )
+    }
 }
 
 private fun estadoColorSimple(estado: String): Color = when (estado) {
@@ -449,6 +739,7 @@ private fun estadoColorSimple(estado: String): Color = when (estado) {
 
 @Composable
 private fun ReservaResumenItem(reserva: Reserva, onMarcarLlegado: () -> Unit) {
+    val s = LocalStrings.current
     val llegado = reserva.estado == "completada"
     val color = estadoColorSimple(reserva.estado)
     val verde = Color(0xFF43A047)
@@ -499,7 +790,7 @@ private fun ReservaResumenItem(reserva: Reserva, onMarcarLlegado: () -> Unit) {
             IconButton(onClick = onMarcarLlegado) {
                 Icon(
                     imageVector = if (llegado) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
-                    contentDescription = if (llegado) "Desmarcar" else "Marcar como llegado",
+                    contentDescription = if (llegado) s.desmarcarLlegado else s.marcarComoLlegado,
                     tint = if (llegado) verde else MaterialTheme.colorScheme.outline,
                     modifier = Modifier.size(28.dp)
                 )
@@ -513,26 +804,36 @@ private val COLORES_EMPLEADOS = listOf(
     Color(0xFF8B5CF6), Color(0xFF06B6D4), Color(0xFFEAB308), Color(0xFFEF4444)
 )
 
+private fun iniciales(nombre: String): String =
+    nombre.trim().split(" ")
+        .filter { it.isNotBlank() }
+        .take(2)
+        .joinToString("") { it.first().uppercaseChar().toString() }
+
 @Composable
 fun TrabajadorCard(trabajador: Trabajador, onClick: () -> Unit) {
-    val bgColor = if (trabajador.rol == "admin") {
-        Color(0xFF000000)
+    val s = LocalStrings.current
+    val accentColor = if (trabajador.rol == "admin") {
+        Color(0xFF1C1917)
     } else {
-        COLORES_EMPLEADOS[trabajador.id % 7]
+        COLORES_EMPLEADOS[trabajador.id % COLORES_EMPLEADOS.size]
     }
     val rolTexto = when (trabajador.rol) {
-        "admin" -> "Admin"
-        "cocina" -> "Cocina"
-        else -> "Camarero"
+        "admin"  -> s.rolAdmin
+        "cocina" -> s.rolCocina
+        else     -> s.rolCamarero
     }
+    val initials = iniciales(trabajador.nombre)
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .aspectRatio(1f)
-            .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = bgColor),
-        elevation = CardDefaults.cardElevation(4.dp)
+    Surface(
+        onClick    = onClick,
+        modifier   = Modifier.fillMaxWidth().aspectRatio(1f),
+        shape      = RoundedCornerShape(18.dp),
+        color      = MaterialTheme.colorScheme.surface,
+        border     = androidx.compose.foundation.BorderStroke(
+            1.dp, MaterialTheme.colorScheme.outlineVariant
+        ),
+        shadowElevation = 2.dp
     ) {
         Column(
             modifier = Modifier
@@ -541,25 +842,34 @@ fun TrabajadorCard(trabajador: Trabajador, onClick: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            Icon(
-                Icons.Default.Person,
-                contentDescription = null,
-                modifier = Modifier.size(40.dp),
-                tint = Color.White
-            )
-            Spacer(Modifier.height(8.dp))
+            // Círculo con iniciales
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(accentColor),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text      = initials,
+                    color     = Color.White,
+                    fontSize  = 18.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            Spacer(Modifier.height(10.dp))
             Text(
-                text = trabajador.nombre,
-                style = MaterialTheme.typography.titleSmall,
+                text       = trabajador.nombre,
+                style      = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-                color = Color.White
+                textAlign  = TextAlign.Center,
+                maxLines   = 2,
+                color      = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text = rolTexto,
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.75f),
+                text  = rolTexto,
+                style = MaterialTheme.typography.labelSmall,
+                color = accentColor,
                 textAlign = TextAlign.Center
             )
         }

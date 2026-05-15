@@ -41,8 +41,8 @@ class MenuDiaViewModel : ViewModel() {
 
     fun cargar(restauranteId: Int) {
         viewModelScope.launch {
-            _loading.value = true
-            _error.value   = null
+            if (_menu.value == null) _loading.value = true
+            _error.value = null
             try {
                 val r = RetrofitClient.api.getMenuDia(restauranteId)
                 if (r.isSuccessful) _menu.value = r.body()?.menu

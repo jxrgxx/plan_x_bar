@@ -24,7 +24,7 @@ class TrabajadoresViewModel : ViewModel() {
 
     fun cargar(restauranteId: Int) {
         viewModelScope.launch {
-            _loading.value = true
+            if (_trabajadores.value.isEmpty()) _loading.value = true
             try {
                 val r = RetrofitClient.api.getTrabajadores(restauranteId)
                 if (r.isSuccessful) _trabajadores.value = r.body()?.trabajadores ?: emptyList()
@@ -39,13 +39,13 @@ class TrabajadoresViewModel : ViewModel() {
 
     fun crear(
         restauranteId: Int, nombre: String, rol: String, email: String,
-        password: String, pin: String = "", onDone: (Boolean, String?) -> Unit
+        pin: String = "", onDone: (Boolean, String?) -> Unit
     ) {
         viewModelScope.launch {
             try {
                 val body = mutableMapOf<String, Any>(
                     "restaurante_id" to restauranteId, "nombre" to nombre,
-                    "rol" to rol, "email" to email, "password" to password
+                    "rol" to rol, "email" to email
                 )
                 if (pin.isNotBlank()) body["pin"] = pin
                 val r = RetrofitClient.api.crearTrabajador(body)
@@ -60,7 +60,7 @@ class TrabajadoresViewModel : ViewModel() {
 
     fun editar(
         restauranteId: Int, id: Int, nombre: String, rol: String, email: String,
-        activo: Boolean, password: String, pin: String = "", onDone: (Boolean, String?) -> Unit
+        activo: Boolean, pin: String = "", onDone: (Boolean, String?) -> Unit
     ) {
         viewModelScope.launch {
             try {
@@ -68,7 +68,6 @@ class TrabajadoresViewModel : ViewModel() {
                     "id" to id, "nombre" to nombre, "rol" to rol,
                     "email" to email, "activo" to activo
                 )
-                if (password.isNotBlank()) body["password"] = password
                 if (pin.isNotBlank()) body["pin"] = pin
                 val r = RetrofitClient.api.editarTrabajador(body)
                 if (r.isSuccessful && r.body()?.success == true) {

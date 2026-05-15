@@ -16,6 +16,18 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "PlanBar_Auth"
 
+private suspend fun cargarZonasEnBackground(restauranteId: Int) {
+    try {
+        val r = RetrofitClient.api.getZonas(restauranteId)
+        if (r.isSuccessful) {
+            r.body()?.zonas?.let { SessionManager.actualizarZonasDB(it) }
+        }
+    } catch (e: Exception) {
+        Log.w(TAG, "cargarZonasEnBackground: no se pudieron cargar las zonas", e)
+        // No es crítico — la app sigue funcionando con los datos de SharedPrefs
+    }
+}
+
 sealed class AuthState {
     object Idle : AuthState()
     object Loading : AuthState()
@@ -52,6 +64,8 @@ class AuthViewModel : ViewModel() {
                         return@launch
                     }
                     SessionManager.loginAdmin(trabajador)
+                    // Cargar zonas en background para que estén disponibles al entrar al panel
+                    launch { cargarZonasEnBackground(trabajador.restaurante_id) }
                     _state.value = AuthState.Success(trabajador)
                 } else {
                     _state.value = AuthState.Error("Email o contraseña incorrectos")
@@ -86,6 +100,10 @@ class AuthViewModel : ViewModel() {
                         return@launch
                     }
                     SessionManager.seleccionarTrabajador(trabajador)
+                    // Si las zonas aún no están cargadas, cargarlas ahora
+                    if (!SessionManager.zonasDBCargadas) {
+                        launch { cargarZonasEnBackground(trabajador.restaurante_id) }
+                    }
                     _state.value = AuthState.Idle
                     onSuccess(trabajador)
                 } else {

@@ -19,7 +19,8 @@ data class Mesa(
     val estado: String,
     val posX: Float,
     val posY: Float,
-    val zona: String = "piso1",
+    val zona: String = "piso1",   // clave de texto devuelta por JOIN (para filtrar tabs)
+    val zona_id: Int = 0,          // FK a Zonas.id (para enviar al API)
     val ancho: Float = 100f,
     val alto: Float = 100f,
     val rotacion: Float = 0f
@@ -106,7 +107,8 @@ data class Estructura(
     val ancho: Float,
     val alto: Float,
     val color: String = "#BBDEFB",
-    val zona: String = "piso1",
+    val zona: String = "piso1",   // clave devuelta por JOIN (para filtrar canvas)
+    val zona_id: Int = 0,          // FK a Zonas.id
     val rotacion: Float = 0f
 )
 
@@ -168,7 +170,7 @@ data class MenuDiaLinea(
     val nombre: String,
     val precio: Double,
     val curso: String,     // "bebida" | "primero" | "segundo" | "postre"
-    val cantidad: Int = 0  // 0 = sin límite
+    val cantidad: Int = -1  // -1 = sin límite, 0 = agotado, >0 = stock
 )
 
 data class MenuDia(
@@ -195,6 +197,16 @@ data class GuardarMenuDiaRequest(
     val activo: Boolean = true,
     val lineas: List<MenuDiaLineaRequest>
 )
+
+// --- Zonas ---
+data class Zona(
+    val id: Int,
+    val clave: String,
+    val nombre: String,
+    val orden: Int,
+    val activo: Boolean
+)
+data class ZonasResponse(val zonas: List<Zona>)
 
 // --- Estadísticas ---
 data class TopPlato(

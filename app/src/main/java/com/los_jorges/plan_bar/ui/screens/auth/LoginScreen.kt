@@ -1,9 +1,9 @@
 package com.los_jorges.plan_bar.ui.screens.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -14,23 +14,28 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.los_jorges.plan_bar.R
 import com.los_jorges.plan_bar.model.Trabajador
 import com.los_jorges.plan_bar.viewmodel.AuthState
 import com.los_jorges.plan_bar.viewmodel.AuthViewModel
 import com.los_jorges.plan_bar.ui.theme.*
+import com.los_jorges.plan_bar.ui.theme.LocalStrings
 
 @Composable
 fun LoginScreen(
     viewModel: AuthViewModel,
     onLoginSuccess: (Trabajador) -> Unit,
-    onGoToRegister: () -> Unit
+    onGoToRegister: () -> Unit,
+    onGoToAjustes: () -> Unit = {}
 ) {
+    val s = LocalStrings.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val state by viewModel.state.collectAsState()
@@ -45,8 +50,23 @@ fun LoginScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkBase)
+            .background(MaterialTheme.colorScheme.background)
     ) {
+        // ── Icono de ajustes (esquina superior derecha) ────────────────
+        IconButton(
+            onClick = onGoToAjustes,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(12.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings,
+                contentDescription = s.ajustes,
+                tint = WarmMuted,
+                modifier = Modifier.size(22.dp)
+            )
+        }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -57,21 +77,13 @@ fun LoginScreen(
             Spacer(Modifier.weight(1f))
 
             // ── Branding ──────────────────────────────────────────────────
-            Box(
+            Image(
+                painter = painterResource(R.drawable.planbar_logo),
+                contentDescription = null,
                 modifier = Modifier
-                    .size(80.dp)
-                    .clip(CircleShape)
-                    .background(DarkSurface2)
-                    .border(1.dp, Platinum40.copy(alpha = 0.35f), CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.WineBar,
-                    contentDescription = null,
-                    modifier = Modifier.size(38.dp),
-                    tint = Platinum40
-                )
-            }
+                    .size(90.dp)
+                    .clip(RoundedCornerShape(20.dp))
+            )
 
             Spacer(Modifier.height(20.dp))
 
@@ -79,14 +91,14 @@ fun LoginScreen(
                 text = "Plan Bar",
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = WarmWhite,
+                color = MaterialTheme.colorScheme.onBackground,
                 letterSpacing = (-0.5).sp
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = "Tu restaurante, bajo control",
+                text = s.loginSubtitulo,
                 style = MaterialTheme.typography.bodySmall,
-                color = WarmMuted
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
             Spacer(Modifier.height(40.dp))
@@ -95,7 +107,7 @@ fun LoginScreen(
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                color = DarkSurface1,
+                color = MaterialTheme.colorScheme.surface,
                 tonalElevation = 0.dp
             ) {
                 Column(
@@ -107,7 +119,7 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = email,
                         onValueChange = { email = it },
-                        label = { Text("Email") },
+                        label = { Text(s.emailLabel) },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Email, null,
@@ -125,7 +137,7 @@ fun LoginScreen(
                     OutlinedTextField(
                         value = password,
                         onValueChange = { password = it },
-                        label = { Text("Contraseña") },
+                        label = { Text(s.contrasena) },
                         leadingIcon = {
                             Icon(
                                 Icons.Default.Lock, null,
@@ -174,7 +186,7 @@ fun LoginScreen(
                             )
                         } else {
                             Text(
-                                "Entrar",
+                                s.entrar,
                                 fontWeight = FontWeight.SemiBold,
                                 fontSize = 15.sp,
                                 letterSpacing = 0.sp
@@ -189,7 +201,7 @@ fun LoginScreen(
             // ── Registro ──────────────────────────────────────────────────
             TextButton(onClick = onGoToRegister) {
                 Text(
-                    "¿Sin cuenta? Registra tu restaurante",
+                    s.sinCuentaRegistra,
                     style = MaterialTheme.typography.bodySmall,
                     color = WarmMuted
                 )

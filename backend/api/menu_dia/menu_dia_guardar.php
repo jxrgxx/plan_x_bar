@@ -54,7 +54,7 @@ try {
     foreach ($lineas as $linea) {
         $producto_id = (int)($linea['producto_id'] ?? 0);
         $curso       = $linea['curso'] ?? '';
-        $cantidad    = max(0, (int)($linea['cantidad'] ?? 0));
+        $cantidad    = max(-1, (int)($linea['cantidad'] ?? -1));
         if (!$producto_id || !in_array($curso, $cursos_validos)) continue;
         $stmt->execute([$menu_id, $producto_id, $curso, $cantidad]);
     }

@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.los_jorges.plan_bar.session.SessionManager
 import com.los_jorges.plan_bar.ui.screens.admin.*
+import com.los_jorges.plan_bar.ui.screens.ajustes.AjustesScreen
 import com.los_jorges.plan_bar.ui.screens.auth.*
 import com.los_jorges.plan_bar.ui.screens.auth.FormularioReservaScreen
 import com.los_jorges.plan_bar.ui.screens.trabajador.CocinaScreen
@@ -22,6 +23,7 @@ import com.los_jorges.plan_bar.viewmodel.MesasViewModel
 object Routes {
     const val LOGIN = "login"
     const val REGISTER = "register"
+    const val AJUSTES = "ajustes"
     const val ADMIN = "admin/{restauranteId}"
     const val ADMIN_MESAS = "admin/{restauranteId}/mesas"
     const val ADMIN_PRODUCTOS = "admin/{restauranteId}/productos"
@@ -60,11 +62,15 @@ fun NavGraph(navController: NavHostController) {
     val authViewModel: AuthViewModel = viewModel()
     val trabajadorActual by SessionManager.trabajador.collectAsState()
 
-    val startDestination = when {
-        SessionManager.hayTrabajadorActivo && trabajadorActual?.rol == "cocina" -> Routes.HOME_COCINA
-        SessionManager.hayTrabajadorActivo -> Routes.HOME_TRABAJADOR
-        SessionManager.hayRestauranteActivo -> Routes.selectorPersonal(SessionManager.restauranteId)
-        else -> Routes.LOGIN
+    // remember sin claves: el startDestination solo se calcula una vez al montar el NavHost.
+    // Recalcularlo en cada recomposición (ej. al cambiar tema) provocaba saltos de pantalla.
+    val startDestination = remember {
+        when {
+            SessionManager.hayTrabajadorActivo && SessionManager.trabajador.value?.rol == "cocina" -> Routes.HOME_COCINA
+            SessionManager.hayTrabajadorActivo -> Routes.HOME_TRABAJADOR
+            SessionManager.hayRestauranteActivo -> Routes.selectorPersonal(SessionManager.restauranteId)
+            else -> Routes.LOGIN
+        }
     }
 
     NavHost(navController = navController, startDestination = startDestination) {
@@ -79,8 +85,13 @@ fun NavGraph(navController: NavHostController) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
                 },
-                onGoToRegister = { navController.navigate(Routes.REGISTER) }
+                onGoToRegister = { navController.navigate(Routes.REGISTER) },
+                onGoToAjustes  = { navController.navigate(Routes.AJUSTES) }
             )
+        }
+
+        composable(Routes.AJUSTES) {
+            AjustesScreen(onBack = { navController.popBackStack() })
         }
 
         composable(Routes.REGISTER) {
@@ -107,7 +118,8 @@ fun NavGraph(navController: NavHostController) {
                 onCerrarSesionRestaurante = {
                     SessionManager.cerrarSesionTotal()
                     navController.navigate(Routes.LOGIN) { popUpTo(0) { inclusive = true } }
-                }
+                },
+                onGoToAjustes = { navController.navigate(Routes.AJUSTES) }
             )
         }
 
@@ -226,8 +238,12 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        composable(Routes.ADMIN_ESPACIOS) {
-            EspaciosAdminScreen(onBack = { navController.popBackStack() })
+        composable(Routes.ADMIN_ESPACIOS) { back ->
+            val restauranteId = back.arguments?.getString("restauranteId")?.toIntOrNull() ?: 1
+            EspaciosAdminScreen(
+                restauranteId = restauranteId,
+                onBack = { navController.popBackStack() }
+            )
         }
 
         // ── Trabajador ────────────────────────────────────────────────────────

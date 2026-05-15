@@ -45,4 +45,25 @@ if ($lineaExistente && empty($observaciones)) {
 $stmt = $db->prepare("UPDATE Pedidos SET subtotal = (SELECT COALESCE(SUM(cantidad * precio_unitario), 0) FROM PedidoProductos WHERE pedido_id = ? AND estado != 'cancelado'), total = (SELECT COALESCE(SUM(cantidad * precio_unitario), 0) FROM PedidoProductos WHERE pedido_id = ? AND estado != 'cancelado') WHERE id = ?");
 $stmt->execute([$pedido_id, $pedido_id, $pedido_id]);
 
+// Si es plato de menú del día, descontar stock de MenuDiaLineas
+if (!empty($observaciones) && strpos($observaciones, 'Menú del día #') === 0) {
+    $stmt = $db->prepare("SELECT restaurante_id FROM Pedidos WHERE id = ?");
+    $stmt->execute([$pedido_id]);
+    $ped = $stmt->fetch();
+    if ($ped) {
+        $stmt = $db->prepare("
+            SELECT mdl.id FROM MenuDiaLineas mdl
+            JOIN MenuDia md ON md.id = mdl.menu_dia_id
+            WHERE md.restaurante_id = ? AND mdl.producto_id = ? AND md.activo = 1 AND mdl.cantidad > 0
+            LIMIT 1
+        ");
+        $stmt->execute([$ped['restaurante_id'], $producto_id]);
+        $linea = $stmt->fetch();
+        if ($linea) {
+            $db->prepare("UPDATE MenuDiaLineas SET cantidad = cantidad - ? WHERE id = ? AND cantidad >= ?")
+               ->execute([$cantidad, $linea['id'], $cantidad]);
+        }
+    }
+}
+
 jsonResponse(['success' => true, 'precio_unitario' => $precio], 201);

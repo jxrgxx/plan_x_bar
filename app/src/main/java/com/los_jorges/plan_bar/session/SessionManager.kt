@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.util.Log
 import com.google.gson.Gson
 import com.los_jorges.plan_bar.model.Trabajador
+import com.los_jorges.plan_bar.model.Zona
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -40,17 +41,62 @@ object SessionManager {
     val ZONA_KEYS = listOf("piso1", "piso2", "terraza", "zona4")
     private val ZONA_NOMBRES_DEFAULT = listOf("Piso 1", "Piso 2", "Terraza", "Zona 4")
 
+    /** Cache de zonas cargadas desde la BD (vacío hasta que se llame a actualizarZonasDB) */
+    private var _zonasDB: List<Zona> = emptyList()
+
+    /** true si ya tenemos datos de la BD */
+    val zonasDBCargadas: Boolean get() = _zonasDB.isNotEmpty()
+
     var numZonas: Int = 3
         private set
 
     var zonaNombres: List<String> = ZONA_NOMBRES_DEFAULT
         private set
 
-    /** Lista de (key, nombre) activos según la configuración actual */
-    val zonas: List<Pair<String, String>>
-        get() = ZONA_KEYS.take(numZonas).mapIndexed { i, key ->
-            key to (zonaNombres.getOrElse(i) { "Zona ${i + 1}" })
+    /**
+     * Zonas activas como objetos completos (con id, clave, nombre).
+     * Usa datos de BD cuando están disponibles; objetos sintéticos con id=0 como fallback.
+     */
+    val zonasActivas: List<Zona>
+        get() {
+            if (_zonasDB.isNotEmpty()) {
+                return _zonasDB.filter { it.activo }.sortedBy { it.orden }
+            }
+            return ZONA_KEYS.take(numZonas).mapIndexed { i, key ->
+                Zona(id = 0, clave = key,
+                    nombre = zonaNombres.getOrElse(i) { "Zona ${i + 1}" },
+                    orden = i + 1, activo = true)
+            }
         }
+
+    /**
+     * Lista de (clave, nombre) de zonas activas.
+     * Usa datos de BD cuando están disponibles; SharedPreferences como fallback.
+     */
+    val zonas: List<Pair<String, String>>
+        get() {
+            if (_zonasDB.isNotEmpty()) {
+                return _zonasDB
+                    .filter { it.activo }
+                    .sortedBy { it.orden }
+                    .map { it.clave to it.nombre }
+            }
+            // Fallback a SharedPreferences (un solo dispositivo)
+            return ZONA_KEYS.take(numZonas).mapIndexed { i, key ->
+                key to (zonaNombres.getOrElse(i) { "Zona ${i + 1}" })
+            }
+        }
+
+    /** Actualiza la cache de zonas desde la BD y sincroniza numZonas/zonaNombres */
+    fun actualizarZonasDB(zonas: List<Zona>) {
+        _zonasDB = zonas.sortedBy { it.orden }
+        // Sincronizar valores legacy para compatibilidad con código que los lea directamente
+        numZonas = _zonasDB.count { it.activo }.coerceIn(1, 4)
+        zonaNombres = ZONA_KEYS.map { clave ->
+            _zonasDB.find { it.clave == clave }?.nombre
+                ?: ZONA_NOMBRES_DEFAULT[ZONA_KEYS.indexOf(clave)]
+        }
+    }
 
     fun saveZonaConfig(num: Int, nombres: List<String>) {
         numZonas = num.coerceIn(1, 4)
@@ -130,6 +176,7 @@ object SessionManager {
         _trabajador.value = null
         _pinVerificado.value = false
         pinVerificadoTimestamp = 0L
+        _zonasDB = emptyList()
         prefs.edit().remove("session_admin").remove("session_trabajador").apply()
     }
 
