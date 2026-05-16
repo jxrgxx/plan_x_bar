@@ -44,7 +44,7 @@ fun AdminScreen(
                 title = {
                     Column {
                         Text(
-                            text = restauranteNombre.ifBlank { "Administración" },
+                            text = restauranteNombre.ifBlank { s.administracion },
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -58,7 +58,11 @@ fun AdminScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -153,7 +157,12 @@ private fun AdminMenuCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
         border = CardDefaults.outlinedCardBorder().copy(
             width = 1.dp,
-        ).let { androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) }
+        ).let {
+            androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant
+            )
+        }
     ) {
         Row(
             modifier = Modifier.padding(18.dp),

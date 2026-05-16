@@ -206,6 +206,7 @@ data class Zona(
     val orden: Int,
     val activo: Boolean
 )
+
 data class ZonasResponse(val zonas: List<Zona>)
 
 // --- Estadísticas ---

@@ -66,14 +66,18 @@ private fun parseColor(hex: String): Color = try {
 
 private data class TipoElemento(val etiqueta: String, val hex: String)
 
-private val TIPOS_ELEMENTO = listOf(
-    TipoElemento("Puerta", "#8B5E3C"),
-    TipoElemento("Pared gris", "#78716C"),
-    TipoElemento("Pared clara", "#A8A29E"),
-    TipoElemento("Pared beige", "#C4A882"),
-    TipoElemento("Barra", "#1C1917"),
-    TipoElemento("Columna", "#57534E"),
-)
+@Composable
+private fun tiposElemento(): List<TipoElemento> {
+    val s = LocalStrings.current
+    return listOf(
+        TipoElemento(s.tiposPuerta, "#8B5E3C"),
+        TipoElemento(s.tiposParedGris, "#78716C"),
+        TipoElemento(s.tiposParedClara, "#A8A29E"),
+        TipoElemento(s.tiposParedBeige, "#C4A882"),
+        TipoElemento(s.tiposBarra, "#1C1917"),
+        TipoElemento(s.tiposColumna, "#57534E"),
+    )
+}
 
 // ─── Canvas reutilizable ─────────────────────────────────────────────────────
 
@@ -130,17 +134,6 @@ fun PlanoCanvas(
                 color = Color(0xFF78716C)
             )
             return@BoxWithConstraints
-        }
-
-        if (modoEdicion) {
-            Text(
-                s.tocaUnElemento,
-                style = MaterialTheme.typography.labelSmall,
-                color = Color(0xFF78716C),
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(top = 8.dp)
-            )
         }
 
         // Mesas (fondo)
@@ -313,10 +306,16 @@ fun PlanoMesasScreen(
     }
 
     estructuraAEliminar?.let { e ->
-        val label = e.nombre.ifBlank { "este elemento" }
+        val label = e.nombre.ifBlank { s.esteElemento }
         AlertDialog(
             onDismissRequest = { estructuraAEliminar = null },
-            icon  = { Icon(Icons.Default.DeleteForever, null, tint = MaterialTheme.colorScheme.error) },
+            icon = {
+                Icon(
+                    Icons.Default.DeleteForever,
+                    null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
             title = { Text(s.eliminarElemento) },
             text = { Text("¿${s.eliminar} $label?") },
             confirmButton = {
@@ -351,7 +350,10 @@ fun PlanoMesasScreen(
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surface,
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    MaterialTheme.colorScheme.outlineVariant
+                ),
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column {
@@ -370,7 +372,12 @@ fun PlanoMesasScreen(
                                 .background(dimAccent.copy(alpha = 0.18f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.Straighten, null, tint = dimAccent, modifier = Modifier.size(22.dp))
+                            Icon(
+                                Icons.Default.Straighten,
+                                null,
+                                tint = dimAccent,
+                                modifier = Modifier.size(22.dp)
+                            )
                         }
                         Column {
                             Text(
@@ -423,14 +430,18 @@ fun PlanoMesasScreen(
                     }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 10.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                     ) {
                         TextButton(onClick = { mesaAEditarDimId = null }) { Text(s.cancelar) }
                         Button(
                             onClick = {
-                                val newAncho = anchoText.toFloatOrNull()?.coerceAtLeast(5f) ?: mesa.ancho
-                                val newAlto = altoText.toFloatOrNull()?.coerceAtLeast(5f) ?: mesa.alto
+                                val newAncho =
+                                    anchoText.toFloatOrNull()?.coerceAtLeast(5f) ?: mesa.ancho
+                                val newAlto =
+                                    altoText.toFloatOrNull()?.coerceAtLeast(5f) ?: mesa.alto
                                 val newRot = rotacionText.toFloatOrNull() ?: mesa.rotacion
                                 vm.actualizarTransforma(
                                     restauranteId, mesa.id,
@@ -440,7 +451,10 @@ fun PlanoMesasScreen(
                                 mesaAEditarDimId = null
                             },
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = dimAccent, contentColor = Color.White)
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = dimAccent,
+                                contentColor = Color.White
+                            )
                         ) {
                             Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
@@ -563,14 +577,13 @@ private fun EstructuraPlanoItem(
                 .size(width = renderW.dp, height = renderH.dp)
                 .align(Alignment.Center)
                 .graphicsLayer { rotationZ = rotacion }
-                .clip(RoundedCornerShape(10.dp))
                 .background(color)
                 .then(
                     if (isSeleccionado)
                         Modifier.border(
                             2.dp,
                             Color.White.copy(alpha = 0.8f),
-                            RoundedCornerShape(10.dp)
+                            RoundedCornerShape(0.dp)
                         )
                     else Modifier
                 )
@@ -923,14 +936,14 @@ private fun MesaPlanoItem(
                 .size(width = renderW.dp, height = renderH.dp)
                 .align(Alignment.Center)
                 .graphicsLayer { rotationZ = rotacion }
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(5.dp))
                 .background(containerColor)
                 .then(
                     if (isSeleccionado)
                         Modifier.border(
                             2.dp,
                             Color.White.copy(alpha = 0.8f),
-                            RoundedCornerShape(12.dp)
+                            RoundedCornerShape(5.dp)
                         )
                     else Modifier
                 )
@@ -960,11 +973,6 @@ private fun MesaPlanoItem(
                         tint = Color.White
                     )
                 }
-                Text(
-                    mesa.estado,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.7f)
-                )
             }
         }
 
@@ -1173,15 +1181,19 @@ private fun NuevaEstructuraDialog(
     onConfirm: (String, String) -> Unit
 ) {
     val s = LocalStrings.current
+    val tiposElemento = tiposElemento()
     var nombre by remember { mutableStateOf("") }
-    var colorSeleccionado by remember { mutableStateOf(TIPOS_ELEMENTO.first()) }
+    var colorSeleccionado by remember { mutableStateOf(tiposElemento.first()) }
 
     val accent = Color(0xFF7C9EE8)
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             shape = RoundedCornerShape(24.dp),
             color = MaterialTheme.colorScheme.surface,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant
+            ),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
@@ -1200,7 +1212,12 @@ private fun NuevaEstructuraDialog(
                             .background(accent.copy(alpha = 0.18f)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Palette, null, tint = accent, modifier = Modifier.size(22.dp))
+                        Icon(
+                            Icons.Default.Palette,
+                            null,
+                            tint = accent,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
                     Column {
                         Text(
@@ -1236,7 +1253,7 @@ private fun NuevaEstructuraDialog(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TIPOS_ELEMENTO.chunked(3).forEach { fila ->
+                        tiposElemento.chunked(3).forEach { fila ->
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 fila.forEach { tipo ->
                                     val seleccionado = colorSeleccionado == tipo
@@ -1265,7 +1282,9 @@ private fun NuevaEstructuraDialog(
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                 ) {
                     TextButton(onClick = onDismiss) { Text(s.cancelar) }
@@ -1277,7 +1296,10 @@ private fun NuevaEstructuraDialog(
                             )
                         },
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Color.White)
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = accent,
+                            contentColor = Color.White
+                        )
                     ) {
                         Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))

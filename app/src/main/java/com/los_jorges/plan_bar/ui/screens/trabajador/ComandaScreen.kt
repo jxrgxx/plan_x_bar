@@ -849,7 +849,7 @@ fun ComandaScreen(
                                 if (mostrarFlecha) {
                                     Icon(
                                         imageVector = Icons.Default.ExpandMore,
-                                        contentDescription = "Más opciones",
+                                        contentDescription = s.masOpciones,
                                         tint = menuAccent,
                                         modifier = Modifier
                                             .align(Alignment.BottomCenter)
@@ -898,7 +898,7 @@ fun ComandaScreen(
                                                 val next = menuFlowIndex + 1
                                                 if (next >= menuFlowSteps.size) {
                                                     menuFlowSteps = emptyList(); menuFlowIndex = 0
-                                                    snackMsg = "Menú del día añadido"
+                                                    snackMsg = s.menuDelDiaAnadido
                                                 } else menuFlowIndex = next
                                             } else {
                                                 snackMsg = err ?: "Error al añadir"
@@ -915,7 +915,7 @@ fun ComandaScreen(
                             ) {
                                 Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp))
                                 Spacer(Modifier.width(6.dp))
-                                Text("Confirmar", fontWeight = FontWeight.SemiBold)
+                                Text(s.confirmar, fontWeight = FontWeight.SemiBold)
                             }
                         }
                     }
@@ -932,7 +932,7 @@ fun ComandaScreen(
             productosActivos.filter { it.observaciones.orEmpty().startsWith("Menú del día #") }
                 .map { it.observaciones }.distinct().size
         val titulo =
-            if (numero != null) "Menú del día · $numero" else "Menú del día"
+            if (numero != null) "${s.menuDelDiaLabel} · $numero" else s.menuDelDiaLabel
         AlertDialog(
             onDismissRequest = { grupoAEliminar = null },
             icon = {
@@ -942,8 +942,8 @@ fun ComandaScreen(
                     tint = MaterialTheme.colorScheme.error
                 )
             },
-            title = { Text("Eliminar $titulo") },
-            text = { Text("¿Quitar todos los productos de este menú del pedido?") },
+            title = { Text("${s.eliminar} $titulo") },
+            text = { Text(s.quitarTodosProductosMenu) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -958,7 +958,7 @@ fun ComandaScreen(
                         }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) { Text("Eliminar") }
+                ) { Text(s.eliminar) }
             },
             dismissButton = { TextButton(onClick = { grupoAEliminar = null }) { Text(s.cancelar) } }
         )
@@ -1025,8 +1025,8 @@ fun ComandaScreen(
                     tint = MaterialTheme.colorScheme.error
                 )
             },
-            title = { Text("¿Quitar del pedido?") },
-            text = { Text("Se eliminará \"${linea.nombre}\" del pedido.") },
+            title = { Text(s.quitarDelPedido) },
+            text = { Text(s.seEliminaDelPedidoFmt.format(linea.nombre)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -1039,12 +1039,12 @@ fun ComandaScreen(
                         productoAEliminar = null
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) { Text("Quitar") }
+                ) { Text(s.quitar) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     productoAEliminar = null
-                }) { Text("Mantener") }
+                }) { Text(s.mantener) }
             }
         )
     }
@@ -1053,8 +1053,8 @@ fun ComandaScreen(
         AlertDialog(
             onDismissRequest = { showCancelarDialog = false },
             icon = { Icon(Icons.Default.Cancel, null, tint = MaterialTheme.colorScheme.error) },
-            title = { Text("¿Cancelar pedido?") },
-            text = { Text("Se cancelará el pedido y la mesa quedará libre.") },
+            title = { Text(s.cancelarPedidoTitulo) },
+            text = { Text(s.seCancelaraElPedido) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -1066,12 +1066,12 @@ fun ComandaScreen(
                         showCancelarDialog = false
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                ) { Text("Cancelar pedido") }
+                ) { Text(s.cancelarPedido) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showCancelarDialog = false
-                }) { Text("Mantener") }
+                }) { Text(s.mantener) }
             }
         )
     }
@@ -1080,23 +1080,23 @@ fun ComandaScreen(
         AlertDialog(
             onDismissRequest = { showConfirmarSalidaDialog = false },
             icon = { Icon(Icons.Default.Warning, null, tint = Color(0xFFD4A853)) },
-            title = { Text("Productos sin enviar") },
-            text = { Text("Tienes productos que aún no han ido a cocina. ¿Qué quieres hacer?") },
+            title = { Text(s.productosSinEnviar) },
+            text = { Text(s.tieneProductosSinEnviar) },
             confirmButton = {
                 Button(onClick = {
                     pedido?.let { p ->
                         pedidosVm.enviarACocina(p.id) { ok, err ->
-                            snackMsg = if (ok) "Enviado a cocina" else err ?: "Error al enviar"
+                            snackMsg = if (ok) s.enviadoACocina else err ?: "Error al enviar"
                         }
                     }
                     showConfirmarSalidaDialog = false
                     onBack()
-                }) { Text("Enviar y salir") }
+                }) { Text(s.enviarYSalir) }
             },
             dismissButton = {
                 TextButton(onClick = {
                     showConfirmarSalidaDialog = false; onBack()
-                }) { Text("Salir sin enviar") }
+                }) { Text(s.salirSinEnviar) }
             }
         )
     }
@@ -1105,18 +1105,18 @@ fun ComandaScreen(
         AlertDialog(
             onDismissRequest = { showEnviarDialog = false },
             icon = { Icon(Icons.Default.Kitchen, null, tint = MaterialTheme.colorScheme.primary) },
-            title = { Text("¿Enviar a cocina?") },
-            text = { Text("Se enviarán todos los productos pendientes a cocina.") },
+            title = { Text(s.enviarACocinaConfirm) },
+            text = { Text(s.seEnviaranPendientes) },
             confirmButton = {
                 Button(onClick = {
                     pedido?.let { p ->
                         pedidosVm.enviarACocina(p.id) { ok, err ->
                             snackMsg =
-                                if (ok) "Pedido enviado a cocina" else err ?: "Error al enviar"
+                                if (ok) s.pedidoEnviadoACocina else err ?: "Error al enviar"
                         }
                     }
                     showEnviarDialog = false
-                }) { Text("Enviar") }
+                }) { Text(s.enviar) }
             },
             dismissButton = {
                 TextButton(onClick = { showEnviarDialog = false }) { Text(s.cancelar) }
@@ -1187,13 +1187,13 @@ private fun MenuDiaSelectorPanel(
                 }
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Menú del día",
+                        s.menuDelDiaLabel,
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        "Selección del día",
+                        s.seleccionDelDia,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1273,7 +1273,7 @@ private fun MenuDiaSelectorPanel(
                                 }
 
                                 r > 0 -> Text(
-                                    "$r restantes",
+                                    "$r ${s.restantes}",
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.outline
                                 )
@@ -1332,7 +1332,7 @@ private fun MenuDiaSelectorPanel(
         ) {
             Icon(Icons.Default.Restaurant, null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(8.dp))
-            Text("Comandar menú del día", fontWeight = FontWeight.SemiBold)
+            Text(s.comandarMenuDelDia, fontWeight = FontWeight.SemiBold)
         }
     }
 }
@@ -1348,9 +1348,10 @@ private fun MenuGrupoCard(
     onEliminarGrupo: () -> Unit,
     onMarcarServida: (PedidoProducto) -> Unit
 ) {
+    val s = LocalStrings.current
     // Título: si solo hay un menú, "Menú del día"; si hay varios, "Menú del día · 1"
     val numero = clave.removePrefix("Menú del día #").toIntOrNull()
-    val titulo = if (numero != null) "Menú del día · $numero" else "Menú del día"
+    val titulo = if (numero != null) "${s.menuDelDiaLabel} · $numero" else s.menuDelDiaLabel
 
     val productosNoCancel = productos.filter { it.estado != "cancelado" }
     val todosListos =
@@ -1398,7 +1399,7 @@ private fun MenuGrupoCard(
                 ) {
                     Icon(Icons.Default.Edit, null, modifier = Modifier.size(14.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Modificar", style = MaterialTheme.typography.labelMedium)
+                    Text(s.modificar, style = MaterialTheme.typography.labelMedium)
                 }
             }
             // Botón eliminar menú completo
@@ -1408,7 +1409,7 @@ private fun MenuGrupoCard(
                     .size(36.dp)
             ) {
                 Icon(
-                    Icons.Default.Delete, "Eliminar menú",
+                    Icons.Default.Delete, s.eliminarMenu,
                     tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier.size(20.dp)
                 )
@@ -1447,7 +1448,7 @@ private fun MenuGrupoCard(
                     Icon(
                         imageVector = if (servida) Icons.Default.CheckCircle
                         else Icons.Default.RadioButtonUnchecked,
-                        contentDescription = if (servida) "Desmarcar servida" else "Marcar servida",
+                        contentDescription = if (servida) s.desmarcarServida else s.marcarServida,
                         tint = if (servida) ColorPlatoListo
                         else MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
                         modifier = Modifier.size(14.dp)
@@ -1535,7 +1536,7 @@ private fun ModificarMenuDialog(
                     }
                     Column {
                         Text(
-                            "Modificar menú",
+                            s.modificarMenu,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -1589,7 +1590,7 @@ private fun ModificarMenuDialog(
                                             color = ColorPlatoCancelado.copy(alpha = 0.12f)
                                         ) {
                                             Text(
-                                                "sin añadir",
+                                                s.sinAnadir,
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = ColorPlatoCancelado,
                                                 modifier = Modifier.padding(
@@ -1623,7 +1624,7 @@ private fun ModificarMenuDialog(
                                                 colors = RadioButtonDefaults.colors(selectedColor = menuAccent)
                                             )
                                             Text(
-                                                "No añadir",
+                                                s.noAnadir,
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.outline,
                                                 fontWeight = if (selecciones[curso] == -1) FontWeight.SemiBold else FontWeight.Normal
@@ -1656,7 +1657,7 @@ private fun ModificarMenuDialog(
                                                 )
                                                 if (curso != "bebida" && opcion.cantidad > 0) {
                                                     Text(
-                                                        "${opcion.cantidad} disponibles",
+                                                        "${opcion.cantidad} ${s.disponibles}",
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = MaterialTheme.colorScheme.outline
                                                     )
@@ -1700,7 +1701,7 @@ private fun ModificarMenuDialog(
                     ) {
                         Icon(Icons.Default.Save, null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Guardar cambios", fontWeight = FontWeight.SemiBold)
+                        Text(s.guardarCambios, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -1752,13 +1753,13 @@ private fun CantidadMenusDialog(
                     }
                     Column {
                         Text(
-                            "Menú del día",
+                            s.menuDelDiaLabel,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            "¿Cuántos menús?",
+                            s.cuantosMenus,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1772,7 +1773,7 @@ private fun CantidadMenusDialog(
                     OutlinedTextField(
                         value = texto,
                         onValueChange = { texto = it.filter { c -> c.isDigit() }.take(2) },
-                        label = { Text("Nº de menús") },
+                        label = { Text(s.nDeMenus) },
                         placeholder = { Text("1") },
                         leadingIcon = {
                             Icon(
@@ -1806,7 +1807,7 @@ private fun CantidadMenusDialog(
                     ) {
                         Icon(Icons.Default.PlayArrow, null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Empezar", fontWeight = FontWeight.SemiBold)
+                        Text(s.empezar, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -1866,6 +1867,7 @@ private fun LineaPedidoItem(
     onMarcarServida: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val s = LocalStrings.current
     val cancelado = linea.estado == "cancelado"
     val servido = linea.estado == "servido"
     val esBebida = linea.categoria == "bebida"
@@ -1960,7 +1962,7 @@ private fun LineaPedidoItem(
                 // Bebida ya servida — toca el check para desmarcar
                 IconButton(onClick = onMarcarServida, modifier = Modifier.size(36.dp)) {
                     Icon(
-                        Icons.Default.CheckCircle, "Desmarcar servida",
+                        Icons.Default.CheckCircle, s.desmarcarServida,
                         tint = ColorPlatoListo, modifier = Modifier.size(20.dp)
                     )
                 }
@@ -1974,7 +1976,7 @@ private fun LineaPedidoItem(
                         else onEliminar()
                     },
                     modifier = Modifier.size(32.dp)
-                ) { Icon(Icons.Default.Remove, "Menos", modifier = Modifier.size(16.dp)) }
+                ) { Icon(Icons.Default.Remove, s.menosLabel, modifier = Modifier.size(16.dp)) }
                 Text(
                     "${linea.cantidad}", style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(horizontal = 4.dp)
@@ -1982,21 +1984,21 @@ private fun LineaPedidoItem(
                 IconButton(
                     onClick = { onCambiarCantidad(linea.cantidad + 1) },
                     modifier = Modifier.size(32.dp)
-                ) { Icon(Icons.Default.Add, "Más", modifier = Modifier.size(16.dp)) }
+                ) { Icon(Icons.Default.Add, s.masLabel, modifier = Modifier.size(16.dp)) }
                 Text(
                     "%.2f €".format(totalLinea), style = MaterialTheme.typography.bodyMedium,
                     fontWeight = FontWeight.Medium, modifier = Modifier.padding(start = 6.dp)
                 )
                 IconButton(onClick = onAplicarDescuento, modifier = Modifier.size(32.dp)) {
                     Icon(
-                        Icons.Default.Percent, "Descuento", modifier = Modifier.size(16.dp),
+                        Icons.Default.Percent, s.descuento, modifier = Modifier.size(16.dp),
                         tint = if (descuento != null) Color(0xFF43A047) else MaterialTheme.colorScheme.outline
                     )
                 }
                 // Botón Servir
                 IconButton(onClick = onMarcarServida, modifier = Modifier.size(32.dp)) {
                     Icon(
-                        Icons.Default.CheckCircle, "Marcar como servida",
+                        Icons.Default.CheckCircle, s.marcarComoServida,
                         tint = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
                         modifier = Modifier.size(18.dp)
                     )
@@ -2018,7 +2020,7 @@ private fun LineaPedidoItem(
                             else onEliminar()
                         },
                         modifier = Modifier.size(32.dp)
-                    ) { Icon(Icons.Default.Remove, "Menos", modifier = Modifier.size(16.dp)) }
+                    ) { Icon(Icons.Default.Remove, s.menosLabel, modifier = Modifier.size(16.dp)) }
                     Text(
                         "${linea.cantidad}", style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(horizontal = 4.dp)
@@ -2026,7 +2028,7 @@ private fun LineaPedidoItem(
                     IconButton(
                         onClick = { onCambiarCantidad(linea.cantidad + 1) },
                         modifier = Modifier.size(32.dp)
-                    ) { Icon(Icons.Default.Add, "Más", modifier = Modifier.size(16.dp)) }
+                    ) { Icon(Icons.Default.Add, s.masLabel, modifier = Modifier.size(16.dp)) }
                 }
                 Text(
                     "%.2f €".format(totalLinea), style = MaterialTheme.typography.bodyMedium,
@@ -2034,7 +2036,7 @@ private fun LineaPedidoItem(
                 )
                 IconButton(onClick = onAplicarDescuento, modifier = Modifier.size(32.dp)) {
                     Icon(
-                        Icons.Default.Percent, "Descuento", modifier = Modifier.size(16.dp),
+                        Icons.Default.Percent, s.descuento, modifier = Modifier.size(16.dp),
                         tint = if (descuento != null) Color(0xFF43A047) else MaterialTheme.colorScheme.outline
                     )
                 }
@@ -2109,7 +2111,7 @@ private fun DescuentoDialog(
                     }
                     Column {
                         Text(
-                            "Descuento",
+                            s.descuento,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -2129,7 +2131,7 @@ private fun DescuentoDialog(
                 ) {
                     // Tipo de descuento
                     Text(
-                        "Tipo de descuento",
+                        s.tipoDeDescuento,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -2137,20 +2139,20 @@ private fun DescuentoDialog(
                         FilterChip(
                             selected = esPorcentaje,
                             onClick = { esPorcentaje = true },
-                            label = { Text("Porcentaje (%)") },
+                            label = { Text(s.porcentaje) },
                             modifier = Modifier.weight(1f)
                         )
                         FilterChip(
                             selected = !esPorcentaje,
                             onClick = { esPorcentaje = false },
-                            label = { Text("Fijo (€)") },
+                            label = { Text(s.fijoEur) },
                             modifier = Modifier.weight(1f)
                         )
                     }
                     OutlinedTextField(
                         value = valorTexto,
                         onValueChange = { valorTexto = it.replace(',', '.') },
-                        label = { Text(if (esPorcentaje) "Porcentaje (%)" else "Importe (€)") },
+                        label = { Text(if (esPorcentaje) s.porcentaje else s.importeEur) },
                         leadingIcon = {
                             Text(
                                 if (esPorcentaje) "%" else "€",
@@ -2181,7 +2183,7 @@ private fun DescuentoDialog(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(Modifier.width(6.dp))
-                            Text("Quitar descuento", fontWeight = FontWeight.Medium)
+                            Text(s.quitarDescuento, fontWeight = FontWeight.Medium)
                         }
                     }
                 }
@@ -2207,7 +2209,7 @@ private fun DescuentoDialog(
                     ) {
                         Icon(Icons.Default.Check, null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Aplicar", fontWeight = FontWeight.SemiBold)
+                        Text(s.aplicar, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }
@@ -2217,6 +2219,7 @@ private fun DescuentoDialog(
 
 @Composable
 private fun ProductoSelectorItem(producto: Producto, enabled: Boolean, onClick: () -> Unit) {
+    val s = LocalStrings.current
     val accent = Color(0xFF83C9A5)
     Surface(
         modifier = Modifier
@@ -2275,7 +2278,7 @@ private fun ProductoSelectorItem(producto: Producto, enabled: Boolean, onClick: 
                 ),
                 modifier = Modifier.size(42.dp)
             ) {
-                Icon(Icons.Default.Add, "Añadir", modifier = Modifier.size(20.dp))
+                Icon(Icons.Default.Add, s.anadir, modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -2332,13 +2335,13 @@ private fun CobrarDialog(total: Double, onDismiss: () -> Unit, onConfirm: (Strin
                         }
                         Column {
                             Text(
-                                "Cobrar pedido",
+                                s.cobrarPedido,
                                 style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                "Selecciona el método de pago",
+                                s.seleccionaMetodoPago,
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -2356,7 +2359,7 @@ private fun CobrarDialog(total: Double, onDismiss: () -> Unit, onConfirm: (Strin
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             Text(
-                                "Total a cobrar",
+                                s.totalACobrar,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -2378,7 +2381,7 @@ private fun CobrarDialog(total: Double, onDismiss: () -> Unit, onConfirm: (Strin
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Text(
-                        "Método de pago",
+                        s.metodoDePago,
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 2.dp)
@@ -2449,7 +2452,7 @@ private fun CobrarDialog(total: Double, onDismiss: () -> Unit, onConfirm: (Strin
                     ) {
                         Icon(Icons.Default.EuroSymbol, null, modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Cobrar", fontWeight = FontWeight.SemiBold)
+                        Text(s.cobrar, fontWeight = FontWeight.SemiBold)
                     }
                 }
             }

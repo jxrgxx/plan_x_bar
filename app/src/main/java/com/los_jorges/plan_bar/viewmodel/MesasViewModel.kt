@@ -121,13 +121,21 @@ class MesasViewModel : ViewModel() {
         ancho: Float, alto: Float, rotacion: Float
     ) {
         _mesas.value = _mesas.value.map {
-            if (it.id == id) it.copy(posX = posX, posY = posY, ancho = ancho, alto = alto, rotacion = rotacion) else it
+            if (it.id == id) it.copy(
+                posX = posX,
+                posY = posY,
+                ancho = ancho,
+                alto = alto,
+                rotacion = rotacion
+            ) else it
         }
         viewModelScope.launch {
             try {
                 RetrofitClient.api.actualizarPosicionMesa(
-                    mapOf("id" to id, "posX" to posX, "posY" to posY,
-                        "ancho" to ancho, "alto" to alto, "rotacion" to rotacion)
+                    mapOf(
+                        "id" to id, "posX" to posX, "posY" to posY,
+                        "ancho" to ancho, "alto" to alto, "rotacion" to rotacion
+                    )
                 )
             } catch (e: Exception) {
                 Log.e(TAG, "actualizarTransforma", e)

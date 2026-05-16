@@ -29,7 +29,7 @@ class PedidoProductoTest {
 
     @Test
     fun `estado por defecto es vacio (recien añadido)`() {
-        val linea = PedidoProducto(1, 1, 5.0, null, null, "Agua", "bebida")
+        val linea = PedidoProducto(id = 1, cantidad = 1, precio_unitario = 5.0, observaciones = null, fecha_agregado = null, nombre = "Agua", categoria = "bebida")
         assertEquals("", linea.estado)
     }
 
@@ -37,31 +37,31 @@ class PedidoProductoTest {
 
     @Test
     fun `estado en preparacion es correcto`() {
-        val linea = PedidoProducto(1, 1, 5.0, null, null, "Agua", "bebida", estado = "en preparacion")
+        val linea = PedidoProducto(id = 1, cantidad = 1, precio_unitario = 5.0, observaciones = null, fecha_agregado = null, nombre = "Agua", categoria = "bebida", estado = "en preparacion")
         assertEquals("en preparacion", linea.estado)
     }
 
     @Test
     fun `estado preparado es correcto`() {
-        val linea = PedidoProducto(1, 1, 5.0, null, null, "Agua", "bebida", estado = "preparado")
+        val linea = PedidoProducto(id = 1, cantidad = 1, precio_unitario = 5.0, observaciones = null, fecha_agregado = null, nombre = "Agua", categoria = "bebida", estado = "preparado")
         assertEquals("preparado", linea.estado)
     }
 
     @Test
     fun `producto nuevo no ha sido enviado a cocina`() {
-        val linea = PedidoProducto(1, 1, 5.0, null, null, "Agua", "bebida")
+        val linea = PedidoProducto(id = 1, cantidad = 1, precio_unitario = 5.0, observaciones = null, fecha_agregado = null, nombre = "Agua", categoria = "bebida")
         assertTrue(linea.estado == "")
     }
 
     @Test
     fun `producto en cocina no es nuevo`() {
-        val linea = PedidoProducto(1, 1, 5.0, null, null, "Agua", "bebida", estado = "en preparacion")
+        val linea = PedidoProducto(id = 1, cantidad = 1, precio_unitario = 5.0, observaciones = null, fecha_agregado = null, nombre = "Agua", categoria = "bebida", estado = "en preparacion")
         assertFalse(linea.estado == "")
     }
 
     @Test
     fun `producto preparado no es nuevo`() {
-        val linea = PedidoProducto(1, 1, 5.0, null, null, "Agua", "bebida", estado = "preparado")
+        val linea = PedidoProducto(id = 1, cantidad = 1, precio_unitario = 5.0, observaciones = null, fecha_agregado = null, nombre = "Agua", categoria = "bebida", estado = "preparado")
         assertFalse(linea.estado == "")
     }
 
@@ -69,14 +69,14 @@ class PedidoProductoTest {
 
     @Test
     fun `subtotal de linea es cantidad por precio`() {
-        val linea = PedidoProducto(1, 3, 8.50, null, null, "Croquetas", "entrante")
+        val linea = PedidoProducto(id = 1, cantidad = 3, precio_unitario = 8.50, observaciones = null, fecha_agregado = null, nombre = "Croquetas", categoria = "entrante")
         val subtotal = linea.cantidad * linea.precio_unitario
         assertEquals(25.50, subtotal, 0.001)
     }
 
     @Test
     fun `subtotal con cantidad 1 es el precio unitario`() {
-        val linea = PedidoProducto(1, 1, 12.0, null, null, "Entrecot", "segundo")
+        val linea = PedidoProducto(id = 1, cantidad = 1, precio_unitario = 12.0, observaciones = null, fecha_agregado = null, nombre = "Entrecot", categoria = "segundo")
         assertEquals(12.0, linea.cantidad * linea.precio_unitario, 0.001)
     }
 
@@ -84,13 +84,13 @@ class PedidoProductoTest {
 
     @Test
     fun `observaciones pueden ser null`() {
-        val linea = PedidoProducto(1, 1, 5.0, null, null, "Agua", "bebida")
+        val linea = PedidoProducto(id = 1, cantidad = 1, precio_unitario = 5.0, observaciones = null, fecha_agregado = null, nombre = "Agua", categoria = "bebida")
         assertNull(linea.observaciones)
     }
 
     @Test
     fun `observaciones pueden tener texto`() {
-        val linea = PedidoProducto(1, 1, 5.0, "sin sal", null, "Croquetas", "entrante")
+        val linea = PedidoProducto(id = 1, cantidad = 1, precio_unitario = 5.0, observaciones = "sin sal", fecha_agregado = null, nombre = "Croquetas", categoria = "entrante")
         assertEquals("sin sal", linea.observaciones)
     }
 
@@ -98,14 +98,14 @@ class PedidoProductoTest {
 
     @Test
     fun `dos lineas iguales son iguales`() {
-        val l1 = PedidoProducto(1, 2, 8.50, null, null, "Croquetas", "entrante")
-        val l2 = PedidoProducto(1, 2, 8.50, null, null, "Croquetas", "entrante")
+        val l1 = PedidoProducto(id = 1, cantidad = 2, precio_unitario = 8.50, observaciones = null, fecha_agregado = null, nombre = "Croquetas", categoria = "entrante")
+        val l2 = PedidoProducto(id = 1, cantidad = 2, precio_unitario = 8.50, observaciones = null, fecha_agregado = null, nombre = "Croquetas", categoria = "entrante")
         assertEquals(l1, l2)
     }
 
     @Test
     fun `copy permite cambiar estado`() {
-        val nueva = PedidoProducto(1, 1, 5.0, null, null, "Agua", "bebida", estado = "")
+        val nueva = PedidoProducto(id = 1, cantidad = 1, precio_unitario = 5.0, observaciones = null, fecha_agregado = null, nombre = "Agua", categoria = "bebida", estado = "")
         val enPrep = nueva.copy(estado = "en preparacion")
         assertEquals("en preparacion", enPrep.estado)
         assertEquals(nueva.nombre, enPrep.nombre)

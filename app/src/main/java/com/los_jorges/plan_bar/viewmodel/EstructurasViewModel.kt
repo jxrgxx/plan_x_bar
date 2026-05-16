@@ -76,7 +76,13 @@ class EstructurasViewModel : ViewModel() {
     ) {
         val actual = _estructuras.value.firstOrNull { it.id == id } ?: return
         _estructuras.value = _estructuras.value.map {
-            if (it.id == id) it.copy(posX = posX, posY = posY, ancho = ancho, alto = alto, rotacion = rotacion) else it
+            if (it.id == id) it.copy(
+                posX = posX,
+                posY = posY,
+                ancho = ancho,
+                alto = alto,
+                rotacion = rotacion
+            ) else it
         }
         viewModelScope.launch {
             try {
@@ -92,7 +98,8 @@ class EstructurasViewModel : ViewModel() {
                         "rotacion" to rotacion
                     )
                 )
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+            }
         }
     }
 

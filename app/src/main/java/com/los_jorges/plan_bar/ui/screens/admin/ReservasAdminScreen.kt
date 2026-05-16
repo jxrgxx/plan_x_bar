@@ -38,8 +38,8 @@ private val ESTADOS = listOf("pendiente", "confirmada", "cancelada", "completada
 private fun estadoColor(estado: String): Color = when (estado) {
     "confirmada" -> Color(0xFF06B6D4)
     "completada" -> Color(0xFF83C9A5)
-    "cancelada"  -> Color(0xFFE57373)
-    else         -> Color(0xFFD4A853)
+    "cancelada" -> Color(0xFFE57373)
+    else -> Color(0xFFD4A853)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -51,12 +51,12 @@ fun ReservasAdminScreen(
 ) {
     val s = LocalStrings.current
     val reservas by vm.reservas.collectAsState()
-    val loading  by vm.loading.collectAsState()
-    val error    by vm.error.collectAsState()
+    val loading by vm.loading.collectAsState()
+    val error by vm.error.collectAsState()
 
-    var fecha         by remember { mutableStateOf(vm.fechaHoy()) }
-    var snackMsg      by remember { mutableStateOf<String?>(null) }
-    var showCrear     by remember { mutableStateOf(false) }
+    var fecha by remember { mutableStateOf(vm.fechaHoy()) }
+    var snackMsg by remember { mutableStateOf<String?>(null) }
+    var showCrear by remember { mutableStateOf(false) }
     var reservaEditar by remember { mutableStateOf<Reserva?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
@@ -79,9 +79,9 @@ fun ReservasAdminScreen(
                     Column {
                         Text(
                             s.reservas,
-                            style      = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color      = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             s.verYGestionarReservas,
@@ -92,14 +92,18 @@ fun ReservasAdminScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack, null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 },
                 actions = {
                     IconButton(onClick = { showCrear = true }) {
-                        Icon(Icons.Default.Add, s.nuevaReservaAdmin,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(
+                            Icons.Default.Add, s.nuevaReservaAdmin,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -117,7 +121,7 @@ fun ReservasAdminScreen(
         ) {
             // ── Navegador de fecha ────────────────────────────────────────────
             Surface(
-                color  = MaterialTheme.colorScheme.surface,
+                color = MaterialTheme.colorScheme.surface,
                 border = androidx.compose.foundation.BorderStroke(
                     width = 0.dp,
                     color = MaterialTheme.colorScheme.outlineVariant
@@ -131,15 +135,17 @@ fun ReservasAdminScreen(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     IconButton(onClick = { fecha = vm.desplazarFecha(fecha, -1) }) {
-                        Icon(Icons.Default.ChevronLeft, s.diaAnterior,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(
+                            Icons.Default.ChevronLeft, s.diaAnterior,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
                             vm.formatearFechaLegible(fecha),
-                            style      = MaterialTheme.typography.titleSmall,
+                            style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold,
-                            color      = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             "${reservas.size} reserva${if (reservas.size != 1) "s" else ""}",
@@ -148,8 +154,10 @@ fun ReservasAdminScreen(
                         )
                     }
                     IconButton(onClick = { fecha = vm.desplazarFecha(fecha, 1) }) {
-                        Icon(Icons.Default.ChevronRight, s.diaSiguiente,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(
+                            Icons.Default.ChevronRight, s.diaSiguiente,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
@@ -174,9 +182,11 @@ fun ReservasAdminScreen(
                                 .background(ReservaAccent.copy(alpha = 0.10f)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.EventBusy, null,
+                            Icon(
+                                Icons.Default.EventBusy, null,
                                 modifier = Modifier.size(32.dp),
-                                tint     = ReservaAccent.copy(alpha = 0.6f))
+                                tint = ReservaAccent.copy(alpha = 0.6f)
+                            )
                         }
                         Text(
                             s.sinReservasEsteDia,
@@ -194,7 +204,7 @@ fun ReservasAdminScreen(
             }
 
             LazyColumn(
-                contentPadding      = PaddingValues(16.dp),
+                contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(reservas, key = { it.id }) { reserva ->
@@ -205,7 +215,7 @@ fun ReservasAdminScreen(
                                 if (!ok) snackMsg = s.errorActualizarEstado
                             }
                         },
-                        onEditar   = { reservaEditar = reserva },
+                        onEditar = { reservaEditar = reserva },
                         onEliminar = {
                             vm.eliminar(reserva.id, restauranteId, fecha) { ok, err ->
                                 snackMsg = if (ok) s.reservaEliminada else err ?: "Error"
@@ -221,9 +231,18 @@ fun ReservasAdminScreen(
         CrearReservaDialog(
             onDismiss = { showCrear = false },
             onConfirm = { nombre, telefono, correo, personas, hora, notas ->
-                vm.crear(restauranteId, nombre, telefono, correo, personas, fecha, hora, notas) { ok, err, codigo ->
+                vm.crear(
+                    restauranteId,
+                    nombre,
+                    telefono,
+                    correo,
+                    personas,
+                    fecha,
+                    hora,
+                    notas
+                ) { ok, err, codigo ->
                     showCrear = false
-                    snackMsg  = if (ok) "${s.reservaCreadaCodigo} $codigo" else err ?: "Error"
+                    snackMsg = if (ok) "${s.reservaCreadaCodigo} $codigo" else err ?: "Error"
                 }
             }
         )
@@ -231,12 +250,22 @@ fun ReservasAdminScreen(
 
     reservaEditar?.let { r ->
         EditarReservaDialog(
-            reserva   = r,
+            reserva = r,
             onDismiss = { reservaEditar = null },
             onConfirm = { nombre, telefono, correo, personas, hora, notas ->
-                vm.editar(r.id, nombre, telefono, correo, personas, hora, notas, restauranteId, fecha) { ok, err ->
+                vm.editar(
+                    r.id,
+                    nombre,
+                    telefono,
+                    correo,
+                    personas,
+                    hora,
+                    notas,
+                    restauranteId,
+                    fecha
+                ) { ok, err ->
                     reservaEditar = null
-                    snackMsg      = if (ok) s.reservaActualizada else err ?: "Error"
+                    snackMsg = if (ok) s.reservaActualizada else err ?: "Error"
                 }
             }
         )
@@ -255,15 +284,15 @@ private fun ReservaCard(
 ) {
     val s = LocalStrings.current
     var expandedEstado by remember { mutableStateOf(false) }
-    var showEliminar   by remember { mutableStateOf(false) }
+    var showEliminar by remember { mutableStateOf(false) }
     val estadoCol = estadoColor(reserva.estado)
 
     Card(
-        modifier  = Modifier.fillMaxWidth(),
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        border    = androidx.compose.foundation.BorderStroke(
+        border = androidx.compose.foundation.BorderStroke(
             1.dp, MaterialTheme.colorScheme.outlineVariant
         )
     ) {
@@ -273,7 +302,7 @@ private fun ReservaCard(
         ) {
             // ── Fila superior: hora + nombre + estado ─────────────────────
             Row(
-                verticalAlignment  = Alignment.CenterVertically,
+                verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 // Caja de hora
@@ -287,9 +316,9 @@ private fun ReservaCard(
                 ) {
                     Text(
                         reserva.hora.take(5),
-                        style      = MaterialTheme.typography.titleSmall,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color      = ReservaAccent
+                        color = ReservaAccent
                     )
                 }
 
@@ -297,9 +326,9 @@ private fun ReservaCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         reserva.nombre,
-                        style      = MaterialTheme.typography.titleSmall,
+                        style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.SemiBold,
-                        color      = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         reserva.telefono,
@@ -314,8 +343,8 @@ private fun ReservaCard(
                     onExpandedChange = { expandedEstado = it }
                 ) {
                     Surface(
-                        color    = estadoCol.copy(alpha = 0.12f),
-                        shape    = RoundedCornerShape(8.dp),
+                        color = estadoCol.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.menuAnchor()
                     ) {
                         Row(
@@ -325,12 +354,14 @@ private fun ReservaCard(
                         ) {
                             Text(
                                 reserva.estado.replaceFirstChar { it.uppercase() },
-                                style      = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.labelSmall,
                                 fontWeight = FontWeight.Bold,
-                                color      = estadoCol
+                                color = estadoCol
                             )
-                            Icon(Icons.Default.ArrowDropDown, null,
-                                tint = estadoCol, modifier = Modifier.size(14.dp))
+                            Icon(
+                                Icons.Default.ArrowDropDown, null,
+                                tint = estadoCol, modifier = Modifier.size(14.dp)
+                            )
                         }
                     }
                     ExposedDropdownMenu(
@@ -342,7 +373,7 @@ private fun ReservaCard(
                                 text = {
                                     Text(
                                         e.replaceFirstChar { it.uppercase() },
-                                        color      = estadoColor(e),
+                                        color = estadoColor(e),
                                         fontWeight = FontWeight.Medium
                                     )
                                 },
@@ -362,17 +393,21 @@ private fun ReservaCard(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(Icons.Default.Group, null,
+                    Icon(
+                        Icons.Default.Group, null,
                         modifier = Modifier.size(14.dp),
-                        tint     = MaterialTheme.colorScheme.onSurfaceVariant)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                     Text(
                         "${reserva.num_personas} ${s.personasLabel}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                Text("·", style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    "·", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 Text(
                     "#${reserva.codigo}",
                     style = MaterialTheme.typography.labelSmall,
@@ -383,17 +418,21 @@ private fun ReservaCard(
             // ── Notas ─────────────────────────────────────────────────────
             if (!reserva.notas.isNullOrBlank()) {
                 Surface(
-                    color  = MaterialTheme.colorScheme.surfaceVariant,
-                    shape  = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(8.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(Icons.Default.Notes, null,
-                            modifier = Modifier.size(14.dp).padding(top = 1.dp),
-                            tint     = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(
+                            Icons.Default.Notes, null,
+                            modifier = Modifier
+                                .size(14.dp)
+                                .padding(top = 1.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         Text(
                             reserva.notas,
                             style = MaterialTheme.typography.bodySmall,
@@ -415,13 +454,17 @@ private fun ReservaCard(
                     Text(s.editar, style = MaterialTheme.typography.labelMedium)
                 }
                 TextButton(onClick = { showEliminar = true }) {
-                    Icon(Icons.Default.Delete, null,
+                    Icon(
+                        Icons.Default.Delete, null,
                         modifier = Modifier.size(15.dp),
-                        tint     = MaterialTheme.colorScheme.error)
+                        tint = MaterialTheme.colorScheme.error
+                    )
                     Spacer(Modifier.width(4.dp))
-                    Text(s.eliminar,
+                    Text(
+                        s.eliminar,
                         color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.labelMedium)
+                        style = MaterialTheme.typography.labelMedium
+                    )
                 }
             }
         }
@@ -430,9 +473,9 @@ private fun ReservaCard(
     if (showEliminar) {
         AlertDialog(
             onDismissRequest = { showEliminar = false },
-            icon  = { Icon(Icons.Default.EventBusy, null, tint = MaterialTheme.colorScheme.error) },
+            icon = { Icon(Icons.Default.EventBusy, null, tint = MaterialTheme.colorScheme.error) },
             title = { Text(s.eliminarReserva) },
-            text  = { Text("${s.confirmarEliminarReserva} ${reserva.nombre}?") },
+            text = { Text("${s.confirmarEliminarReserva} ${reserva.nombre}?") },
             confirmButton = {
                 Button(
                     onClick = { onEliminar(); showEliminar = false },
@@ -456,15 +499,15 @@ private fun EditarReservaDialog(
     onConfirm: (String, String, String, Int, String, String) -> Unit
 ) {
     val s = LocalStrings.current
-    var nombre   by remember { mutableStateOf(reserva.nombre) }
+    var nombre by remember { mutableStateOf(reserva.nombre) }
     var telefono by remember { mutableStateOf(reserva.telefono) }
-    var correo   by remember { mutableStateOf(reserva.correo ?: "") }
+    var correo by remember { mutableStateOf(reserva.correo ?: "") }
     var personas by remember { mutableStateOf(reserva.num_personas.toString()) }
-    var hora     by remember { mutableStateOf(reserva.hora.take(5)) }
-    var notas    by remember { mutableStateOf(reserva.notas ?: "") }
+    var hora by remember { mutableStateOf(reserva.hora.take(5)) }
+    var notas by remember { mutableStateOf(reserva.notas ?: "") }
 
     ReservaFormDialog(
-        titulo    = s.editarReserva,
+        titulo = s.editarReserva,
         subtitulo = "Reserva #${reserva.codigo}",
         isEdicion = true,
         nombre = nombre, onNombreChange = { nombre = it },
@@ -490,15 +533,15 @@ private fun CrearReservaDialog(
     onConfirm: (String, String, String, Int, String, String) -> Unit
 ) {
     val s = LocalStrings.current
-    var nombre   by remember { mutableStateOf("") }
+    var nombre by remember { mutableStateOf("") }
     var telefono by remember { mutableStateOf("") }
-    var correo   by remember { mutableStateOf("") }
+    var correo by remember { mutableStateOf("") }
     var personas by remember { mutableStateOf("2") }
-    var hora     by remember { mutableStateOf("13:00") }
-    var notas    by remember { mutableStateOf("") }
+    var hora by remember { mutableStateOf("13:00") }
+    var notas by remember { mutableStateOf("") }
 
     ReservaFormDialog(
-        titulo    = s.nuevaReservaAdmin,
+        titulo = s.nuevaReservaAdmin,
         subtitulo = s.anadirReservaManualmente,
         isEdicion = false,
         nombre = nombre, onNombreChange = { nombre = it },
@@ -522,12 +565,12 @@ private fun ReservaFormDialog(
     titulo: String,
     subtitulo: String,
     isEdicion: Boolean,
-    nombre: String,   onNombreChange: (String) -> Unit,
+    nombre: String, onNombreChange: (String) -> Unit,
     telefono: String, onTelefonoChange: (String) -> Unit,
-    correo: String,   onCorreoChange: (String) -> Unit,
+    correo: String, onCorreoChange: (String) -> Unit,
     personas: String, onPersonasChange: (String) -> Unit,
-    hora: String,     onHoraChange: (String) -> Unit,
-    notas: String,    onNotasChange: (String) -> Unit,
+    hora: String, onHoraChange: (String) -> Unit,
+    notas: String, onNotasChange: (String) -> Unit,
     labelConfirm: String,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
@@ -535,9 +578,12 @@ private fun ReservaFormDialog(
     val s = LocalStrings.current
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape    = RoundedCornerShape(24.dp),
-            color    = MaterialTheme.colorScheme.surface,
-            border   = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant
+            ),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
@@ -558,7 +604,11 @@ private fun ReservaFormDialog(
                                 .size(48.dp)
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(ReservaAccent.copy(alpha = 0.18f))
-                                .border(1.dp, ReservaAccent.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
+                                .border(
+                                    1.dp,
+                                    ReservaAccent.copy(alpha = 0.35f),
+                                    RoundedCornerShape(14.dp)
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
@@ -569,9 +619,9 @@ private fun ReservaFormDialog(
                         Column {
                             Text(
                                 titulo,
-                                style      = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color      = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 subtitulo,
@@ -595,8 +645,8 @@ private fun ReservaFormDialog(
                     // Sección: cliente
                     SeccionLabel(s.datosDelCliente, Icons.Default.Person)
                     Surface(
-                        shape  = RoundedCornerShape(14.dp),
-                        color  = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp, MaterialTheme.colorScheme.outlineVariant
                         )
@@ -608,14 +658,28 @@ private fun ReservaFormDialog(
                             OutlinedTextField(
                                 value = nombre, onValueChange = onNombreChange,
                                 label = { Text(s.nombreCliente) }, singleLine = true,
-                                leadingIcon = { Icon(Icons.Default.Badge, null, tint = ReservaAccent, modifier = Modifier.size(18.dp)) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Badge,
+                                        null,
+                                        tint = ReservaAccent,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp), colors = premiumInputColors()
                             )
                             OutlinedTextField(
                                 value = telefono, onValueChange = onTelefonoChange,
                                 label = { Text(s.telefonoCliente) }, singleLine = true,
-                                leadingIcon = { Icon(Icons.Default.Phone, null, tint = ReservaAccent, modifier = Modifier.size(18.dp)) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Phone,
+                                        null,
+                                        tint = ReservaAccent,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp), colors = premiumInputColors()
@@ -623,7 +687,14 @@ private fun ReservaFormDialog(
                             OutlinedTextField(
                                 value = correo, onValueChange = onCorreoChange,
                                 label = { Text(s.emailOpcional) }, singleLine = true,
-                                leadingIcon = { Icon(Icons.Default.Email, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Email,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(10.dp), colors = premiumInputColors()
                             )
@@ -633,8 +704,8 @@ private fun ReservaFormDialog(
                     // Sección: detalles
                     SeccionLabel(s.detallesReserva, Icons.Default.EventNote)
                     Surface(
-                        shape  = RoundedCornerShape(14.dp),
-                        color  = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp, MaterialTheme.colorScheme.outlineVariant
                         )
@@ -648,7 +719,14 @@ private fun ReservaFormDialog(
                                     value = personas,
                                     onValueChange = { onPersonasChange(it.filter { c -> c.isDigit() }) },
                                     label = { Text(s.personas) }, singleLine = true,
-                                    leadingIcon = { Icon(Icons.Default.Group, null, tint = ReservaAccent, modifier = Modifier.size(18.dp)) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Group,
+                                            null,
+                                            tint = ReservaAccent,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    },
                                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(10.dp), colors = premiumInputColors()
@@ -657,7 +735,14 @@ private fun ReservaFormDialog(
                                     value = hora, onValueChange = onHoraChange,
                                     label = { Text(s.hora) }, singleLine = true,
                                     placeholder = { Text("13:00") },
-                                    leadingIcon = { Icon(Icons.Default.Schedule, null, tint = ReservaAccent, modifier = Modifier.size(18.dp)) },
+                                    leadingIcon = {
+                                        Icon(
+                                            Icons.Default.Schedule,
+                                            null,
+                                            tint = ReservaAccent,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    },
                                     modifier = Modifier.weight(1f),
                                     shape = RoundedCornerShape(10.dp), colors = premiumInputColors()
                                 )
@@ -665,7 +750,14 @@ private fun ReservaFormDialog(
                             OutlinedTextField(
                                 value = notas, onValueChange = onNotasChange,
                                 label = { Text(s.notasOpcional) },
-                                leadingIcon = { Icon(Icons.Default.Notes, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Notes,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
                                 modifier = Modifier.fillMaxWidth(), maxLines = 3,
                                 shape = RoundedCornerShape(10.dp), colors = premiumInputColors()
                             )
@@ -688,10 +780,10 @@ private fun ReservaFormDialog(
                     }
                     Button(
                         onClick = onConfirm,
-                        shape   = RoundedCornerShape(12.dp),
-                        colors  = ButtonDefaults.buttonColors(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
                             containerColor = ReservaAccent,
-                            contentColor   = Color.White
+                            contentColor = Color.White
                         )
                     ) {
                         Icon(
@@ -716,9 +808,9 @@ private fun SeccionLabel(texto: String, icono: androidx.compose.ui.graphics.vect
         Icon(icono, null, tint = ReservaAccent, modifier = Modifier.size(14.dp))
         Text(
             texto,
-            style      = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelMedium,
             fontWeight = FontWeight.SemiBold,
-            color      = ReservaAccent
+            color = ReservaAccent
         )
     }
 }

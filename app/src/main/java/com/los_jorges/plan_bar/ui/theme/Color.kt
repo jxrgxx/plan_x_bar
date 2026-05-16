@@ -40,3 +40,5 @@ val WarmMuted = Color(0xFF6E6760)
 val LightBg = Color(0xFFF4F6FA)
 val LightSurf = Color(0xFFE8EDF4)
 val DarkOnLight = Color(0xFF1E1B18)
+val LightOutline = Color(0xFF909090)        // gris medio para bordes activos
+val LightOutlineVariant = Color(0xFFCCCCCC) // gris claro para bordes inactivos

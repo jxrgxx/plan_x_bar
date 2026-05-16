@@ -13,8 +13,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.los_jorges.plan_bar.session.SessionManager
+import com.los_jorges.plan_bar.viewmodel.AuthErrorMessages
 import com.los_jorges.plan_bar.viewmodel.AuthState
 import com.los_jorges.plan_bar.viewmodel.AuthViewModel
+import com.los_jorges.plan_bar.ui.theme.LocalStrings
 
 private const val PIN_LENGTH = 4
 
@@ -28,6 +30,7 @@ fun PinScreen(
     onPinCorrecto: () -> Unit,
     onBack: () -> Unit
 ) {
+    val s = LocalStrings.current
     val state by viewModel.state.collectAsState()
 
     // Flujo: si no tiene PIN → "crear" (paso 1) → "confirmar" (paso 2) → guardar
@@ -35,6 +38,14 @@ fun PinScreen(
     var paso by remember { mutableStateOf(if (tienePinPrevio) Paso.VERIFICAR else Paso.CREAR) }
     var pin by remember { mutableStateOf("") }
     var pinCreado by remember { mutableStateOf("") } // guarda el primer PIN en la confirmación
+
+    val authMsgs = AuthErrorMessages(
+        introducePin = s.introducePin,
+        pinIncorrecto = s.pinIncorrecto,
+        pinDebeTener4Digitos = s.pinDebeTener4Digitos,
+        errorGuardarPin = s.errorGuardarPin,
+        errorDeConexion = s.errorDeConexion
+    )
 
     // Limpiar error al escribir (solo si el usuario teclea, no al borrar por fallo)
     LaunchedEffect(pin) {
@@ -47,14 +58,14 @@ fun PinScreen(
     }
 
     val titulo = when (paso) {
-        Paso.VERIFICAR -> "Introduce tu PIN"
-        Paso.CREAR -> "Crea tu PIN"
-        Paso.CONFIRMAR -> "Confirma tu PIN"
+        Paso.VERIFICAR -> s.introducePin
+        Paso.CREAR -> s.creaTuPin
+        Paso.CONFIRMAR -> s.confirmaTuPin
     }
     val subtitulo = when (paso) {
         Paso.VERIFICAR -> "Hola, $trabajadorNombre"
-        Paso.CREAR -> "Es tu primera vez. Elige un PIN de $PIN_LENGTH dígitos."
-        Paso.CONFIRMAR -> "Repite el PIN para confirmarlo."
+        Paso.CREAR -> s.primeraVezPinFmt.format(PIN_LENGTH)
+        Paso.CONFIRMAR -> s.repitePin
     }
 
     fun onDigito(d: String) {
@@ -65,7 +76,8 @@ fun PinScreen(
                 Paso.VERIFICAR -> viewModel.verificarPin(
                     trabajadorId,
                     pin,
-                    onSuccess = onPinCorrecto
+                    onSuccess = onPinCorrecto,
+                    msgs = authMsgs
                 )
 
                 Paso.CREAR -> {
@@ -74,7 +86,7 @@ fun PinScreen(
 
                 Paso.CONFIRMAR -> {
                     if (pin == pinCreado) {
-                        viewModel.setPin(trabajadorId, pin, onSuccess = onPinCorrecto)
+                        viewModel.setPin(trabajadorId, pin, onSuccess = onPinCorrecto, msgs = authMsgs)
                     } else {
                         viewModel.resetState()
                         // Volver a crear si no coinciden
@@ -107,7 +119,7 @@ fun PinScreen(
                         SessionManager.desactivarPersonal()
                         onBack()
                     }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, s.volver)
                     }
                 }
             )
@@ -203,12 +215,17 @@ fun PinNumpad(onDigit: (String) -> Unit, onBorrar: () -> Unit, cargando: Boolean
                             Icon(Icons.Default.Backspace, "Borrar")
                         }
 
-                        else -> FilledTonalButton(
+                        else -> Button(
                             onClick = { onDigit(label) },
                             enabled = !cargando,
                             modifier = Modifier
                                 .weight(1f)
-                                .height(60.dp)
+                                .height(60.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                contentColor = MaterialTheme.colorScheme.onSurface,
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                            )
                         ) {
                             if (cargando && label == "0") {
                                 CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)

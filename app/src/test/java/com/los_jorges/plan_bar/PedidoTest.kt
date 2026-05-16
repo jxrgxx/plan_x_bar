@@ -13,7 +13,7 @@ class PedidoTest {
         cantidad: Int = 1,
         precio: Double = 10.0,
         estado: String = ""
-    ) = PedidoProducto(id, cantidad, precio, null, null, nombre, "entrante", estado)
+    ) = PedidoProducto(id = id, cantidad = cantidad, precio_unitario = precio, observaciones = null, fecha_agregado = null, nombre = nombre, categoria = "entrante", estado = estado)
 
     // ── Creación básica ────────────────────────────────────────────────────────
 

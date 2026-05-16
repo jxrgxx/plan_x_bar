@@ -72,6 +72,7 @@ interface AppStrings {
     val marcarComoLlegado: String
 
     // ── Admin Panel ───────────────────────────────────────────────────────────
+    val administracion: String
     val panelDeGestion: String
     val queQuieresGestionar: String
     val mesas: String
@@ -162,9 +163,58 @@ interface AppStrings {
     val diaSiguiente: String
     val reservaEliminada: String
     val reservaCreadaCodigo: String
+    val errorAlCrearReserva: String
+    val cumpleanosPlaceholder: String
+    val introduceNombre: String
+    val introduceTelefono: String
+    val indicaNumeroPersonas: String
     val reservaActualizada: String
     val confirmarEliminarReserva: String
     val errorActualizarEstado: String
+
+    // FormularioReservaScreen
+    val hacerUnaReserva: String
+    val datosDelaReserva: String
+    val restauranteRequerido: String
+    val seleccionaUnRestaurante: String
+    val cargando: String
+    val tusDatos: String
+    val nombreRequerido: String
+    val telefonoRequerido: String
+    val observacionesOpcionales: String
+    val alergiasPlaceholder: String
+    val numeroPersonasRequerido: String
+    val introduceTuNombre: String
+    val seleccionaUnaFecha: String
+    val solicitarReserva: String
+    val reservaSolicitada: String
+    val tuCodigoDeReserva: String
+    val guardaloTeLoPediran: String
+    val volverAlInicio: String
+
+    // LoginTrabajadorScreen
+    val accesoTrabajador: String
+    val soloCamareros: String
+    val iniciarSesion: String
+    // AuthViewModel error messages
+    val rellenaTodosLosCampos: String
+    val rellenaCamposObligatorios: String
+    val soloAdministradores: String
+    val emailOContrasenaIncorrectos: String
+    val errorDeConexionRevisa: String
+    val trabajadorNoPertenece: String
+    val usaAccesoAdmin: String
+    val errorDeConexion: String
+    val introduceContrasena: String
+    val contrasenaAdminIncorrecta: String
+    val introducePin: String
+    val creaTuPin: String
+    val confirmaTuPin: String
+    val primeraVezPinFmt: String
+    val repitePin: String
+    val pinIncorrecto: String
+    val pinDebeTener4Digitos: String
+    val errorGuardarPin: String
 
     // ── Estadísticas ──────────────────────────────────────────────────────────
     val panelDelJefe: String
@@ -211,7 +261,14 @@ interface AppStrings {
     val usaElBotonParaAnadir: String
     val tocaUnElemento: String
     val eliminarElemento: String
+    val esteElemento: String
     val tipoElemento: String
+    val tiposPuerta: String
+    val tiposParedGris: String
+    val tiposParedClara: String
+    val tiposParedBeige: String
+    val tiposBarra: String
+    val tiposColumna: String
     val color: String
     val dimensionesYRotacion: String
     val ancho: String
@@ -258,6 +315,10 @@ interface AppStrings {
     val productoLabel: String
     val errorAlGuardar: String
     val anadirLabel: String
+    val cursoBebida: String
+    val cursoPrimero: String
+    val cursoSegundo: String
+    val cursoPostre: String
 
     // ── Comanda ───────────────────────────────────────────────────────────────
     val cancelarPedido: String
@@ -390,6 +451,7 @@ object EsStrings : AppStrings {
     override val marcarComoLlegado = "Marcar como llegado"
 
     // ── Admin Panel ───────────────────────────────────────────────────────────
+    override val administracion = "Administración"
     override val panelDeGestion = "Panel de gestión"
     override val queQuieresGestionar = "¿Qué quieres gestionar?"
     override val mesas = "Mesas"
@@ -480,9 +542,53 @@ object EsStrings : AppStrings {
     override val diaSiguiente = "Día siguiente"
     override val reservaEliminada = "Reserva eliminada"
     override val reservaCreadaCodigo = "Reserva creada · Código:"
+    override val errorAlCrearReserva = "Error al crear la reserva"
+    override val cumpleanosPlaceholder = "Cumpleaños, quieren ver el fútbol…"
+    override val introduceNombre = "Introduce un nombre"
+    override val introduceTelefono = "Introduce un teléfono"
+    override val indicaNumeroPersonas = "Indica el número de personas"
     override val reservaActualizada = "Reserva actualizada"
     override val confirmarEliminarReserva = "¿Eliminar la reserva de"
     override val errorActualizarEstado = "Error al actualizar estado"
+    override val hacerUnaReserva = "Hacer una reserva"
+    override val datosDelaReserva = "Datos de la reserva"
+    override val restauranteRequerido = "Restaurante *"
+    override val seleccionaUnRestaurante = "Selecciona un restaurante"
+    override val cargando = "Cargando…"
+    override val tusDatos = "Tus datos"
+    override val nombreRequerido = "Nombre *"
+    override val telefonoRequerido = "Teléfono *"
+    override val observacionesOpcionales = "Observaciones (opcional)"
+    override val alergiasPlaceholder = "Alergias, ocasión especial…"
+    override val numeroPersonasRequerido = "Número de personas *"
+    override val introduceTuNombre = "Introduce tu nombre"
+    override val seleccionaUnaFecha = "Selecciona una fecha"
+    override val solicitarReserva = "Solicitar reserva"
+    override val reservaSolicitada = "¡Reserva solicitada!"
+    override val tuCodigoDeReserva = "Tu código de reserva es:"
+    override val guardaloTeLoPediran = "Guárdalo, te lo pedirán al llegar."
+    override val volverAlInicio = "Volver al inicio"
+    override val accesoTrabajador = "Acceso trabajador"
+    override val soloCamareros = "Solo camareros y cocina"
+    override val iniciarSesion = "Iniciar sesión"
+    override val rellenaTodosLosCampos = "Rellena todos los campos"
+    override val rellenaCamposObligatorios = "Rellena todos los campos obligatorios"
+    override val soloAdministradores = "Solo los administradores pueden acceder aquí"
+    override val emailOContrasenaIncorrectos = "Email o contraseña incorrectos"
+    override val errorDeConexionRevisa = "Error de conexión. Revisa el internet"
+    override val trabajadorNoPertenece = "Este trabajador no pertenece a este restaurante"
+    override val usaAccesoAdmin = "Usa el acceso de administrador para entrar como admin"
+    override val errorDeConexion = "Error de conexión"
+    override val introduceContrasena = "Introduce la contraseña"
+    override val contrasenaAdminIncorrecta = "Contraseña de administrador incorrecta"
+    override val introducePin = "Introduce tu PIN"
+    override val creaTuPin = "Crea tu PIN"
+    override val confirmaTuPin = "Confirma tu PIN"
+    override val primeraVezPinFmt = "Es tu primera vez. Elige un PIN de %d dígitos."
+    override val repitePin = "Repite el PIN para confirmarlo."
+    override val pinIncorrecto = "PIN incorrecto"
+    override val pinDebeTener4Digitos = "El PIN debe tener 4 dígitos"
+    override val errorGuardarPin = "Error al guardar el PIN"
 
     // ── Estadísticas ──────────────────────────────────────────────────────────
     override val panelDelJefe = "Panel del jefe"
@@ -519,7 +625,8 @@ object EsStrings : AppStrings {
     override val guardarConfiguracion = "Guardar configuración"
     override val noSePuedeGuardar = "No se puede guardar"
     override val entendido = "Entendido"
-    override val cambiosSincronizan = "Los cambios se sincronizan en todos los dispositivos del restaurante."
+    override val cambiosSincronizan =
+        "Los cambios se sincronizan en todos los dispositivos del restaurante."
 
     // ── Plano Mesas ───────────────────────────────────────────────────────────
     override val planoDelRestaurante = "Plano del restaurante"
@@ -529,7 +636,14 @@ object EsStrings : AppStrings {
     override val usaElBotonParaAnadir = "Usa el botón + para añadir elementos y mesas"
     override val tocaUnElemento = "Toca un elemento para seleccionarlo"
     override val eliminarElemento = "Eliminar elemento"
+    override val esteElemento = "este elemento"
     override val tipoElemento = "Pared, barra, columna…"
+    override val tiposPuerta = "Puerta"
+    override val tiposParedGris = "Pared gris"
+    override val tiposParedClara = "Pared clara"
+    override val tiposParedBeige = "Pared beige"
+    override val tiposBarra = "Barra"
+    override val tiposColumna = "Columna"
     override val color = "Color"
     override val dimensionesYRotacion = "Dimensiones y rotación"
     override val ancho = "Ancho"
@@ -571,11 +685,16 @@ object EsStrings : AppStrings {
     override val seleccionaProductoYUnidades = "Selecciona producto y unidades disponibles"
     override val cantidadDisponible = "Cantidad disponible"
     override val dejarVacioSinLimite = "Dejar vacío = sin límite"
-    override val stockHint = "-1 = sin límite. 0 = agotado. Cualquier otro número = stock disponible."
+    override val stockHint =
+        "-1 = sin límite. 0 = agotado. Cualquier otro número = stock disponible."
     override val noHayMasProductosCat = "No hay más productos de esta categoría"
     override val productoLabel = "Producto"
     override val errorAlGuardar = "Error al guardar"
     override val anadirLabel = "Añadir"
+    override val cursoBebida = "Bebida"
+    override val cursoPrimero = "Primero"
+    override val cursoSegundo = "Segundo"
+    override val cursoPostre = "Postre"
 
     // ── Comanda ───────────────────────────────────────────────────────────────
     override val cancelarPedido = "Cancelar pedido"
@@ -607,7 +726,8 @@ object EsStrings : AppStrings {
     override val cancelarPedidoTitulo = "¿Cancelar pedido?"
     override val seCancelaraElPedido = "Se cancelará el pedido y la mesa quedará libre."
     override val productosSinEnviar = "Productos sin enviar"
-    override val tieneProductosSinEnviar = "Tienes productos que aún no han ido a cocina. ¿Qué quieres hacer?"
+    override val tieneProductosSinEnviar =
+        "Tienes productos que aún no han ido a cocina. ¿Qué quieres hacer?"
     override val enviarYSalir = "Enviar y salir"
     override val salirSinEnviar = "Salir sin enviar"
     override val enviadoACocina = "Enviado a cocina"
@@ -708,6 +828,7 @@ object EnStrings : AppStrings {
     override val marcarComoLlegado = "Mark as arrived"
 
     // ── Admin Panel ───────────────────────────────────────────────────────────
+    override val administracion = "Administration"
     override val panelDeGestion = "Management panel"
     override val queQuieresGestionar = "What do you want to manage?"
     override val mesas = "Tables"
@@ -798,9 +919,53 @@ object EnStrings : AppStrings {
     override val diaSiguiente = "Next day"
     override val reservaEliminada = "Reservation deleted"
     override val reservaCreadaCodigo = "Reservation created · Code:"
+    override val errorAlCrearReserva = "Error creating reservation"
+    override val cumpleanosPlaceholder = "Birthday, they want to watch football…"
+    override val introduceNombre = "Enter a name"
+    override val introduceTelefono = "Enter a phone number"
+    override val indicaNumeroPersonas = "Enter the number of people"
     override val reservaActualizada = "Reservation updated"
     override val confirmarEliminarReserva = "Delete reservation for"
     override val errorActualizarEstado = "Error updating status"
+    override val hacerUnaReserva = "Make a reservation"
+    override val datosDelaReserva = "Reservation details"
+    override val restauranteRequerido = "Restaurant *"
+    override val seleccionaUnRestaurante = "Select a restaurant"
+    override val cargando = "Loading…"
+    override val tusDatos = "Your details"
+    override val nombreRequerido = "Name *"
+    override val telefonoRequerido = "Phone *"
+    override val observacionesOpcionales = "Notes (optional)"
+    override val alergiasPlaceholder = "Allergies, special occasion…"
+    override val numeroPersonasRequerido = "Number of guests *"
+    override val introduceTuNombre = "Enter your name"
+    override val seleccionaUnaFecha = "Select a date"
+    override val solicitarReserva = "Request reservation"
+    override val reservaSolicitada = "Reservation requested!"
+    override val tuCodigoDeReserva = "Your reservation code is:"
+    override val guardaloTeLoPediran = "Keep it, they will ask for it on arrival."
+    override val volverAlInicio = "Back to home"
+    override val accesoTrabajador = "Staff login"
+    override val soloCamareros = "Waiters and kitchen staff only"
+    override val iniciarSesion = "Sign in"
+    override val rellenaTodosLosCampos = "Please fill in all fields"
+    override val rellenaCamposObligatorios = "Please fill in all required fields"
+    override val soloAdministradores = "Only administrators can access here"
+    override val emailOContrasenaIncorrectos = "Incorrect email or password"
+    override val errorDeConexionRevisa = "Connection error. Check your internet"
+    override val trabajadorNoPertenece = "This staff member does not belong to this restaurant"
+    override val usaAccesoAdmin = "Use the administrator login to sign in as admin"
+    override val errorDeConexion = "Connection error"
+    override val introduceContrasena = "Enter your password"
+    override val contrasenaAdminIncorrecta = "Incorrect administrator password"
+    override val introducePin = "Enter your PIN"
+    override val creaTuPin = "Create your PIN"
+    override val confirmaTuPin = "Confirm your PIN"
+    override val primeraVezPinFmt = "First time here. Choose a %d-digit PIN."
+    override val repitePin = "Repeat the PIN to confirm."
+    override val pinIncorrecto = "Incorrect PIN"
+    override val pinDebeTener4Digitos = "PIN must be 4 digits"
+    override val errorGuardarPin = "Error saving PIN"
 
     // ── Estadísticas ──────────────────────────────────────────────────────────
     override val panelDelJefe = "Boss panel"
@@ -847,7 +1012,14 @@ object EnStrings : AppStrings {
     override val usaElBotonParaAnadir = "Use the + button to add elements and tables"
     override val tocaUnElemento = "Tap an element to select it"
     override val eliminarElemento = "Delete element"
+    override val esteElemento = "this element"
     override val tipoElemento = "Wall, bar, column…"
+    override val tiposPuerta = "Door"
+    override val tiposParedGris = "Grey wall"
+    override val tiposParedClara = "Light wall"
+    override val tiposParedBeige = "Beige wall"
+    override val tiposBarra = "Bar"
+    override val tiposColumna = "Column"
     override val color = "Color"
     override val dimensionesYRotacion = "Dimensions and rotation"
     override val ancho = "Width"
@@ -894,6 +1066,10 @@ object EnStrings : AppStrings {
     override val productoLabel = "Product"
     override val errorAlGuardar = "Error saving"
     override val anadirLabel = "Add"
+    override val cursoBebida = "Drink"
+    override val cursoPrimero = "Starter"
+    override val cursoSegundo = "Main"
+    override val cursoPostre = "Dessert"
 
     // ── Comanda ───────────────────────────────────────────────────────────────
     override val cancelarPedido = "Cancel order"
@@ -925,7 +1101,8 @@ object EnStrings : AppStrings {
     override val cancelarPedidoTitulo = "Cancel order?"
     override val seCancelaraElPedido = "The order will be cancelled and the table will be freed."
     override val productosSinEnviar = "Unsent products"
-    override val tieneProductosSinEnviar = "You have products that haven't been sent to the kitchen yet. What do you want to do?"
+    override val tieneProductosSinEnviar =
+        "You have products that haven't been sent to the kitchen yet. What do you want to do?"
     override val enviarYSalir = "Send and exit"
     override val salirSinEnviar = "Exit without sending"
     override val enviadoACocina = "Sent to kitchen"
@@ -1026,6 +1203,7 @@ object FrStrings : AppStrings {
     override val marcarComoLlegado = "Marquer comme arrivé"
 
     // ── Admin Panel ───────────────────────────────────────────────────────────
+    override val administracion = "Administration"
     override val panelDeGestion = "Panneau de gestion"
     override val queQuieresGestionar = "Que voulez-vous gérer ?"
     override val mesas = "Tables"
@@ -1116,9 +1294,53 @@ object FrStrings : AppStrings {
     override val diaSiguiente = "Jour suivant"
     override val reservaEliminada = "Réservation supprimée"
     override val reservaCreadaCodigo = "Réservation créée · Code :"
+    override val errorAlCrearReserva = "Erreur lors de la création de la réservation"
+    override val cumpleanosPlaceholder = "Anniversaire, ils veulent regarder le foot…"
+    override val introduceNombre = "Entrez un nom"
+    override val introduceTelefono = "Entrez un numéro de téléphone"
+    override val indicaNumeroPersonas = "Indiquez le nombre de personnes"
     override val reservaActualizada = "Réservation mise à jour"
     override val confirmarEliminarReserva = "Supprimer la réservation de"
     override val errorActualizarEstado = "Erreur lors de la mise à jour du statut"
+    override val hacerUnaReserva = "Faire une réservation"
+    override val datosDelaReserva = "Détails de la réservation"
+    override val restauranteRequerido = "Restaurant *"
+    override val seleccionaUnRestaurante = "Sélectionnez un restaurant"
+    override val cargando = "Chargement…"
+    override val tusDatos = "Vos coordonnées"
+    override val nombreRequerido = "Nom *"
+    override val telefonoRequerido = "Téléphone *"
+    override val observacionesOpcionales = "Observations (optionnel)"
+    override val alergiasPlaceholder = "Allergies, occasion spéciale…"
+    override val numeroPersonasRequerido = "Nombre de personnes *"
+    override val introduceTuNombre = "Entrez votre nom"
+    override val seleccionaUnaFecha = "Sélectionnez une date"
+    override val solicitarReserva = "Demander une réservation"
+    override val reservaSolicitada = "Réservation demandée !"
+    override val tuCodigoDeReserva = "Votre code de réservation est :"
+    override val guardaloTeLoPediran = "Gardez-le, on vous le demandera à l'arrivée."
+    override val volverAlInicio = "Retour à l'accueil"
+    override val accesoTrabajador = "Accès employé"
+    override val soloCamareros = "Serveurs et cuisine uniquement"
+    override val iniciarSesion = "Se connecter"
+    override val rellenaTodosLosCampos = "Veuillez remplir tous les champs"
+    override val rellenaCamposObligatorios = "Veuillez remplir tous les champs obligatoires"
+    override val soloAdministradores = "Seuls les administrateurs peuvent accéder ici"
+    override val emailOContrasenaIncorrectos = "Email ou mot de passe incorrect"
+    override val errorDeConexionRevisa = "Erreur de connexion. Vérifiez votre internet"
+    override val trabajadorNoPertenece = "Cet employé n'appartient pas à ce restaurant"
+    override val usaAccesoAdmin = "Utilisez l'accès administrateur pour vous connecter en tant qu'admin"
+    override val errorDeConexion = "Erreur de connexion"
+    override val introduceContrasena = "Entrez votre mot de passe"
+    override val contrasenaAdminIncorrecta = "Mot de passe administrateur incorrect"
+    override val introducePin = "Entrez votre PIN"
+    override val creaTuPin = "Créez votre PIN"
+    override val confirmaTuPin = "Confirmez votre PIN"
+    override val primeraVezPinFmt = "Première fois ici. Choisissez un PIN de %d chiffres."
+    override val repitePin = "Répétez le PIN pour le confirmer."
+    override val pinIncorrecto = "PIN incorrect"
+    override val pinDebeTener4Digitos = "Le PIN doit contenir 4 chiffres"
+    override val errorGuardarPin = "Erreur lors de l'enregistrement du PIN"
 
     // ── Estadísticas ──────────────────────────────────────────────────────────
     override val panelDelJefe = "Tableau de bord"
@@ -1155,17 +1377,26 @@ object FrStrings : AppStrings {
     override val guardarConfiguracion = "Enregistrer la configuration"
     override val noSePuedeGuardar = "Impossible d'enregistrer"
     override val entendido = "Compris"
-    override val cambiosSincronizan = "Les modifications se synchronisent sur tous les appareils du restaurant."
+    override val cambiosSincronizan =
+        "Les modifications se synchronisent sur tous les appareils du restaurant."
 
     // ── Plano Mesas ───────────────────────────────────────────────────────────
     override val planoDelRestaurante = "Plan du restaurant"
     override val nuevoElemento = "Nouvel élément"
     override val elementoCreado = "Élément créé"
     override val eliminado = "Supprimé"
-    override val usaElBotonParaAnadir = "Utilisez le bouton + pour ajouter des éléments et des tables"
+    override val usaElBotonParaAnadir =
+        "Utilisez le bouton + pour ajouter des éléments et des tables"
     override val tocaUnElemento = "Touchez un élément pour le sélectionner"
     override val eliminarElemento = "Supprimer l'élément"
+    override val esteElemento = "cet élément"
     override val tipoElemento = "Mur, comptoir, colonne…"
+    override val tiposPuerta = "Porte"
+    override val tiposParedGris = "Mur gris"
+    override val tiposParedClara = "Mur clair"
+    override val tiposParedBeige = "Mur beige"
+    override val tiposBarra = "Comptoir"
+    override val tiposColumna = "Colonne"
     override val color = "Couleur"
     override val dimensionesYRotacion = "Dimensions et rotation"
     override val ancho = "Largeur"
@@ -1212,6 +1443,10 @@ object FrStrings : AppStrings {
     override val productoLabel = "Produit"
     override val errorAlGuardar = "Erreur lors de la sauvegarde"
     override val anadirLabel = "Ajouter"
+    override val cursoBebida = "Boisson"
+    override val cursoPrimero = "Entrée"
+    override val cursoSegundo = "Plat principal"
+    override val cursoPostre = "Dessert"
 
     // ── Comanda ───────────────────────────────────────────────────────────────
     override val cancelarPedido = "Annuler la commande"
@@ -1243,7 +1478,8 @@ object FrStrings : AppStrings {
     override val cancelarPedidoTitulo = "Annuler la commande ?"
     override val seCancelaraElPedido = "La commande sera annulée et la table sera libérée."
     override val productosSinEnviar = "Produits non envoyés"
-    override val tieneProductosSinEnviar = "Vous avez des produits qui n'ont pas encore été envoyés en cuisine. Que souhaitez-vous faire ?"
+    override val tieneProductosSinEnviar =
+        "Vous avez des produits qui n'ont pas encore été envoyés en cuisine. Que souhaitez-vous faire ?"
     override val enviarYSalir = "Envoyer et quitter"
     override val salirSinEnviar = "Quitter sans envoyer"
     override val enviadoACocina = "Envoyé en cuisine"

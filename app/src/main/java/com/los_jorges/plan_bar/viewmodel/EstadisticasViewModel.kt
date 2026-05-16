@@ -38,6 +38,7 @@ class EstadisticasViewModel : ViewModel() {
                 hoy.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY)
                 fmt.format(hoy.time)
             }
+
             Periodo.MES -> {
                 hoy.set(Calendar.DAY_OF_MONTH, 1)
                 fmt.format(hoy.time)
@@ -57,5 +58,7 @@ class EstadisticasViewModel : ViewModel() {
         }
     }
 
-    fun clearError() { _error.value = null }
+    fun clearError() {
+        _error.value = null
+    }
 }

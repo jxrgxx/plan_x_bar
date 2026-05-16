@@ -21,6 +21,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.los_jorges.plan_bar.viewmodel.AuthErrorMessages
 import com.los_jorges.plan_bar.viewmodel.AuthState
 import com.los_jorges.plan_bar.viewmodel.AuthViewModel
 import com.los_jorges.plan_bar.ui.theme.*
@@ -222,7 +223,8 @@ fun RegisterScreen(
                     viewModel.registrarRestaurante(
                         nombre, email, direccion, telefono,
                         adminNombre, adminEmail, adminPassword,
-                        onSuccess = onRegistroExitoso
+                        onSuccess = onRegistroExitoso,
+                        msgs = AuthErrorMessages(rellenaCamposObligatorios = s.rellenaCamposObligatorios)
                     )
                 },
                 enabled = state !is AuthState.Loading,

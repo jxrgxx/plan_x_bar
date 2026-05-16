@@ -35,10 +35,10 @@ fun EspaciosAdminScreen(
     vm: ZonasViewModel = viewModel()
 ) {
     val s = LocalStrings.current
-    val zonasDB  by vm.zonas.collectAsState()
-    val loading  by vm.loading.collectAsState()
+    val zonasDB by vm.zonas.collectAsState()
+    val loading by vm.loading.collectAsState()
     val guardado by vm.guardado.collectAsState()
-    val error    by vm.error.collectAsState()
+    val error by vm.error.collectAsState()
 
     // Dialog de error (se muestra cuando el servidor bloquea el guardado)
     var errorDialog by remember { mutableStateOf<String?>(null) }
@@ -62,7 +62,7 @@ fun EspaciosAdminScreen(
     // y se actualiza SOLO la primera vez que llegan datos reales de la BD.
     // Así el usuario puede escribir libremente (incluyendo ñ) sin que Compose
     // resetee la lista cuando llega la respuesta de red.
-    val nombres    = remember { mutableStateListOf(*DEFAULTS.toTypedArray()) }
+    val nombres = remember { mutableStateListOf(*DEFAULTS.toTypedArray()) }
     var numActivas by remember { mutableStateOf(3) }
     // Flag para no machacar ediciones del usuario si la BD tarda
     var datosAplicados by remember { mutableStateOf(false) }
@@ -96,9 +96,9 @@ fun EspaciosAdminScreen(
                     Column {
                         Text(
                             s.espaciosDeTrabajo,
-                            style      = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color      = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             s.zonasYDistribucion,
@@ -109,8 +109,10 @@ fun EspaciosAdminScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack, null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -130,7 +132,9 @@ fun EspaciosAdminScreen(
 
             // ── Indicador de carga ────────────────────────────────────────────
             if (loading && zonasDB.isEmpty()) {
-                Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = EspacioAccent)
                 }
                 return@Column
@@ -139,8 +143,8 @@ fun EspaciosAdminScreen(
             // ── Error ─────────────────────────────────────────────────────────
             if (error != null && zonasDB.isEmpty()) {
                 Surface(
-                    shape  = RoundedCornerShape(12.dp),
-                    color  = MaterialTheme.colorScheme.errorContainer,
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.errorContainer,
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
@@ -148,8 +152,10 @@ fun EspaciosAdminScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(Icons.Default.ErrorOutline, null,
-                            tint = MaterialTheme.colorScheme.onErrorContainer)
+                        Icon(
+                            Icons.Default.ErrorOutline, null,
+                            tint = MaterialTheme.colorScheme.onErrorContainer
+                        )
                         Text(
                             error ?: "",
                             color = MaterialTheme.colorScheme.onErrorContainer,
@@ -161,8 +167,8 @@ fun EspaciosAdminScreen(
 
             // ── Número de espacios ────────────────────────────────────────────
             Surface(
-                shape  = RoundedCornerShape(16.dp),
-                color  = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp, MaterialTheme.colorScheme.outlineVariant
                 ),
@@ -182,18 +188,24 @@ fun EspaciosAdminScreen(
                                 .size(42.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(EspacioAccent.copy(alpha = 0.12f))
-                                .border(1.dp, EspacioAccent.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
+                                .border(
+                                    1.dp,
+                                    EspacioAccent.copy(alpha = 0.25f),
+                                    RoundedCornerShape(12.dp)
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.GridView, null,
-                                tint = EspacioAccent, modifier = Modifier.size(20.dp))
+                            Icon(
+                                Icons.Default.GridView, null,
+                                tint = EspacioAccent, modifier = Modifier.size(20.dp)
+                            )
                         }
                         Column {
                             Text(
                                 s.numeroDeEspacios,
-                                style      = MaterialTheme.typography.titleSmall,
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color      = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 s.hasta4Zonas,
@@ -211,28 +223,33 @@ fun EspaciosAdminScreen(
                         (1..4).forEach { n ->
                             val selected = numActivas == n
                             Surface(
-                                onClick   = {
+                                onClick = {
                                     numActivas = n
                                     editado = true
                                     vm.resetGuardado()
                                 },
-                                modifier  = Modifier.weight(1f).height(48.dp),
-                                shape     = RoundedCornerShape(12.dp),
-                                color     = if (selected) EspacioAccent.copy(alpha = 0.15f)
-                                            else MaterialTheme.colorScheme.surface,
-                                border    = androidx.compose.foundation.BorderStroke(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(48.dp),
+                                shape = RoundedCornerShape(12.dp),
+                                color = if (selected) EspacioAccent.copy(alpha = 0.15f)
+                                else MaterialTheme.colorScheme.surface,
+                                border = androidx.compose.foundation.BorderStroke(
                                     width = if (selected) 1.5.dp else 1.dp,
                                     color = if (selected) EspacioAccent
-                                            else MaterialTheme.colorScheme.outlineVariant
+                                    else MaterialTheme.colorScheme.outlineVariant
                                 )
                             ) {
-                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier.fillMaxSize()
+                                ) {
                                     Text(
                                         "$n",
-                                        style      = MaterialTheme.typography.titleMedium,
+                                        style = MaterialTheme.typography.titleMedium,
                                         fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                                        color      = if (selected) EspacioAccent
-                                                     else MaterialTheme.colorScheme.onSurfaceVariant
+                                        color = if (selected) EspacioAccent
+                                        else MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -243,8 +260,8 @@ fun EspaciosAdminScreen(
 
             // ── Nombres de cada espacio ───────────────────────────────────────
             Surface(
-                shape  = RoundedCornerShape(16.dp),
-                color  = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp, MaterialTheme.colorScheme.outlineVariant
                 ),
@@ -264,18 +281,24 @@ fun EspaciosAdminScreen(
                                 .size(42.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(EspacioAccent.copy(alpha = 0.12f))
-                                .border(1.dp, EspacioAccent.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
+                                .border(
+                                    1.dp,
+                                    EspacioAccent.copy(alpha = 0.25f),
+                                    RoundedCornerShape(12.dp)
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(Icons.Default.DriveFileRenameOutline, null,
-                                tint = EspacioAccent, modifier = Modifier.size(20.dp))
+                            Icon(
+                                Icons.Default.DriveFileRenameOutline, null,
+                                tint = EspacioAccent, modifier = Modifier.size(20.dp)
+                            )
                         }
                         Column {
                             Text(
                                 s.nombresDeLosEspacios,
-                                style      = MaterialTheme.typography.titleSmall,
+                                style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color      = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 s.personalizaCadaZona,
@@ -290,14 +313,14 @@ fun EspaciosAdminScreen(
                     (0 until 4).forEach { i ->
                         val isActive = i < numActivas
                         OutlinedTextField(
-                            value         = nombres.getOrElse(i) { DEFAULTS[i] },
+                            value = nombres.getOrElse(i) { DEFAULTS[i] },
                             onValueChange = { v ->
                                 while (nombres.size <= i) nombres.add("")
                                 nombres[i] = v
                                 editado = true
                                 vm.resetGuardado()
                             },
-                            label      = {
+                            label = {
                                 Text(
                                     if (isActive) "${s.espacio} ${i + 1}"
                                     else "${s.espacio} ${i + 1} (${s.inactivo})"
@@ -306,15 +329,15 @@ fun EspaciosAdminScreen(
                             leadingIcon = {
                                 Icon(
                                     Icons.Default.TableBar, null,
-                                    tint     = if (isActive) EspacioAccent
-                                               else MaterialTheme.colorScheme.outlineVariant,
+                                    tint = if (isActive) EspacioAccent
+                                    else MaterialTheme.colorScheme.outlineVariant,
                                     modifier = Modifier.size(18.dp)
                                 )
                             },
-                            enabled    = isActive,
+                            enabled = isActive,
                             singleLine = true,
-                            modifier   = Modifier.fillMaxWidth(),
-                            shape      = RoundedCornerShape(12.dp)
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp)
                         )
                     }
                 }
@@ -331,7 +354,13 @@ fun EspaciosAdminScreen(
                     else SessionManager.zonasActivas
                     val zonasActualizadas = CLAVES.mapIndexed { i, clave ->
                         val base = baseZonas.find { it.clave == clave }
-                            ?: Zona(id = 0, clave = clave, nombre = DEFAULTS[i], orden = i + 1, activo = i < numActivas)
+                            ?: Zona(
+                                id = 0,
+                                clave = clave,
+                                nombre = DEFAULTS[i],
+                                orden = i + 1,
+                                activo = i < numActivas
+                            )
                         base.copy(
                             nombre = nombres.getOrElse(i) { DEFAULTS[i] }.ifBlank { DEFAULTS[i] },
                             activo = i < numActivas
@@ -340,14 +369,16 @@ fun EspaciosAdminScreen(
                     editado = false
                     vm.guardar(restauranteId, zonasActualizadas)
                 },
-                enabled  = !loading,
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape    = RoundedCornerShape(14.dp),
-                colors   = ButtonDefaults.buttonColors(
+                enabled = !loading,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
                     containerColor = if (yaGuardado) MaterialTheme.colorScheme.secondaryContainer
-                                     else MaterialTheme.colorScheme.primary,
-                    contentColor   = if (yaGuardado) MaterialTheme.colorScheme.onSecondaryContainer
-                                     else MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.primary,
+                    contentColor = if (yaGuardado) MaterialTheme.colorScheme.onSecondaryContainer
+                    else MaterialTheme.colorScheme.onPrimary
                 )
             ) {
                 if (loading) {
@@ -366,15 +397,15 @@ fun EspaciosAdminScreen(
                 Text(
                     if (yaGuardado) s.configuracionGuardada else s.guardarConfiguracion,
                     fontWeight = FontWeight.SemiBold,
-                    fontSize   = 15.sp
+                    fontSize = 15.sp
                 )
             }
 
             if (yaGuardado) {
                 Text(
                     s.cambiosSincronizan,
-                    style    = MaterialTheme.typography.bodySmall,
-                    color    = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
             }
@@ -387,18 +418,20 @@ fun EspaciosAdminScreen(
         AlertDialog(
             onDismissRequest = { errorDialog = null; vm.resetError() },
             icon = {
-                Icon(Icons.Default.Warning, null,
+                Icon(
+                    Icons.Default.Warning, null,
                     tint = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.size(28.dp))
+                    modifier = Modifier.size(28.dp)
+                )
             },
             title = { Text(s.noSePuedeGuardar, fontWeight = FontWeight.SemiBold) },
-            text  = { Text(msg, style = MaterialTheme.typography.bodyMedium) },
+            text = { Text(msg, style = MaterialTheme.typography.bodyMedium) },
             confirmButton = {
                 Button(
                     onClick = { errorDialog = null; vm.resetGuardado() },
-                    colors  = ButtonDefaults.buttonColors(
+                    colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
-                        contentColor   = MaterialTheme.colorScheme.onError
+                        contentColor = MaterialTheme.colorScheme.onError
                     ),
                     shape = RoundedCornerShape(10.dp)
                 ) { Text(s.entendido) }

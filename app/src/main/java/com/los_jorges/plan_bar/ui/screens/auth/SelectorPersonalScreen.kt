@@ -35,6 +35,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.los_jorges.plan_bar.model.Reserva
 import com.los_jorges.plan_bar.model.Trabajador
 import com.los_jorges.plan_bar.session.SessionManager
+import com.los_jorges.plan_bar.viewmodel.AuthErrorMessages
 import com.los_jorges.plan_bar.viewmodel.AuthState
 import com.los_jorges.plan_bar.viewmodel.AuthViewModel
 import com.los_jorges.plan_bar.viewmodel.ReservasViewModel
@@ -83,9 +84,9 @@ fun SelectorPersonalScreen(
                     Column {
                         Text(
                             restauranteNombre,
-                            style      = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color      = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             s.seleccionaTuPerfil,
@@ -122,7 +123,9 @@ fun SelectorPersonalScreen(
         ) {
             if (loading) {
                 Box(
-                    Modifier.weight(1f).fillMaxWidth(),
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
                     contentAlignment = Alignment.Center
                 ) { CircularProgressIndicator() }
             } else {
@@ -133,9 +136,9 @@ fun SelectorPersonalScreen(
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalArrangement   = Arrangement.spacedBy(12.dp),
-                    contentPadding        = PaddingValues(16.dp),
-                    modifier              = Modifier.weight(1f)
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(16.dp),
+                    modifier = Modifier.weight(1f)
                 ) {
                     items(personal, key = { it.id }) { t ->
                         TrabajadorCard(t, onClick = { onTrabajadorSeleccionado(t) })
@@ -152,21 +155,21 @@ fun SelectorPersonalScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 OutlinedButton(
-                    onClick   = {
+                    onClick = {
                         reservasVm.cargar(restauranteId, reservasVm.fechaHoy())
                         showVerReservas = true
                     },
-                    modifier  = Modifier.weight(1f),
-                    shape     = RoundedCornerShape(12.dp)
+                    modifier = Modifier.weight(1f),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Default.CalendarMonth, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
                     Text(s.verReservas, fontWeight = FontWeight.Medium)
                 }
                 Button(
-                    onClick  = { showNuevaReserva = true },
+                    onClick = { showNuevaReserva = true },
                     modifier = Modifier.weight(1f),
-                    shape    = RoundedCornerShape(12.dp)
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(6.dp))
@@ -184,8 +187,8 @@ fun SelectorPersonalScreen(
                     restauranteId, nombre, telefono, "", personas, fecha, hora, notas
                 ) { ok, err, codigo ->
                     showNuevaReserva = false
-                    snackMsg = if (ok) "Reserva creada · Código: $codigo" else err
-                        ?: "Error al crear la reserva"
+                    snackMsg = if (ok) "${s.reservaCreadaCodigo} $codigo" else err
+                        ?: s.errorAlCrearReserva
                 }
             }
         )
@@ -212,10 +215,14 @@ fun SelectorPersonalScreen(
             authState = authState,
             onDismiss = { showConfirmarCierre = false; authVm.resetState() },
             onConfirmar = { password ->
-                authVm.verificarAdmin(password) {
+                authVm.verificarAdmin(password, onSuccess = {
                     showConfirmarCierre = false
                     onCerrarSesionRestaurante()
-                }
+                }, msgs = AuthErrorMessages(
+                    introduceContrasena = s.introduceContrasena,
+                    contrasenaAdminIncorrecta = s.contrasenaAdminIncorrecta,
+                    errorDeConexion = s.errorDeConexion
+                ))
             }
         )
     }
@@ -230,14 +237,17 @@ private fun ConfirmarCierreSesionDialog(
     val s = LocalStrings.current
     var password by remember { mutableStateOf("") }
     val isLoading = authState is AuthState.Loading
-    val errorMsg  = (authState as? AuthState.Error)?.mensaje
-    val accent    = Color(0xFFE57373)
+    val errorMsg = (authState as? AuthState.Error)?.mensaje
+    val accent = Color(0xFFD32F2F)
 
     Dialog(onDismissRequest = { if (!isLoading) onDismiss() }) {
         Surface(
-            shape    = RoundedCornerShape(24.dp),
-            color    = MaterialTheme.colorScheme.surface,
-            border   = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant
+            ),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
@@ -258,14 +268,19 @@ private fun ConfirmarCierreSesionDialog(
                             .border(1.dp, accent.copy(alpha = 0.30f), RoundedCornerShape(13.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.AutoMirrored.Filled.Logout, null, tint = accent, modifier = Modifier.size(22.dp))
+                        Icon(
+                            Icons.AutoMirrored.Filled.Logout,
+                            null,
+                            tint = accent,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
                     Column {
                         Text(
                             s.cerrarSesion,
-                            style      = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color      = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             s.introducirContrasenaAdmin,
@@ -275,47 +290,82 @@ private fun ConfirmarCierreSesionDialog(
                     }
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     OutlinedTextField(
-                        value                = password,
-                        onValueChange        = { password = it },
-                        label                = { Text(s.contrasena) },
-                        singleLine           = true,
-                        leadingIcon          = { Icon(Icons.Default.Lock, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)) },
+                        value = password,
+                        onValueChange = { password = it },
+                        label = { Text(s.contrasena) },
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Lock,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
                         visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions      = KeyboardOptions(keyboardType = KeyboardType.Password),
-                        modifier             = Modifier.fillMaxWidth(),
-                        enabled              = !isLoading,
-                        shape                = RoundedCornerShape(12.dp)
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = !isLoading,
+                        shape = RoundedCornerShape(12.dp)
                     )
                     if (errorMsg != null) {
-                        Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.errorContainer) {
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.errorContainer
+                        ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment     = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(Icons.Default.ErrorOutline, null, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(16.dp))
-                                Text(errorMsg, color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.bodySmall)
+                                Icon(
+                                    Icons.Default.ErrorOutline,
+                                    null,
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Text(
+                                    errorMsg,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                    style = MaterialTheme.typography.bodySmall
+                                )
                             }
                         }
                     }
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Row(
-                    modifier              = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                 ) {
                     TextButton(onClick = onDismiss, enabled = !isLoading) { Text(s.cancelar) }
                     Button(
-                        onClick  = { onConfirmar(password) },
-                        enabled  = !isLoading,
-                        shape    = RoundedCornerShape(12.dp),
-                        colors   = ButtonDefaults.buttonColors(containerColor = accent, contentColor = Color.White)
+                        onClick = { onConfirmar(password) },
+                        enabled = !isLoading,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = accent,
+                            contentColor = Color.White
+                        )
                     ) {
-                        if (isLoading) CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = Color.White)
+                        if (isLoading) CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp,
+                            color = Color.White
+                        )
                         else {
-                            Icon(Icons.AutoMirrored.Filled.Logout, null, modifier = Modifier.size(16.dp))
+                            Icon(
+                                Icons.AutoMirrored.Filled.Logout,
+                                null,
+                                modifier = Modifier.size(16.dp)
+                            )
                             Spacer(Modifier.width(6.dp))
                             Text(s.confirmar, fontWeight = FontWeight.SemiBold)
                         }
@@ -371,9 +421,9 @@ private fun NuevaReservaRapidaDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape    = RoundedCornerShape(24.dp),
-            color    = MaterialTheme.colorScheme.surface,
-            border   = androidx.compose.foundation.BorderStroke(
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(
                 1.dp, MaterialTheme.colorScheme.outlineVariant
             ),
             modifier = Modifier.fillMaxWidth()
@@ -387,29 +437,33 @@ private fun NuevaReservaRapidaDialog(
                         .padding(20.dp)
                 ) {
                     Row(
-                        verticalAlignment      = Alignment.CenterVertically,
-                        horizontalArrangement  = Arrangement.spacedBy(14.dp)
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(14.dp)
                     ) {
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
                                 .clip(RoundedCornerShape(14.dp))
                                 .background(ReservaAccent.copy(alpha = 0.18f))
-                                .border(1.dp, ReservaAccent.copy(alpha = 0.35f), RoundedCornerShape(14.dp)),
+                                .border(
+                                    1.dp,
+                                    ReservaAccent.copy(alpha = 0.35f),
+                                    RoundedCornerShape(14.dp)
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 Icons.Default.CalendarMonth, null,
-                                tint     = ReservaAccent,
+                                tint = ReservaAccent,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
                         Column {
                             Text(
                                 s.nuevaReserva,
-                                style      = MaterialTheme.typography.titleMedium,
+                                style = MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
-                                color      = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 s.anadirAlRestaurante,
@@ -431,20 +485,25 @@ private fun NuevaReservaRapidaDialog(
                 ) {
                     // Sección cliente
                     Row(
-                        verticalAlignment     = Alignment.CenterVertically,
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(Icons.Default.Person, null, tint = ReservaAccent, modifier = Modifier.size(14.dp))
+                        Icon(
+                            Icons.Default.Person,
+                            null,
+                            tint = ReservaAccent,
+                            modifier = Modifier.size(14.dp)
+                        )
                         Text(
                             s.datosDelCliente,
-                            style      = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color      = ReservaAccent
+                            color = ReservaAccent
                         )
                     }
                     Surface(
-                        shape  = RoundedCornerShape(14.dp),
-                        color  = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp, MaterialTheme.colorScheme.outlineVariant
                         )
@@ -454,43 +513,62 @@ private fun NuevaReservaRapidaDialog(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             OutlinedTextField(
-                                value          = nombre,
-                                onValueChange  = { nombre = it },
-                                label          = { Text(s.nombreCliente) },
-                                singleLine     = true,
-                                leadingIcon    = { Icon(Icons.Default.Badge, null, tint = ReservaAccent, modifier = Modifier.size(18.dp)) },
-                                modifier       = Modifier.fillMaxWidth(),
-                                shape          = RoundedCornerShape(10.dp)
+                                value = nombre,
+                                onValueChange = { nombre = it },
+                                label = { Text(s.nombreCliente) },
+                                singleLine = true,
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Badge,
+                                        null,
+                                        tint = ReservaAccent,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp)
                             )
                             OutlinedTextField(
-                                value          = telefono,
-                                onValueChange  = { telefono = it },
-                                label          = { Text(s.telefonoCliente) },
-                                singleLine     = true,
-                                leadingIcon    = { Icon(Icons.Default.Phone, null, tint = ReservaAccent, modifier = Modifier.size(18.dp)) },
+                                value = telefono,
+                                onValueChange = { telefono = it },
+                                label = { Text(s.telefonoCliente) },
+                                singleLine = true,
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Phone,
+                                        null,
+                                        tint = ReservaAccent,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                                modifier       = Modifier.fillMaxWidth(),
-                                shape          = RoundedCornerShape(10.dp)
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp)
                             )
                         }
                     }
 
                     // Sección detalles
                     Row(
-                        verticalAlignment     = Alignment.CenterVertically,
+                        verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        Icon(Icons.Default.EventNote, null, tint = ReservaAccent, modifier = Modifier.size(14.dp))
+                        Icon(
+                            Icons.Default.EventNote,
+                            null,
+                            tint = ReservaAccent,
+                            modifier = Modifier.size(14.dp)
+                        )
                         Text(
                             s.detallesReserva,
-                            style      = MaterialTheme.typography.labelMedium,
+                            style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color      = ReservaAccent
+                            color = ReservaAccent
                         )
                     }
                     Surface(
-                        shape  = RoundedCornerShape(14.dp),
-                        color  = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
                         border = androidx.compose.foundation.BorderStroke(
                             1.dp, MaterialTheme.colorScheme.outlineVariant
                         )
@@ -500,34 +578,45 @@ private fun NuevaReservaRapidaDialog(
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             OutlinedTextField(
-                                value          = personas,
-                                onValueChange  = { personas = it.filter { c -> c.isDigit() } },
-                                label          = { Text(s.personas) },
-                                singleLine     = true,
-                                leadingIcon    = { Icon(Icons.Default.Group, null, tint = ReservaAccent, modifier = Modifier.size(18.dp)) },
+                                value = personas,
+                                onValueChange = { personas = it.filter { c -> c.isDigit() } },
+                                label = { Text(s.personas) },
+                                singleLine = true,
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Group,
+                                        null,
+                                        tint = ReservaAccent,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                modifier       = Modifier.fillMaxWidth(),
-                                shape          = RoundedCornerShape(10.dp)
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp)
                             )
                             // Fecha
                             OutlinedButton(
-                                onClick   = { showDatePicker = true },
-                                modifier  = Modifier.fillMaxWidth(),
-                                shape     = RoundedCornerShape(10.dp),
-                                colors    = ButtonDefaults.outlinedButtonColors(
+                                onClick = { showDatePicker = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
                                     contentColor = ReservaAccent
                                 )
                             ) {
-                                Icon(Icons.Default.CalendarToday, null, modifier = Modifier.size(16.dp))
+                                Icon(
+                                    Icons.Default.CalendarToday,
+                                    null,
+                                    modifier = Modifier.size(16.dp)
+                                )
                                 Spacer(Modifier.width(8.dp))
                                 Text(fechaMostrada, fontWeight = FontWeight.Medium)
                             }
                             // Hora
                             OutlinedButton(
-                                onClick   = { showTimePicker = true },
-                                modifier  = Modifier.fillMaxWidth(),
-                                shape     = RoundedCornerShape(10.dp),
-                                colors    = ButtonDefaults.outlinedButtonColors(
+                                onClick = { showTimePicker = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(10.dp),
+                                colors = ButtonDefaults.outlinedButtonColors(
                                     contentColor = ReservaAccent
                                 )
                             ) {
@@ -536,14 +625,21 @@ private fun NuevaReservaRapidaDialog(
                                 Text(horaMostrada, fontWeight = FontWeight.Medium)
                             }
                             OutlinedTextField(
-                                value         = notas,
+                                value = notas,
                                 onValueChange = { notas = it },
-                                label         = { Text(s.comentarioOpcional) },
-                                placeholder   = { Text("Cumpleaños, quieren ver el fútbol…") },
-                                leadingIcon   = { Icon(Icons.Default.Notes, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)) },
-                                modifier      = Modifier.fillMaxWidth(),
-                                maxLines      = 3,
-                                shape         = RoundedCornerShape(10.dp)
+                                label = { Text(s.comentarioOpcional) },
+                                placeholder = { Text(s.cumpleanosPlaceholder) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Notes,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                maxLines = 3,
+                                shape = RoundedCornerShape(10.dp)
                             )
                         }
                     }
@@ -551,17 +647,17 @@ private fun NuevaReservaRapidaDialog(
                     // Error
                     if (errorMsg != null) {
                         Surface(
-                            shape  = RoundedCornerShape(10.dp),
-                            color  = MaterialTheme.colorScheme.errorContainer
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.errorContainer
                         ) {
                             Row(
                                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalAlignment     = Alignment.CenterVertically
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
                                     Icons.Default.ErrorOutline, null,
-                                    tint     = MaterialTheme.colorScheme.onErrorContainer,
+                                    tint = MaterialTheme.colorScheme.onErrorContainer,
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Text(
@@ -582,7 +678,7 @@ private fun NuevaReservaRapidaDialog(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
-                    verticalAlignment     = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     TextButton(onClick = onDismiss) {
                         Text(s.cancelar, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -591,17 +687,24 @@ private fun NuevaReservaRapidaDialog(
                         onClick = {
                             val p = personas.toIntOrNull() ?: 0
                             when {
-                                nombre.isBlank()   -> errorMsg = "Introduce un nombre"
-                                telefono.isBlank() -> errorMsg = "Introduce un teléfono"
+                                nombre.isBlank() -> errorMsg = s.introduceNombre
+                                telefono.isBlank() -> errorMsg = s.introduceTelefono
                                 fechaISO.isBlank() -> errorMsg = s.seleccionarFecha
-                                p < 1              -> errorMsg = "Indica el número de personas"
-                                else -> onConfirm(nombre, telefono, p, fechaISO, horaMostrada, notas)
+                                p < 1 -> errorMsg = s.indicaNumeroPersonas
+                                else -> onConfirm(
+                                    nombre,
+                                    telefono,
+                                    p,
+                                    fechaISO,
+                                    horaMostrada,
+                                    notas
+                                )
                             }
                         },
-                        shape  = RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = ReservaAccent,
-                            contentColor   = Color.White
+                            contentColor = Color.White
                         )
                     ) {
                         Icon(Icons.Default.CalendarMonth, null, modifier = Modifier.size(16.dp))
@@ -657,9 +760,12 @@ private fun VerReservasDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape    = RoundedCornerShape(24.dp),
-            color    = MaterialTheme.colorScheme.surface,
-            border   = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant
+            ),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
@@ -680,14 +786,19 @@ private fun VerReservasDialog(
                             .border(1.dp, accent.copy(alpha = 0.35f), RoundedCornerShape(13.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.CalendarMonth, null, tint = accent, modifier = Modifier.size(22.dp))
+                        Icon(
+                            Icons.Default.CalendarMonth,
+                            null,
+                            tint = accent,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
                     Column {
                         Text(
                             s.reservasDeHoy,
-                            style      = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color      = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             "${reservas.size} reserva${if (reservas.size != 1) "s" else ""}",
@@ -699,19 +810,33 @@ private fun VerReservasDialog(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 if (reservas.isEmpty()) {
                     Box(
-                        modifier         = Modifier.fillMaxWidth().padding(32.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Icon(Icons.Default.EventBusy, null, tint = MaterialTheme.colorScheme.outlineVariant, modifier = Modifier.size(36.dp))
-                            Text(s.sinReservasHoy, color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                Icons.Default.EventBusy,
+                                null,
+                                tint = MaterialTheme.colorScheme.outlineVariant,
+                                modifier = Modifier.size(36.dp)
+                            )
+                            Text(
+                                s.sinReservasHoy,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
                     }
                 } else {
                     LazyColumn(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
-                        contentPadding      = PaddingValues(14.dp),
-                        modifier            = Modifier.heightIn(max = 400.dp)
+                        contentPadding = PaddingValues(14.dp),
+                        modifier = Modifier.heightIn(max = 400.dp)
                     ) {
                         items(reservas, key = { it.id }) { r ->
                             ReservaResumenItem(r, onMarcarLlegado = { onMarcarLlegado(r) })
@@ -720,7 +845,9 @@ private fun VerReservasDialog(
                 }
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Box(
-                    modifier         = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
                     contentAlignment = Alignment.CenterEnd
                 ) {
                     TextButton(onClick = onDismiss) { Text(s.cerrar) }
@@ -819,18 +946,20 @@ fun TrabajadorCard(trabajador: Trabajador, onClick: () -> Unit) {
         COLORES_EMPLEADOS[trabajador.id % COLORES_EMPLEADOS.size]
     }
     val rolTexto = when (trabajador.rol) {
-        "admin"  -> s.rolAdmin
+        "admin" -> s.rolAdmin
         "cocina" -> s.rolCocina
-        else     -> s.rolCamarero
+        else -> s.rolCamarero
     }
     val initials = iniciales(trabajador.nombre)
 
     Surface(
-        onClick    = onClick,
-        modifier   = Modifier.fillMaxWidth().aspectRatio(1f),
-        shape      = RoundedCornerShape(18.dp),
-        color      = MaterialTheme.colorScheme.surface,
-        border     = androidx.compose.foundation.BorderStroke(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f),
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = androidx.compose.foundation.BorderStroke(
             1.dp, MaterialTheme.colorScheme.outlineVariant
         ),
         shadowElevation = 2.dp
@@ -851,23 +980,23 @@ fun TrabajadorCard(trabajador: Trabajador, onClick: () -> Unit) {
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text      = initials,
-                    color     = Color.White,
-                    fontSize  = 18.sp,
+                    text = initials,
+                    color = Color.White,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
             Spacer(Modifier.height(10.dp))
             Text(
-                text       = trabajador.nombre,
-                style      = MaterialTheme.typography.labelLarge,
+                text = trabajador.nombre,
+                style = MaterialTheme.typography.labelLarge,
                 fontWeight = FontWeight.SemiBold,
-                textAlign  = TextAlign.Center,
-                maxLines   = 2,
-                color      = MaterialTheme.colorScheme.onSurface
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
-                text  = rolTexto,
+                text = rolTexto,
                 style = MaterialTheme.typography.labelSmall,
                 color = accentColor,
                 textAlign = TextAlign.Center

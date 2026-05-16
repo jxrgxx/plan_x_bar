@@ -31,8 +31,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val settingsVm: SettingsViewModel = viewModel()
-            val darkMode  by settingsVm.darkMode.collectAsState()
-            val language  by settingsVm.language.collectAsState()
+            val darkMode by settingsVm.darkMode.collectAsState()
+            val language by settingsVm.language.collectAsState()
 
             Plan_BarTheme(darkTheme = darkMode, language = language) {
                 Surface(

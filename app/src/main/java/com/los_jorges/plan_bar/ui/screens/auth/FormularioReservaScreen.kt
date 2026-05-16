@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.los_jorges.plan_bar.model.RestauranteItem
 import com.los_jorges.plan_bar.viewmodel.ReservasViewModel
+import com.los_jorges.plan_bar.ui.theme.LocalStrings
 import java.util.Calendar
 import java.util.TimeZone
 
@@ -30,6 +31,7 @@ fun FormularioReservaScreen(
     onBack: () -> Unit,
     vm: ReservasViewModel = viewModel()
 ) {
+    val s = LocalStrings.current
     val restaurantes by vm.restaurantes.collectAsState()
     val loading by vm.loading.collectAsState()
 
@@ -66,7 +68,7 @@ fun FormularioReservaScreen(
                 Calendar.YEAR
             )
         }"
-    } ?: "Selecciona una fecha"
+    } ?: s.seleccionaUnaFecha
 
     val horaMostrada = "%02d:%02d".format(timePickerState.hour, timePickerState.minute)
 
@@ -84,7 +86,7 @@ fun FormularioReservaScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Hacer una reserva") },
+                title = { Text(s.hacerUnaReserva) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -107,7 +109,7 @@ fun FormularioReservaScreen(
             Spacer(Modifier.height(4.dp))
 
             Text(
-                "Datos de la reserva",
+                s.datosDelaReserva,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -120,18 +122,18 @@ fun FormularioReservaScreen(
                     value = restauranteSeleccionado?.nombre ?: "",
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("Restaurante *") },
+                    label = { Text(s.restauranteRequerido) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(restauranteExpanded) },
                     modifier = Modifier
                         .fillMaxWidth()
                         .menuAnchor(),
-                    placeholder = { Text("Selecciona un restaurante") }
+                    placeholder = { Text(s.seleccionaUnRestaurante) }
                 )
                 ExposedDropdownMenu(
                     expanded = restauranteExpanded,
                     onDismissRequest = { restauranteExpanded = false }) {
                     if (restaurantes.isEmpty()) {
-                        DropdownMenuItem(text = { Text("Cargando…") }, onClick = {})
+                        DropdownMenuItem(text = { Text(s.cargando) }, onClick = {})
                     } else {
                         restaurantes.forEach { r ->
                             DropdownMenuItem(
@@ -157,31 +159,34 @@ fun FormularioReservaScreen(
 
             HorizontalDivider()
             Text(
-                "Tus datos",
+                s.tusDatos,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
 
             OutlinedTextField(
-                value = nombre, onValueChange = { nombre = it },
-                label = { Text("Nombre *") }, singleLine = true, modifier = Modifier.fillMaxWidth()
+                value = nombre,
+                onValueChange = { nombre = it },
+                label = { Text(s.nombreRequerido) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = telefono, onValueChange = { telefono = it },
-                label = { Text("Teléfono *") }, singleLine = true,
+                label = { Text(s.telefonoRequerido) }, singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
                 modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
                 value = correo, onValueChange = { correo = it },
-                label = { Text("Email (opcional)") }, singleLine = true,
+                label = { Text(s.emailOpcional) }, singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth()
             )
 
             HorizontalDivider()
             Text(
-                "Detalles",
+                s.detallesReserva,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -206,15 +211,15 @@ fun FormularioReservaScreen(
 
             OutlinedTextField(
                 value = personas, onValueChange = { personas = it.filter { c -> c.isDigit() } },
-                label = { Text("Número de personas *") }, singleLine = true,
+                label = { Text(s.numeroPersonasRequerido) }, singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
                 value = notas, onValueChange = { notas = it },
-                label = { Text("Observaciones (opcional)") },
-                placeholder = { Text("Alergias, ocasión especial…") },
+                label = { Text(s.observacionesOpcionales) },
+                placeholder = { Text(s.alergiasPlaceholder) },
                 modifier = Modifier.fillMaxWidth(), maxLines = 4
             )
 
@@ -231,11 +236,11 @@ fun FormularioReservaScreen(
                     val r = restauranteSeleccionado
                     val p = personas.toIntOrNull() ?: 0
                     when {
-                        r == null -> errorMsg = "Selecciona un restaurante"
-                        nombre.isBlank() -> errorMsg = "Introduce tu nombre"
-                        telefono.isBlank() -> errorMsg = "Introduce un teléfono"
-                        fechaISO.isBlank() -> errorMsg = "Selecciona una fecha"
-                        p < 1 -> errorMsg = "Indica el número de personas"
+                        r == null -> errorMsg = s.seleccionaUnRestaurante
+                        nombre.isBlank() -> errorMsg = s.introduceTuNombre
+                        telefono.isBlank() -> errorMsg = s.introduceTelefono
+                        fechaISO.isBlank() -> errorMsg = s.seleccionaUnaFecha
+                        p < 1 -> errorMsg = s.indicaNumeroPersonas
                         else -> vm.crear(
                             r.id,
                             nombre,
@@ -247,7 +252,7 @@ fun FormularioReservaScreen(
                             notas
                         ) { ok, err, codigo ->
                             if (ok) codigoConfirmacion = codigo
-                            else errorMsg = err ?: "Error al crear la reserva"
+                            else errorMsg = err ?: s.errorAlCrearReserva
                         }
                     }
                 },
@@ -261,7 +266,7 @@ fun FormularioReservaScreen(
                     strokeWidth = 2.dp,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
-                else Text("Solicitar reserva", fontWeight = FontWeight.Bold)
+                else Text(s.solicitarReserva, fontWeight = FontWeight.Bold)
             }
 
             Spacer(Modifier.height(16.dp))
@@ -272,10 +277,10 @@ fun FormularioReservaScreen(
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Aceptar") }
+                TextButton(onClick = { showDatePicker = false }) { Text(s.aceptar) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Cancelar") }
+                TextButton(onClick = { showDatePicker = false }) { Text(s.cancelar) }
             }
         ) {
             DatePicker(state = datePickerState)
@@ -285,17 +290,17 @@ fun FormularioReservaScreen(
     if (showTimePicker) {
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
-            title = { Text("Selecciona la hora") },
+            title = { Text(s.seleccionarLaHora) },
             text = {
                 Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     TimePicker(state = timePickerState)
                 }
             },
             confirmButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Aceptar") }
+                TextButton(onClick = { showTimePicker = false }) { Text(s.aceptar) }
             },
             dismissButton = {
-                TextButton(onClick = { showTimePicker = false }) { Text("Cancelar") }
+                TextButton(onClick = { showTimePicker = false }) { Text(s.cancelar) }
             }
         )
     }
@@ -303,6 +308,7 @@ fun FormularioReservaScreen(
 
 @Composable
 private fun ConfirmacionReserva(codigo: String, onBack: () -> Unit) {
+    val s = LocalStrings.current
     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -314,11 +320,11 @@ private fun ConfirmacionReserva(codigo: String, onBack: () -> Unit) {
                 modifier = Modifier.size(72.dp), tint = Color(0xFF43A047)
             )
             Text(
-                "¡Reserva solicitada!", style = MaterialTheme.typography.headlineSmall,
+                s.reservaSolicitada, style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold, textAlign = TextAlign.Center
             )
             Text(
-                "Tu código de reserva es:", style = MaterialTheme.typography.bodyMedium,
+                s.tuCodigoDeReserva, style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.outline, textAlign = TextAlign.Center
             )
             Surface(
@@ -332,7 +338,7 @@ private fun ConfirmacionReserva(codigo: String, onBack: () -> Unit) {
                 )
             }
             Text(
-                "Guárdalo, te lo pedirán al llegar.",
+                s.guardaloTeLoPediran,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.outline, textAlign = TextAlign.Center
             )
@@ -340,7 +346,7 @@ private fun ConfirmacionReserva(codigo: String, onBack: () -> Unit) {
             Button(
                 onClick = onBack,
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Volver al inicio") }
+            ) { Text(s.volverAlInicio) }
         }
     }
 }

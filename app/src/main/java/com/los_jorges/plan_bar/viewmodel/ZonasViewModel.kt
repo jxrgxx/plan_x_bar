@@ -56,10 +56,10 @@ class ZonasViewModel : ViewModel() {
                     "restaurante_id" to restauranteId,
                     "zonas" to zonas.map { z ->
                         mapOf(
-                            "id"     to z.id,
-                            "clave"  to z.clave,
+                            "id" to z.id,
+                            "clave" to z.clave,
                             "nombre" to z.nombre,
-                            "orden"  to z.orden,
+                            "orden" to z.orden,
                             "activo" to z.activo
                         )
                     }

@@ -35,14 +35,31 @@ sealed class AuthState {
     data class Error(val mensaje: String) : AuthState()
 }
 
+data class AuthErrorMessages(
+    val rellenaTodosLosCampos: String = "Rellena todos los campos",
+    val rellenaCamposObligatorios: String = "Rellena todos los campos obligatorios",
+    val soloAdministradores: String = "Solo los administradores pueden acceder aquí",
+    val emailOContrasenaIncorrectos: String = "Email o contraseña incorrectos",
+    val errorDeConexionRevisa: String = "Error de conexión. Revisa el internet",
+    val trabajadorNoPertenece: String = "Este trabajador no pertenece a este restaurante",
+    val usaAccesoAdmin: String = "Usa el acceso de administrador para entrar como admin",
+    val errorDeConexion: String = "Error de conexión",
+    val introduceContrasena: String = "Introduce la contraseña",
+    val contrasenaAdminIncorrecta: String = "Contraseña de administrador incorrecta",
+    val introducePin: String = "Introduce tu PIN",
+    val pinIncorrecto: String = "PIN incorrecto",
+    val pinDebeTener4Digitos: String = "El PIN debe tener 4 dígitos",
+    val errorGuardarPin: String = "Error al guardar el PIN"
+)
+
 class AuthViewModel : ViewModel() {
 
     private val _state = MutableStateFlow<AuthState>(AuthState.Idle)
     val state: StateFlow<AuthState> = _state
 
-    fun login(email: String, password: String) {
+    fun login(email: String, password: String, msgs: AuthErrorMessages = AuthErrorMessages()) {
         if (email.isBlank() || password.isBlank()) {
-            _state.value = AuthState.Error("Rellena todos los campos")
+            _state.value = AuthState.Error(msgs.rellenaTodosLosCampos)
             return
         }
         _state.value = AuthState.Loading
@@ -59,27 +76,25 @@ class AuthViewModel : ViewModel() {
                 if (response.isSuccessful && response.body()?.success == true) {
                     val trabajador = response.body()!!.trabajador!!
                     if (trabajador.rol != "admin") {
-                        _state.value =
-                            AuthState.Error("Solo los administradores pueden acceder aquí")
+                        _state.value = AuthState.Error(msgs.soloAdministradores)
                         return@launch
                     }
                     SessionManager.loginAdmin(trabajador)
-                    // Cargar zonas en background para que estén disponibles al entrar al panel
                     launch { cargarZonasEnBackground(trabajador.restaurante_id) }
                     _state.value = AuthState.Success(trabajador)
                 } else {
-                    _state.value = AuthState.Error("Email o contraseña incorrectos")
+                    _state.value = AuthState.Error(msgs.emailOContrasenaIncorrectos)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "LOGIN: excepcion", e)
-                _state.value = AuthState.Error("Error de conexión. Revisa el internet")
+                _state.value = AuthState.Error(msgs.errorDeConexionRevisa)
             }
         }
     }
 
-    fun loginTrabajador(email: String, password: String, onSuccess: (Trabajador) -> Unit) {
+    fun loginTrabajador(email: String, password: String, onSuccess: (Trabajador) -> Unit, msgs: AuthErrorMessages = AuthErrorMessages()) {
         if (email.isBlank() || password.isBlank()) {
-            _state.value = AuthState.Error("Rellena todos los campos")
+            _state.value = AuthState.Error(msgs.rellenaTodosLosCampos)
             return
         }
         _state.value = AuthState.Loading
@@ -90,35 +105,32 @@ class AuthViewModel : ViewModel() {
                 if (response.isSuccessful && response.body()?.success == true) {
                     val trabajador = response.body()!!.trabajador!!
                     if (trabajador.restaurante_id != SessionManager.restauranteId) {
-                        _state.value =
-                            AuthState.Error("Este trabajador no pertenece a este restaurante")
+                        _state.value = AuthState.Error(msgs.trabajadorNoPertenece)
                         return@launch
                     }
                     if (trabajador.rol == "admin") {
-                        _state.value =
-                            AuthState.Error("Usa el acceso de administrador para entrar como admin")
+                        _state.value = AuthState.Error(msgs.usaAccesoAdmin)
                         return@launch
                     }
                     SessionManager.seleccionarTrabajador(trabajador)
-                    // Si las zonas aún no están cargadas, cargarlas ahora
                     if (!SessionManager.zonasDBCargadas) {
                         launch { cargarZonasEnBackground(trabajador.restaurante_id) }
                     }
                     _state.value = AuthState.Idle
                     onSuccess(trabajador)
                 } else {
-                    _state.value = AuthState.Error("Email o contraseña incorrectos")
+                    _state.value = AuthState.Error(msgs.emailOContrasenaIncorrectos)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "LOGIN_TRABAJADOR: excepcion", e)
-                _state.value = AuthState.Error("Error de conexión")
+                _state.value = AuthState.Error(msgs.errorDeConexion)
             }
         }
     }
 
-    fun verificarAdmin(password: String, onSuccess: () -> Unit) {
+    fun verificarAdmin(password: String, onSuccess: () -> Unit, msgs: AuthErrorMessages = AuthErrorMessages()) {
         if (password.isBlank()) {
-            _state.value = AuthState.Error("Introduce la contraseña")
+            _state.value = AuthState.Error(msgs.introduceContrasena)
             return
         }
         _state.value = AuthState.Loading
@@ -131,11 +143,11 @@ class AuthViewModel : ViewModel() {
                     _state.value = AuthState.Idle
                     onSuccess()
                 } else {
-                    _state.value = AuthState.Error("Contraseña de administrador incorrecta")
+                    _state.value = AuthState.Error(msgs.contrasenaAdminIncorrecta)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "VERIFICAR_ADMIN: excepcion", e)
-                _state.value = AuthState.Error("Error de conexión")
+                _state.value = AuthState.Error(msgs.errorDeConexion)
             }
         }
     }
@@ -143,12 +155,13 @@ class AuthViewModel : ViewModel() {
     fun registrarRestaurante(
         nombre: String, email: String, direccion: String, telefono: String,
         adminNombre: String, adminEmail: String, adminPassword: String,
-        onSuccess: () -> Unit
+        onSuccess: () -> Unit,
+        msgs: AuthErrorMessages = AuthErrorMessages()
     ) {
         if (nombre.isBlank() || email.isBlank() || adminNombre.isBlank() ||
             adminEmail.isBlank() || adminPassword.isBlank()
         ) {
-            _state.value = AuthState.Error("Rellena todos los campos obligatorios")
+            _state.value = AuthState.Error(msgs.rellenaCamposObligatorios)
             return
         }
         _state.value = AuthState.Loading
@@ -186,9 +199,9 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun verificarPin(trabajadorId: Int, pin: String, onSuccess: () -> Unit) {
+    fun verificarPin(trabajadorId: Int, pin: String, onSuccess: () -> Unit, msgs: AuthErrorMessages = AuthErrorMessages()) {
         if (pin.isBlank()) {
-            _state.value = AuthState.Error("Introduce tu PIN")
+            _state.value = AuthState.Error(msgs.introducePin)
             return
         }
         _state.value = AuthState.Loading
@@ -201,19 +214,19 @@ class AuthViewModel : ViewModel() {
                     _state.value = AuthState.Idle
                     onSuccess()
                 } else {
-                    val msg = response.body()?.error ?: "PIN incorrecto"
+                    val msg = response.body()?.error ?: msgs.pinIncorrecto
                     _state.value = AuthState.Error(msg)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "VERIFICAR_PIN: excepcion", e)
-                _state.value = AuthState.Error("Error de conexión")
+                _state.value = AuthState.Error(msgs.errorDeConexion)
             }
         }
     }
 
-    fun setPin(trabajadorId: Int, pin: String, onSuccess: () -> Unit) {
+    fun setPin(trabajadorId: Int, pin: String, onSuccess: () -> Unit, msgs: AuthErrorMessages = AuthErrorMessages()) {
         if (pin.length != 4) {
-            _state.value = AuthState.Error("El PIN debe tener 4 dígitos")
+            _state.value = AuthState.Error(msgs.pinDebeTener4Digitos)
             return
         }
         _state.value = AuthState.Loading
@@ -226,12 +239,12 @@ class AuthViewModel : ViewModel() {
                     _state.value = AuthState.Idle
                     onSuccess()
                 } else {
-                    val msg = response.body()?.error ?: "Error al guardar el PIN"
+                    val msg = response.body()?.error ?: msgs.errorGuardarPin
                     _state.value = AuthState.Error(msg)
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "SET_PIN: excepcion", e)
-                _state.value = AuthState.Error("Error de conexión")
+                _state.value = AuthState.Error(msgs.errorDeConexion)
             }
         }
     }

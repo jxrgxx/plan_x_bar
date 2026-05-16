@@ -86,7 +86,7 @@ fun NavGraph(navController: NavHostController) {
                     }
                 },
                 onGoToRegister = { navController.navigate(Routes.REGISTER) },
-                onGoToAjustes  = { navController.navigate(Routes.AJUSTES) }
+                onGoToAjustes = { navController.navigate(Routes.AJUSTES) }
             )
         }
 

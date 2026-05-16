@@ -13,13 +13,13 @@ import kotlinx.coroutines.launch
 
 class MenuDiaViewModel : ViewModel() {
 
-    private val _menu    = MutableStateFlow<MenuDia?>(null)
+    private val _menu = MutableStateFlow<MenuDia?>(null)
     val menu: StateFlow<MenuDia?> = _menu
 
     private val _loading = MutableStateFlow(false)
     val loading: StateFlow<Boolean> = _loading
 
-    private val _error   = MutableStateFlow<String?>(null)
+    private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
     /** Mapa producto_id → unidades ya usadas en pedidos activos de todos los camareros */
@@ -35,7 +35,8 @@ class MenuDiaViewModel : ViewModel() {
                         ?.associate { it.producto_id to it.usado }
                         ?: emptyMap()
                 }
-            } catch (_: Exception) {}
+            } catch (_: Exception) {
+            }
         }
     }
 
@@ -65,9 +66,9 @@ class MenuDiaViewModel : ViewModel() {
             try {
                 val request = GuardarMenuDiaRequest(
                     restaurante_id = restauranteId,
-                    precio         = precio,
-                    activo         = true,
-                    lineas         = lineas
+                    precio = precio,
+                    activo = true,
+                    lineas = lineas
                 )
                 val r = RetrofitClient.api.guardarMenuDia(request)
                 if (r.isSuccessful && r.body()?.success == true) {
@@ -82,5 +83,7 @@ class MenuDiaViewModel : ViewModel() {
         }
     }
 
-    fun clearError() { _error.value = null }
+    fun clearError() {
+        _error.value = null
+    }
 }

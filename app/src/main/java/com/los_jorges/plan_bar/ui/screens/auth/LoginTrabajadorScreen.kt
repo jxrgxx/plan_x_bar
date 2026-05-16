@@ -14,8 +14,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.los_jorges.plan_bar.model.Trabajador
+import com.los_jorges.plan_bar.viewmodel.AuthErrorMessages
 import com.los_jorges.plan_bar.viewmodel.AuthState
 import com.los_jorges.plan_bar.viewmodel.AuthViewModel
+import com.los_jorges.plan_bar.ui.theme.LocalStrings
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -24,6 +26,7 @@ fun LoginTrabajadorScreen(
     onLoginSuccess: (Trabajador) -> Unit,
     onBack: () -> Unit
 ) {
+    val s = LocalStrings.current
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     val state by viewModel.state.collectAsState()
@@ -33,7 +36,7 @@ fun LoginTrabajadorScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Acceso trabajador") },
+                title = { Text(s.accesoTrabajador) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -53,9 +56,9 @@ fun LoginTrabajadorScreen(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Iniciar sesión", fontSize = 24.sp, style = MaterialTheme.typography.headlineSmall)
+            Text(s.iniciarSesion, fontSize = 24.sp, style = MaterialTheme.typography.headlineSmall)
             Text(
-                "Solo camareros y cocina",
+                s.soloCamareros,
                 fontSize = 13.sp,
                 color = MaterialTheme.colorScheme.outline
             )
@@ -64,14 +67,14 @@ fun LoginTrabajadorScreen(
 
             OutlinedTextField(
                 value = email, onValueChange = { email = it },
-                label = { Text("Email") }, singleLine = true,
+                label = { Text(s.emailLabel) }, singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 modifier = Modifier.fillMaxWidth()
             )
             Spacer(Modifier.height(12.dp))
             OutlinedTextField(
                 value = password, onValueChange = { password = it },
-                label = { Text("Contraseña") }, singleLine = true,
+                label = { Text(s.contrasena) }, singleLine = true,
                 visualTransformation = PasswordVisualTransformation(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                 modifier = Modifier.fillMaxWidth()
@@ -92,7 +95,13 @@ fun LoginTrabajadorScreen(
             Spacer(Modifier.height(20.dp))
 
             Button(
-                onClick = { viewModel.loginTrabajador(email, password, onLoginSuccess) },
+                onClick = { viewModel.loginTrabajador(email, password, onLoginSuccess, AuthErrorMessages(
+                    rellenaTodosLosCampos = s.rellenaTodosLosCampos,
+                    trabajadorNoPertenece = s.trabajadorNoPertenece,
+                    usaAccesoAdmin = s.usaAccesoAdmin,
+                    emailOContrasenaIncorrectos = s.emailOContrasenaIncorrectos,
+                    errorDeConexion = s.errorDeConexion
+                )) },
                 enabled = state !is AuthState.Loading,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -105,7 +114,7 @@ fun LoginTrabajadorScreen(
                         modifier = Modifier.size(22.dp)
                     )
                 } else {
-                    Text("Entrar")
+                    Text(s.entrar)
                 }
             }
         }

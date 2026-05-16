@@ -40,12 +40,28 @@ private data class CursoConfig(
     val icon: ImageVector
 )
 
-private val CURSOS_CONFIG = listOf(
-    CursoConfig("bebida",  "Bebida",  "bebida",  Color(0xFF06B6D4), Icons.Default.LocalBar),
-    CursoConfig("primero", "Primero", "primero", Color(0xFFF4A261), Icons.Default.DinnerDining),
-    CursoConfig("segundo", "Segundo", "segundo", Color(0xFFD4A853), Icons.Default.Restaurant),
-    CursoConfig("postre",  "Postre",  "postre",  Color(0xFF8B7AE8), Icons.Default.Cake)
-)
+@Composable
+private fun cursosConfig(): List<CursoConfig> {
+    val s = LocalStrings.current
+    return listOf(
+        CursoConfig("bebida", s.cursoBebida, "bebida", Color(0xFF06B6D4), Icons.Default.LocalBar),
+        CursoConfig(
+            "primero",
+            s.cursoPrimero,
+            "primero",
+            Color(0xFFF4A261),
+            Icons.Default.DinnerDining
+        ),
+        CursoConfig(
+            "segundo",
+            s.cursoSegundo,
+            "segundo",
+            Color(0xFFD4A853),
+            Icons.Default.Restaurant
+        ),
+        CursoConfig("postre", s.cursoPostre, "postre", Color(0xFF8B7AE8), Icons.Default.Cake)
+    )
+}
 
 private data class LineaLocal(
     val producto_id: Int,
@@ -61,14 +77,15 @@ fun MenuDiaAdminScreen(
     restauranteId: Int,
     onBack: () -> Unit
 ) {
-    val menuVm: MenuDiaViewModel    = viewModel()
+    val menuVm: MenuDiaViewModel = viewModel()
     val productosVm: ProductosViewModel = viewModel()
 
-    val menu     by menuVm.menu.collectAsState()
-    val loading  by menuVm.loading.collectAsState()
+    val menu by menuVm.menu.collectAsState()
+    val loading by menuVm.loading.collectAsState()
     val productos by productosVm.productos.collectAsState()
 
     val s = LocalStrings.current
+    val cursosConfig = cursosConfig()
     val snackbarHostState = remember { SnackbarHostState() }
     var snackMsg by remember { mutableStateOf<String?>(null) }
 
@@ -83,8 +100,8 @@ fun MenuDiaAdminScreen(
         snackMsg?.let { snackbarHostState.showSnackbar(it); snackMsg = null }
     }
 
-    var precioTexto  by remember { mutableStateOf("") }
-    val lineas       = remember { mutableStateListOf<LineaLocal>() }
+    var precioTexto by remember { mutableStateOf("") }
+    val lineas = remember { mutableStateListOf<LineaLocal>() }
     var inicializado by remember { mutableStateOf(false) }
 
     LaunchedEffect(menu, productos) {
@@ -96,10 +113,10 @@ fun MenuDiaAdminScreen(
                 lineas.add(
                     LineaLocal(
                         producto_id = l.producto_id,
-                        nombre      = l.nombre,
-                        precio      = prod?.precio ?: l.precio,
-                        curso       = l.curso,
-                        cantidad    = l.cantidad
+                        nombre = l.nombre,
+                        precio = prod?.precio ?: l.precio,
+                        curso = l.curso,
+                        cantidad = l.cantidad
                     )
                 )
             }
@@ -111,16 +128,16 @@ fun MenuDiaAdminScreen(
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
-        snackbarHost   = { SnackbarHost(snackbarHostState) },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
                     Column {
                         Text(
                             s.menuDelDia,
-                            style      = MaterialTheme.typography.titleMedium,
+                            style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
-                            color      = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             s.configurarOfertaHoy,
@@ -131,8 +148,10 @@ fun MenuDiaAdminScreen(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Icon(
+                            Icons.AutoMirrored.Filled.ArrowBack, null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -151,23 +170,33 @@ fun MenuDiaAdminScreen(
                     if (loading) return@ExtendedFloatingActionButton
                     menuVm.guardar(
                         restauranteId = restauranteId,
-                        precio        = precio,
-                        lineas        = lineas.map { MenuDiaLineaRequest(it.producto_id, it.curso, it.cantidad) }
+                        precio = precio,
+                        lineas = lineas.map {
+                            MenuDiaLineaRequest(
+                                it.producto_id,
+                                it.curso,
+                                it.cantidad
+                            )
+                        }
                     ) { ok, err ->
                         snackMsg = if (ok) s.menuGuardado else err ?: s.errorAlGuardar
-                        if (ok) { inicializado = false; menuVm.cargar(restauranteId) }
+                        if (ok) {
+                            inicializado = false; menuVm.cargar(restauranteId)
+                        }
                     }
                 },
-                icon        = { Icon(Icons.Default.Check, null) },
-                text        = { Text(s.guardarMenu, fontWeight = FontWeight.SemiBold) },
+                icon = { Icon(Icons.Default.Check, null) },
+                text = { Text(s.guardarMenu, fontWeight = FontWeight.SemiBold) },
                 containerColor = MaterialTheme.colorScheme.primary,
-                contentColor   = MaterialTheme.colorScheme.onPrimary
+                contentColor = MaterialTheme.colorScheme.onPrimary
             )
         }
     ) { padding ->
 
         if (loading && menu == null && productos.isEmpty()) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+            Box(Modifier
+                .fillMaxSize()
+                .padding(padding), contentAlignment = Alignment.Center) {
                 CircularProgressIndicator(color = Color(0xFFF4A261))
             }
             return@Scaffold
@@ -183,8 +212,8 @@ fun MenuDiaAdminScreen(
         ) {
             // ── Precio del menú ───────────────────────────────────────────────
             Surface(
-                shape  = RoundedCornerShape(16.dp),
-                color  = MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surface,
                 border = androidx.compose.foundation.BorderStroke(
                     1.dp, MaterialTheme.colorScheme.outlineVariant
                 ),
@@ -200,21 +229,27 @@ fun MenuDiaAdminScreen(
                             .size(44.dp)
                             .clip(RoundedCornerShape(12.dp))
                             .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f))
-                            .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f), RoundedCornerShape(12.dp)),
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.25f),
+                                RoundedCornerShape(12.dp)
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.Euro, null,
-                            tint     = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(20.dp))
+                        Icon(
+                            Icons.Default.Euro, null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                     OutlinedTextField(
-                        value         = precioTexto,
+                        value = precioTexto,
                         onValueChange = { precioTexto = it.replace(',', '.') },
-                        label         = { Text(s.precioDelMenu) },
-                        singleLine    = true,
+                        label = { Text(s.precioDelMenu) },
+                        singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier      = Modifier.weight(1f),
-                        shape         = RoundedCornerShape(12.dp)
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(12.dp)
                     )
                 }
             }
@@ -222,21 +257,23 @@ fun MenuDiaAdminScreen(
             Spacer(Modifier.height(4.dp))
 
             // ── Secciones por curso ───────────────────────────────────────────
-            CURSOS_CONFIG.forEach { config ->
-                val lineasCurso       = lineas.filter { it.curso == config.key }
-                val prodDisponibles   = productos.filter { it.categoria == config.categoria && it.disponible }
-                val prodNoAñadidos    = prodDisponibles.filter { p -> lineasCurso.none { l -> l.producto_id == p.id } }
+            cursosConfig.forEach { config ->
+                val lineasCurso = lineas.filter { it.curso == config.key }
+                val prodDisponibles =
+                    productos.filter { it.categoria == config.categoria && it.disponible }
+                val prodNoAñadidos =
+                    prodDisponibles.filter { p -> lineasCurso.none { l -> l.producto_id == p.id } }
 
                 CursoSection(
-                    config       = config,
-                    lineas       = lineasCurso,
+                    config = config,
+                    lineas = lineasCurso,
                     hayProductos = prodDisponibles.isNotEmpty(),
                     onCantidadCambia = { linea, nueva ->
                         val idx = lineas.indexOf(linea)
                         if (idx >= 0) lineas[idx] = linea.copy(cantidad = nueva)
                     },
                     onEliminar = { lineas.remove(it) },
-                    onAñadir   = {
+                    onAñadir = {
                         if (prodNoAñadidos.isNotEmpty()) cursoDialogo = config
                         else snackMsg = s.noHayMasProductosCat
                     }
@@ -249,21 +286,22 @@ fun MenuDiaAdminScreen(
 
     cursoDialogo?.let { config ->
         val prodDisponibles = productos.filter { it.categoria == config.categoria && it.disponible }
-        val prodNoAñadidos  = prodDisponibles.filter { p -> lineas.none { it.curso == config.key && it.producto_id == p.id } }
+        val prodNoAñadidos =
+            prodDisponibles.filter { p -> lineas.none { it.curso == config.key && it.producto_id == p.id } }
 
         AñadirProductoDialog(
             cursoLabel = config.label,
-            opciones   = prodNoAñadidos,
+            opciones = prodNoAñadidos,
             accentColor = config.color,
-            onDismiss  = { cursoDialogo = null },
-            onConfirm  = { producto, cantidad ->
+            onDismiss = { cursoDialogo = null },
+            onConfirm = { producto, cantidad ->
                 lineas.add(
                     LineaLocal(
                         producto_id = producto.id,
-                        nombre      = producto.nombre,
-                        precio      = producto.precio,
-                        curso       = config.key,
-                        cantidad    = cantidad
+                        nombre = producto.nombre,
+                        precio = producto.precio,
+                        curso = config.key,
+                        cantidad = cantidad
                     )
                 )
                 cursoDialogo = null
@@ -285,8 +323,8 @@ private fun CursoSection(
 ) {
     val s = LocalStrings.current
     Surface(
-        shape  = RoundedCornerShape(16.dp),
-        color  = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(16.dp),
+        color = MaterialTheme.colorScheme.surface,
         border = androidx.compose.foundation.BorderStroke(
             1.dp, MaterialTheme.colorScheme.outlineVariant
         ),
@@ -314,17 +352,21 @@ private fun CursoSection(
                 }
                 Text(
                     config.label,
-                    style      = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold,
-                    color      = MaterialTheme.colorScheme.onSurface,
-                    modifier   = Modifier.weight(1f)
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.weight(1f)
                 )
                 if (hayProductos) {
                     FilledTonalIconButton(
-                        onClick  = onAñadir,
+                        onClick = onAñadir,
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Add, "${s.anadir} ${config.label}", modifier = Modifier.size(16.dp))
+                        Icon(
+                            Icons.Default.Add,
+                            "${s.anadir} ${config.label}",
+                            modifier = Modifier.size(16.dp)
+                        )
                     }
                 }
             }
@@ -341,10 +383,10 @@ private fun CursoSection(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 lineas.forEach { linea ->
                     LineaItem(
-                        linea            = linea,
-                        accentColor      = config.color,
+                        linea = linea,
+                        accentColor = config.color,
                         onCantidadCambia = { nueva -> onCantidadCambia(linea, nueva) },
-                        onEliminar       = { onEliminar(linea) }
+                        onEliminar = { onEliminar(linea) }
                     )
                 }
             }
@@ -367,16 +409,18 @@ private fun LineaItem(
     }
 
     Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 linea.nombre,
-                style      = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color      = MaterialTheme.colorScheme.onSurface
+                color = MaterialTheme.colorScheme.onSurface
             )
             Text(
                 "%.2f €".format(linea.precio),
@@ -386,25 +430,27 @@ private fun LineaItem(
         }
 
         OutlinedTextField(
-            value       = cantidadTexto,
+            value = cantidadTexto,
             onValueChange = { v ->
                 // Permite "-1" para sin límite, o cualquier número positivo
                 val filtrado = v.filter { it.isDigit() || it == '-' }.take(4)
                 cantidadTexto = filtrado
                 onCantidadCambia(filtrado.toIntOrNull() ?: -1)
             },
-            label       = { Text(s.udsLabel, style = MaterialTheme.typography.labelSmall) },
+            label = { Text(s.udsLabel, style = MaterialTheme.typography.labelSmall) },
             placeholder = { Text("∞") },
-            singleLine  = true,
+            singleLine = true,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-            modifier    = Modifier.width(82.dp),
-            shape       = RoundedCornerShape(10.dp)
+            modifier = Modifier.width(82.dp),
+            shape = RoundedCornerShape(10.dp)
         )
 
         IconButton(onClick = onEliminar, modifier = Modifier.size(36.dp)) {
-            Icon(Icons.Default.Delete, s.quitar,
-                tint     = MaterialTheme.colorScheme.error,
-                modifier = Modifier.size(18.dp))
+            Icon(
+                Icons.Default.Delete, s.quitar,
+                tint = MaterialTheme.colorScheme.error,
+                modifier = Modifier.size(18.dp)
+            )
         }
     }
 }
@@ -422,32 +468,47 @@ private fun AñadirProductoDialog(
 ) {
     val s = LocalStrings.current
     var productoSeleccionado by remember { mutableStateOf<Producto?>(opciones.firstOrNull()) }
-    var cantidadTexto        by remember { mutableStateOf("") }
-    var expanded             by remember { mutableStateOf(false) }
+    var cantidadTexto by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape    = RoundedCornerShape(24.dp),
-            color    = MaterialTheme.colorScheme.surface,
-            border   = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            shape = RoundedCornerShape(24.dp),
+            color = MaterialTheme.colorScheme.surface,
+            border = androidx.compose.foundation.BorderStroke(
+                1.dp,
+                MaterialTheme.colorScheme.outlineVariant
+            ),
             modifier = Modifier.fillMaxWidth()
         ) {
             Column {
                 // ── Cabecera ──────────────────────────────────────────────
                 Row(
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier
+                        .fillMaxWidth()
                         .background(accentColor.copy(alpha = 0.07f))
                         .padding(18.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Box(
-                        modifier = Modifier.size(44.dp).clip(RoundedCornerShape(12.dp))
+                        modifier = Modifier
+                            .size(44.dp)
+                            .clip(RoundedCornerShape(12.dp))
                             .background(accentColor.copy(alpha = 0.15f))
-                            .border(1.dp, accentColor.copy(alpha = 0.30f), RoundedCornerShape(12.dp)),
+                            .border(
+                                1.dp,
+                                accentColor.copy(alpha = 0.30f),
+                                RoundedCornerShape(12.dp)
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.AddCircleOutline, null, tint = accentColor, modifier = Modifier.size(22.dp))
+                        Icon(
+                            Icons.Default.AddCircleOutline,
+                            null,
+                            tint = accentColor,
+                            modifier = Modifier.size(22.dp)
+                        )
                     }
                     Column {
                         Text(
@@ -471,26 +532,43 @@ private fun AñadirProductoDialog(
                     modifier = Modifier.padding(18.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = it }) {
                         OutlinedTextField(
                             value = productoSeleccionado?.nombre ?: "",
                             onValueChange = {}, readOnly = true,
                             label = { Text(s.productoLabel) },
-                            leadingIcon = { Icon(Icons.Default.Restaurant, null, tint = accentColor, modifier = Modifier.size(18.dp)) },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Restaurant,
+                                    null,
+                                    tint = accentColor,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                            modifier = Modifier.menuAnchor().fillMaxWidth(),
+                            modifier = Modifier
+                                .menuAnchor()
+                                .fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp), colors = premiumInputColors()
                         )
-                        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }) {
                             opciones.forEach { p ->
                                 DropdownMenuItem(
                                     text = {
-                                        Row(modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.SpaceBetween
+                                        ) {
                                             Text(p.nombre)
-                                            Text("%.2f €".format(p.precio),
+                                            Text(
+                                                "%.2f €".format(p.precio),
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = accentColor)
+                                                color = accentColor
+                                            )
                                         }
                                     },
                                     onClick = { productoSeleccionado = p; expanded = false }
@@ -501,31 +579,51 @@ private fun AñadirProductoDialog(
 
                     OutlinedTextField(
                         value = cantidadTexto,
-                        onValueChange = { cantidadTexto = it.filter { c -> c.isDigit() || c == '-' }.take(4) },
-                        label       = { Text(s.cantidadDisponible) },
+                        onValueChange = {
+                            cantidadTexto = it.filter { c -> c.isDigit() || c == '-' }.take(4)
+                        },
+                        label = { Text(s.cantidadDisponible) },
                         placeholder = { Text(s.dejarVacioSinLimite) },
-                        singleLine  = true,
-                        leadingIcon = { Icon(Icons.Default.Numbers, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp)) },
+                        singleLine = true,
+                        leadingIcon = {
+                            Icon(
+                                Icons.Default.Numbers,
+                                null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-                        modifier    = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(12.dp), colors = premiumInputColors()
                     )
 
                     Surface(
-                        shape  = RoundedCornerShape(10.dp),
-                        color  = accentColor.copy(alpha = 0.06f),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, accentColor.copy(alpha = 0.15f)),
+                        shape = RoundedCornerShape(10.dp),
+                        color = accentColor.copy(alpha = 0.06f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            accentColor.copy(alpha = 0.15f)
+                        ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
                             modifier = Modifier.padding(10.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Icon(Icons.Default.Info, null,
-                                tint = accentColor.copy(alpha = 0.7f), modifier = Modifier.size(14.dp).padding(top = 1.dp))
-                            Text(s.stockHint,
+                            Icon(
+                                Icons.Default.Info,
+                                null,
+                                tint = accentColor.copy(alpha = 0.7f),
+                                modifier = Modifier
+                                    .size(14.dp)
+                                    .padding(top = 1.dp)
+                            )
+                            Text(
+                                s.stockHint,
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
@@ -534,17 +632,26 @@ private fun AñadirProductoDialog(
 
                 // ── Acciones ──────────────────────────────────────────────
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
                 ) {
                     TextButton(onClick = onDismiss) { Text(s.cancelar) }
                     Button(
-                        onClick  = { productoSeleccionado?.let { onConfirm(it, cantidadTexto.toIntOrNull() ?: -1) } },
-                        enabled  = productoSeleccionado != null,
-                        shape    = RoundedCornerShape(10.dp),
-                        colors   = ButtonDefaults.buttonColors(
+                        onClick = {
+                            productoSeleccionado?.let {
+                                onConfirm(
+                                    it,
+                                    cantidadTexto.toIntOrNull() ?: -1
+                                )
+                            }
+                        },
+                        enabled = productoSeleccionado != null,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor   = MaterialTheme.colorScheme.onPrimary
+                            contentColor = MaterialTheme.colorScheme.onPrimary
                         )
                     ) {
                         Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
