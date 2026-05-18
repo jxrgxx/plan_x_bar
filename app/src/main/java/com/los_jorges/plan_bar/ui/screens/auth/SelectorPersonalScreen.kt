@@ -215,14 +215,16 @@ fun SelectorPersonalScreen(
             authState = authState,
             onDismiss = { showConfirmarCierre = false; authVm.resetState() },
             onConfirmar = { password ->
-                authVm.verificarAdmin(password, onSuccess = {
-                    showConfirmarCierre = false
-                    onCerrarSesionRestaurante()
-                }, msgs = AuthErrorMessages(
-                    introduceContrasena = s.introduceContrasena,
-                    contrasenaAdminIncorrecta = s.contrasenaAdminIncorrecta,
-                    errorDeConexion = s.errorDeConexion
-                ))
+                authVm.verificarAdmin(
+                    password, onSuccess = {
+                        showConfirmarCierre = false
+                        onCerrarSesionRestaurante()
+                    }, msgs = AuthErrorMessages(
+                        introduceContrasena = s.introduceContrasena,
+                        contrasenaAdminIncorrecta = s.contrasenaAdminIncorrecta,
+                        errorDeConexion = s.errorDeConexion
+                    )
+                )
             }
         )
     }

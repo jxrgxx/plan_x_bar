@@ -1,4 +1,5 @@
 <?php
+
 require_once '../config/db.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -6,7 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $body = getBody();
-$email    = trim($body['email'] ?? '');
+$email = trim($body['email'] ?? '');
 $password = trim($body['password'] ?? '');
 
 if (!$email || !$password) {

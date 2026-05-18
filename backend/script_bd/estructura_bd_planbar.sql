@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: pdb1037.awardspace.net
--- Tiempo de generación: 15-05-2026 a las 18:43:57
+-- Tiempo de generación: 18-05-2026 a las 07:46:46
 -- Versión del servidor: 8.0.32
 -- Versión de PHP: 8.1.34
 

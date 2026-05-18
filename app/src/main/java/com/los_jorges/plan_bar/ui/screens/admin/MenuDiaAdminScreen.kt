@@ -194,9 +194,11 @@ fun MenuDiaAdminScreen(
     ) { padding ->
 
         if (loading && menu == null && productos.isEmpty()) {
-            Box(Modifier
-                .fillMaxSize()
-                .padding(padding), contentAlignment = Alignment.Center) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding), contentAlignment = Alignment.Center
+            ) {
                 CircularProgressIndicator(color = Color(0xFFF4A261))
             }
             return@Scaffold

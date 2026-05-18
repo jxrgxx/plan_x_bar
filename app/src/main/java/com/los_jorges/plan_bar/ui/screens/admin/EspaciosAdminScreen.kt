@@ -132,9 +132,11 @@ fun EspaciosAdminScreen(
 
             // ── Indicador de carga ────────────────────────────────────────────
             if (loading && zonasDB.isEmpty()) {
-                Box(Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp), contentAlignment = Alignment.Center) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp), contentAlignment = Alignment.Center
+                ) {
                     CircularProgressIndicator(color = EspacioAccent)
                 }
                 return@Column

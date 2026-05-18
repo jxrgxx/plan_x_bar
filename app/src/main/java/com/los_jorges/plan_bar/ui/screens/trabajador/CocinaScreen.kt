@@ -1,10 +1,9 @@
 package com.los_jorges.plan_bar.ui.screens.trabajador
 
-import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaPlayer
-import android.media.RingtoneManager
 import android.media.ToneGenerator
+import com.los_jorges.plan_bar.R
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -90,30 +89,28 @@ fun CocinaScreen(
         vm.iniciarPollingCocina(restauranteId)
     }
 
-    // Sonido al detectar pedidos nuevos
-    // Usamos MutableSet normal (no state) para evitar recomposiciones y race conditions
-    val knownPedidoIds = remember { mutableSetOf<Int>() }
+    // Sonido al detectar productos nuevos (pedido nuevo o línea añadida a uno existente)
+    val knownProductoIds = remember { mutableSetOf<Int>() }
+    var primerPollHecho by remember { mutableStateOf(false) }
     LaunchedEffect(pedidosActivos) {
-        val currentIds = pedidosActivos.map { it.id }.toSet()
-        if (knownPedidoIds.isNotEmpty()) {
-            val nuevos = currentIds - knownPedidoIds
+        // Recogemos todos los IDs de producto visibles en cocina (sin bebidas)
+        val currentIds = pedidosActivos
+            .flatMap { it.productos }
+            .filter { it.categoria != "bebida" && it.estado != "cancelado" }
+            .map { it.id }
+            .toSet()
+        if (primerPollHecho) {
+            val nuevos = currentIds - knownProductoIds
             if (nuevos.isNotEmpty() && sonidoEnabled) {
-                try {
-                    val uri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
-                    val mp = MediaPlayer().apply {
-                        setAudioAttributes(
-                            AudioAttributes.Builder()
-                                .setUsage(AudioAttributes.USAGE_NOTIFICATION)
-                                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                                .build()
-                        )
-                        setDataSource(context, uri)
-                        prepare()
-                        setOnCompletionListener { release() }
-                        start()
-                    }
+                val mp = try {
+                    MediaPlayer.create(context, R.raw.notificacion_cocina)
                 } catch (_: Exception) {
-                    // Fallback: tono del sistema
+                    null
+                }
+                if (mp != null) {
+                    mp.setOnCompletionListener { mp.release() }
+                    mp.start()
+                } else {
                     try {
                         ToneGenerator(AudioManager.STREAM_NOTIFICATION, ToneGenerator.MAX_VOLUME)
                             .startTone(ToneGenerator.TONE_PROP_BEEP2, 600)
@@ -122,8 +119,9 @@ fun CocinaScreen(
                 }
             }
         }
-        knownPedidoIds.clear()
-        knownPedidoIds.addAll(currentIds)
+        knownProductoIds.clear()
+        knownProductoIds.addAll(currentIds)
+        primerPollHecho = true
     }
 
     LaunchedEffect(snackMsg) {

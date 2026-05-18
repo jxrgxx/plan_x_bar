@@ -10,9 +10,9 @@ import kotlinx.coroutines.flow.map
 val Context.settingsDataStore: DataStore<Preferences> by preferencesDataStore(name = "ajustes")
 
 object SettingsKeys {
-    val DARK_MODE      = booleanPreferencesKey("dark_mode")
-    val LANGUAGE       = stringPreferencesKey("language")
-    val SONIDO_COCINA  = booleanPreferencesKey("sonido_cocina")
+    val DARK_MODE = booleanPreferencesKey("dark_mode")
+    val LANGUAGE = stringPreferencesKey("language")
+    val SONIDO_COCINA = booleanPreferencesKey("sonido_cocina")
 }
 
 class SettingsRepository(private val context: Context) {

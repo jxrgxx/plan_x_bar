@@ -114,9 +114,11 @@ fun TrabajadoresAdminScreen(
     ) { padding ->
 
         if (loading) {
-            Box(Modifier
-                .fillMaxSize()
-                .padding(padding), contentAlignment = Alignment.Center) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding), contentAlignment = Alignment.Center
+            ) {
                 CircularProgressIndicator(color = TrabajadorAccent)
             }
             return@Scaffold

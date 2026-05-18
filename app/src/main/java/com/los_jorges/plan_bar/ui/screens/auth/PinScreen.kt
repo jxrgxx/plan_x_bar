@@ -63,7 +63,7 @@ fun PinScreen(
         Paso.CONFIRMAR -> s.confirmaTuPin
     }
     val subtitulo = when (paso) {
-        Paso.VERIFICAR -> "Hola, $trabajadorNombre"
+        Paso.VERIFICAR -> "${s.hola} $trabajadorNombre"
         Paso.CREAR -> s.primeraVezPinFmt.format(PIN_LENGTH)
         Paso.CONFIRMAR -> s.repitePin
     }
@@ -86,7 +86,12 @@ fun PinScreen(
 
                 Paso.CONFIRMAR -> {
                     if (pin == pinCreado) {
-                        viewModel.setPin(trabajadorId, pin, onSuccess = onPinCorrecto, msgs = authMsgs)
+                        viewModel.setPin(
+                            trabajadorId,
+                            pin,
+                            onSuccess = onPinCorrecto,
+                            msgs = authMsgs
+                        )
                     } else {
                         viewModel.resetState()
                         // Volver a crear si no coinciden
@@ -224,7 +229,9 @@ fun PinNumpad(onDigit: (String) -> Unit, onBorrar: () -> Unit, cargando: Boolean
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                 contentColor = MaterialTheme.colorScheme.onSurface,
-                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(
+                                    alpha = 0.5f
+                                )
                             )
                         ) {
                             if (cargando && label == "0") {

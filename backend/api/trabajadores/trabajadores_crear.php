@@ -25,9 +25,10 @@ try {
         jsonResponse(['success' => false, 'error' => 'Ya existe un trabajador con ese email']);
     }
 
-    // Los trabajadores usan PIN, no necesitan contraseña
-    $stmt = $db->prepare("INSERT INTO Trabajadores (restaurante_id, nombre, rol, email) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$restaurante_id, $nombre, $rol, $email]);
+    // Los trabajadores usan PIN, la contraseña se genera aleatoriamente
+    $hash = password_hash(bin2hex(random_bytes(16)), PASSWORD_BCRYPT);
+    $stmt = $db->prepare("INSERT INTO Trabajadores (restaurante_id, nombre, rol, email, password_hash) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute([$restaurante_id, $nombre, $rol, $email, $hash]);
 
     jsonResponse(['success' => true, 'id' => (int)$db->lastInsertId()]);
 } catch (Exception $e) {

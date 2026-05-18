@@ -92,7 +92,12 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun loginTrabajador(email: String, password: String, onSuccess: (Trabajador) -> Unit, msgs: AuthErrorMessages = AuthErrorMessages()) {
+    fun loginTrabajador(
+        email: String,
+        password: String,
+        onSuccess: (Trabajador) -> Unit,
+        msgs: AuthErrorMessages = AuthErrorMessages()
+    ) {
         if (email.isBlank() || password.isBlank()) {
             _state.value = AuthState.Error(msgs.rellenaTodosLosCampos)
             return
@@ -128,7 +133,11 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun verificarAdmin(password: String, onSuccess: () -> Unit, msgs: AuthErrorMessages = AuthErrorMessages()) {
+    fun verificarAdmin(
+        password: String,
+        onSuccess: () -> Unit,
+        msgs: AuthErrorMessages = AuthErrorMessages()
+    ) {
         if (password.isBlank()) {
             _state.value = AuthState.Error(msgs.introduceContrasena)
             return
@@ -199,7 +208,12 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun verificarPin(trabajadorId: Int, pin: String, onSuccess: () -> Unit, msgs: AuthErrorMessages = AuthErrorMessages()) {
+    fun verificarPin(
+        trabajadorId: Int,
+        pin: String,
+        onSuccess: () -> Unit,
+        msgs: AuthErrorMessages = AuthErrorMessages()
+    ) {
         if (pin.isBlank()) {
             _state.value = AuthState.Error(msgs.introducePin)
             return
@@ -224,7 +238,12 @@ class AuthViewModel : ViewModel() {
         }
     }
 
-    fun setPin(trabajadorId: Int, pin: String, onSuccess: () -> Unit, msgs: AuthErrorMessages = AuthErrorMessages()) {
+    fun setPin(
+        trabajadorId: Int,
+        pin: String,
+        onSuccess: () -> Unit,
+        msgs: AuthErrorMessages = AuthErrorMessages()
+    ) {
         if (pin.length != 4) {
             _state.value = AuthState.Error(msgs.pinDebeTener4Digitos)
             return

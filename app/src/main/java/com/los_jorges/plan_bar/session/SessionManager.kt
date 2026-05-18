@@ -63,9 +63,11 @@ object SessionManager {
                 return _zonasDB.filter { it.activo }.sortedBy { it.orden }
             }
             return ZONA_KEYS.take(numZonas).mapIndexed { i, key ->
-                Zona(id = 0, clave = key,
+                Zona(
+                    id = 0, clave = key,
                     nombre = zonaNombres.getOrElse(i) { "Zona ${i + 1}" },
-                    orden = i + 1, activo = true)
+                    orden = i + 1, activo = true
+                )
             }
         }
 

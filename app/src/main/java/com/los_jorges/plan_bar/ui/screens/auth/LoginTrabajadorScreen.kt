@@ -95,13 +95,17 @@ fun LoginTrabajadorScreen(
             Spacer(Modifier.height(20.dp))
 
             Button(
-                onClick = { viewModel.loginTrabajador(email, password, onLoginSuccess, AuthErrorMessages(
-                    rellenaTodosLosCampos = s.rellenaTodosLosCampos,
-                    trabajadorNoPertenece = s.trabajadorNoPertenece,
-                    usaAccesoAdmin = s.usaAccesoAdmin,
-                    emailOContrasenaIncorrectos = s.emailOContrasenaIncorrectos,
-                    errorDeConexion = s.errorDeConexion
-                )) },
+                onClick = {
+                    viewModel.loginTrabajador(
+                        email, password, onLoginSuccess, AuthErrorMessages(
+                            rellenaTodosLosCampos = s.rellenaTodosLosCampos,
+                            trabajadorNoPertenece = s.trabajadorNoPertenece,
+                            usaAccesoAdmin = s.usaAccesoAdmin,
+                            emailOContrasenaIncorrectos = s.emailOContrasenaIncorrectos,
+                            errorDeConexion = s.errorDeConexion
+                        )
+                    )
+                },
                 enabled = state !is AuthState.Loading,
                 modifier = Modifier
                     .fillMaxWidth()

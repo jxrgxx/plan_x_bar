@@ -65,6 +65,25 @@ private val CURSO_LABELS = mapOf(
     "postre" to "Postre"
 )
 private val CURSO_ORDEN = listOf("bebida", "primero", "segundo", "postre")
+private val CURSO_COLORS = mapOf(
+    "bebida" to Color(0xFF06B6D4),
+    "primero" to Color(0xFFF4A261),
+    "segundo" to Color(0xFFD4A853),
+    "postre" to Color(0xFF8B7AE8)
+)
+
+@Composable
+private fun categoriaLabel(categoria: String): String {
+    val s = LocalStrings.current
+    return when (categoria) {
+        "bebida" -> s.cursoBebida
+        "entrante" -> s.catEntrante
+        "primero" -> s.cursoPrimero
+        "segundo" -> s.cursoSegundo
+        "postre" -> s.cursoPostre
+        else -> categoria.replaceFirstChar { it.uppercase() }
+    }
+}
 
 private data class MenuFlowStep(
     val menuNum: Int,
@@ -215,7 +234,7 @@ fun ComandaScreen(
     // Tabs: "Menú del Día" si existe, luego categorías con productos
     val categoriaTabs = CATEGORIAS.filter { cat -> productos.any { it.categoria == cat } }
     val tieneMenu = menu != null
-    val tabs = if (tieneMenu) listOf("Menú del Día") + categoriaTabs else categoriaTabs
+    val tabs = if (tieneMenu) listOf(s.menuDelDia) + categoriaTabs else categoriaTabs
     val tabMenuIndex = if (tieneMenu) 0 else -1
 
     Scaffold(
@@ -250,15 +269,22 @@ fun ComandaScreen(
                         pedido?.estado?.let { estado ->
                             val badgeBg = when (estado) {
                                 "en_cocina" -> Color(0xFFFFA726).copy(alpha = 0.22f)
+                                "listo" -> Color(0xFF43A047).copy(alpha = 0.18f)
                                 else -> MaterialTheme.colorScheme.surfaceVariant
                             }
                             val badgeFg = when (estado) {
                                 "en_cocina" -> Color(0xFFE65100)
+                                "listo" -> Color(0xFF2E7D32)
                                 else -> MaterialTheme.colorScheme.onSurfaceVariant
                             }
                             Surface(color = badgeBg, shape = RoundedCornerShape(4.dp)) {
                                 Text(
-                                    estado.replace("_", " ").replaceFirstChar { it.uppercase() },
+                                    when (estado) {
+                                        "en_cocina" -> s.estadoEnCocina
+                                        "listo" -> s.estadoListo
+                                        else -> estado.replace("_", " ")
+                                            .replaceFirstChar { it.uppercase() }
+                                    },
                                     style = MaterialTheme.typography.labelSmall,
                                     color = badgeFg,
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -431,69 +457,80 @@ fun ComandaScreen(
                             }
 
                             // ── Total + Cobrar ────────────────────────────────
-                            Surface(
-                                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                                modifier = Modifier.fillMaxWidth()
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(
+                                    alpha = 0.5f
+                                )
+                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 20.dp, vertical = 14.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = 20.dp, vertical = 12.dp),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column {
-                                        if (descuentos.isNotEmpty()) {
-                                            val totalSinDescuento = productosActivos
-                                                .filter {
-                                                    !it.observaciones.orEmpty()
-                                                        .startsWith("Menú del día #")
-                                                }
-                                                .sumOf { it.cantidad * it.precio_unitario } +
-                                                    (menu?.precio ?: 0.0) * productosActivos
-                                                .filter {
-                                                    it.observaciones.orEmpty()
-                                                        .startsWith("Menú del día #")
-                                                }
-                                                .mapNotNull { it.observaciones }.distinct().size
-                                            Text(
-                                                "%.2f €".format(totalSinDescuento),
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.outline,
-                                                fontWeight = FontWeight.Normal,
-                                                textDecoration = TextDecoration.LineThrough
-                                            )
-                                        }
-                                        Text(
-                                            "${s.totalLabel}  %.2f €".format(totalConDescuentos),
-                                            style = MaterialTheme.typography.titleLarge,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                    Button(
-                                        onClick = {
-                                            val sinEnviar = productosActivos.any { it.estado == "" }
-                                            if (sinEnviar) {
-                                                snackMsg = s.enviaProductosAntesDeCobrar
-                                            } else {
-                                                showCobrarDialog = true
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(
+                                        s.totalLabel.uppercase(),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        letterSpacing = 1.sp
+                                    )
+                                    if (descuentos.isNotEmpty()) {
+                                        val totalSinDescuento = productosActivos
+                                            .filter {
+                                                !it.observaciones.orEmpty()
+                                                    .startsWith("Menú del día #")
                                             }
-                                        },
-                                        enabled = productosActivos.isNotEmpty(),
-                                        contentPadding = PaddingValues(
-                                            horizontal = 24.dp,
-                                            vertical = 12.dp
+                                            .sumOf { it.cantidad * it.precio_unitario } +
+                                                (menu?.precio ?: 0.0) * productosActivos
+                                            .filter {
+                                                it.observaciones.orEmpty()
+                                                    .startsWith("Menú del día #")
+                                            }
+                                            .mapNotNull { it.observaciones }.distinct().size
+                                        Text(
+                                            "%.2f €".format(totalSinDescuento),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.outline,
+                                            fontWeight = FontWeight.Normal,
+                                            textDecoration = TextDecoration.LineThrough
                                         )
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Payments,
-                                            null,
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                        Spacer(Modifier.width(6.dp))
-                                        Text(s.cobrar, fontWeight = FontWeight.SemiBold)
                                     }
+                                    Text(
+                                        "%.2f €".format(totalConDescuentos),
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                                Button(
+                                    onClick = {
+                                        val sinEnviar = productosActivos.any { it.estado == "" }
+                                        if (sinEnviar) {
+                                            snackMsg = s.enviaProductosAntesDeCobrar
+                                        } else {
+                                            showCobrarDialog = true
+                                        }
+                                    },
+                                    enabled = productosActivos.isNotEmpty(),
+                                    shape = RoundedCornerShape(14.dp),
+                                    contentPadding = PaddingValues(
+                                        horizontal = 28.dp,
+                                        vertical = 14.dp
+                                    )
+                                ) {
+                                    Icon(
+                                        Icons.Default.Payments,
+                                        null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(Modifier.width(8.dp))
+                                    Text(
+                                        s.cobrar,
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 16.sp
+                                    )
                                 }
                             }
                         }
@@ -539,13 +576,17 @@ fun ComandaScreen(
                     BoxWithConstraints {
                         val tabMinWidth = 80.dp
                         val cabenTodos = maxWidth >= tabMinWidth * tabs.size
+                        val tabLabels = tabs.mapIndexed { index, raw ->
+                            if (tieneMenu && index == tabMenuIndex) raw
+                            else categoriaLabel(raw)
+                        }
                         if (cabenTodos) {
                             TabRow(selectedTabIndex = selectedTab.coerceAtMost(tabs.lastIndex)) {
-                                tabs.forEachIndexed { index, label ->
+                                tabLabels.forEachIndexed { index, label ->
                                     Tab(
                                         selected = selectedTab == index,
                                         onClick = { selectedTab = index },
-                                        text = { Text(label.replaceFirstChar { it.uppercase() }) }
+                                        text = { Text(label) }
                                     )
                                 }
                             }
@@ -554,11 +595,11 @@ fun ComandaScreen(
                                 selectedTabIndex = selectedTab.coerceAtMost(tabs.lastIndex),
                                 edgePadding = 0.dp
                             ) {
-                                tabs.forEachIndexed { index, label ->
+                                tabLabels.forEachIndexed { index, label ->
                                     Tab(
                                         selected = selectedTab == index,
                                         onClick = { selectedTab = index },
-                                        text = { Text(label.replaceFirstChar { it.uppercase() }) }
+                                        text = { Text(label) }
                                     )
                                 }
                             }
@@ -1415,12 +1456,15 @@ private fun MenuGrupoCard(
                 )
             }
         }
+        HorizontalDivider(
+            modifier = Modifier.padding(top = 4.dp),
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+        )
         val productosOrdenados = productos.sortedBy { prod ->
             CURSO_ORDEN.indexOf(prod.categoria).takeIf { it >= 0 } ?: Int.MAX_VALUE
         }
         productosOrdenados.forEach { prod ->
-            val cursoLabel =
-                CURSO_LABELS[prod.categoria] ?: prod.categoria.replaceFirstChar { it.uppercase() }
+            val label = categoriaLabel(prod.categoria)
             val servida = prod.estado == "servido"
             val esBebidaProd = prod.categoria == "bebida"
             val prodColor = when {
@@ -1431,36 +1475,40 @@ private fun MenuGrupoCard(
                 else -> MaterialTheme.colorScheme.onSurface
             }
 
-            if (esBebidaProd && prod.estado != "cancelado") {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onMarcarServida(prod) }
-                        .padding(start = 22.dp, top = 2.dp, end = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "$cursoLabel: ${prod.nombre}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = prodColor,
-                        modifier = Modifier.weight(1f)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (esBebidaProd && prod.estado != "cancelado")
+                            Modifier.clickable { onMarcarServida(prod) }
+                        else Modifier
                     )
+                    .padding(start = 22.dp, end = 8.dp, top = 5.dp, bottom = 5.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.widthIn(min = 56.dp)
+                )
+                Text(
+                    prod.nombre,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = prodColor,
+                    modifier = Modifier.weight(1f)
+                )
+                if (esBebidaProd && prod.estado != "cancelado") {
                     Icon(
                         imageVector = if (servida) Icons.Default.CheckCircle
                         else Icons.Default.RadioButtonUnchecked,
                         contentDescription = if (servida) s.desmarcarServida else s.marcarServida,
                         tint = if (servida) ColorPlatoListo
                         else MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
-                        modifier = Modifier.size(14.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                 }
-            } else {
-                Text(
-                    "$cursoLabel: ${prod.nombre}",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(start = 22.dp, top = 2.dp),
-                    color = prodColor
-                )
             }
         }
     }

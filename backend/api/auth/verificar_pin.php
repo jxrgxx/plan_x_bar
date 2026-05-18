@@ -7,7 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $body = getBody();
 $trabajador_id = (int) ($body['trabajador_id'] ?? 0);
-$pin           = trim($body['pin'] ?? '');
+$pin            = trim($body['pin'] ?? '');
 
 if (!$trabajador_id || strlen($pin) !== 4 || !ctype_digit($pin)) {
     jsonResponse(['error' => 'Datos inválidos'], 400);

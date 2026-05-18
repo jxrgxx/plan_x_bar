@@ -315,6 +315,7 @@ interface AppStrings {
     val productoLabel: String
     val errorAlGuardar: String
     val anadirLabel: String
+    val catEntrante: String
     val cursoBebida: String
     val cursoPrimero: String
     val cursoSegundo: String
@@ -373,6 +374,7 @@ interface AppStrings {
     val marcarComoServida: String
     val masOpciones: String
     val totalLabel: String
+    val estadoEnCocina: String
     val anadidoFmt: String
     val agotadoFmt: String
     val deLabel: String
@@ -691,6 +693,7 @@ object EsStrings : AppStrings {
     override val productoLabel = "Producto"
     override val errorAlGuardar = "Error al guardar"
     override val anadirLabel = "Añadir"
+    override val catEntrante = "Entrante"
     override val cursoBebida = "Bebida"
     override val cursoPrimero = "Primero"
     override val cursoSegundo = "Segundo"
@@ -750,6 +753,7 @@ object EsStrings : AppStrings {
     override val marcarComoServida = "Marcar como servida"
     override val masOpciones = "Más opciones"
     override val totalLabel = "Total"
+    override val estadoEnCocina = "En cocina"
     override val anadidoFmt = "%s añadido"
     override val agotadoFmt = "%s agotado"
     override val deLabel = "de"
@@ -1066,6 +1070,7 @@ object EnStrings : AppStrings {
     override val productoLabel = "Product"
     override val errorAlGuardar = "Error saving"
     override val anadirLabel = "Add"
+    override val catEntrante = "Appetizer"
     override val cursoBebida = "Drink"
     override val cursoPrimero = "Starter"
     override val cursoSegundo = "Main"
@@ -1125,6 +1130,7 @@ object EnStrings : AppStrings {
     override val marcarComoServida = "Mark as served"
     override val masOpciones = "More options"
     override val totalLabel = "Total"
+    override val estadoEnCocina = "In kitchen"
     override val anadidoFmt = "%s added"
     override val agotadoFmt = "%s out of stock"
     override val deLabel = "of"
@@ -1443,6 +1449,7 @@ object FrStrings : AppStrings {
     override val productoLabel = "Produit"
     override val errorAlGuardar = "Erreur lors de la sauvegarde"
     override val anadirLabel = "Ajouter"
+    override val catEntrante = "Apéritif"
     override val cursoBebida = "Boisson"
     override val cursoPrimero = "Entrée"
     override val cursoSegundo = "Plat principal"
@@ -1502,6 +1509,7 @@ object FrStrings : AppStrings {
     override val marcarComoServida = "Marquer comme servi"
     override val masOpciones = "Plus d'options"
     override val totalLabel = "Total"
+    override val estadoEnCocina = "En cuisine"
     override val anadidoFmt = "%s ajouté"
     override val agotadoFmt = "%s épuisé"
     override val deLabel = "de"

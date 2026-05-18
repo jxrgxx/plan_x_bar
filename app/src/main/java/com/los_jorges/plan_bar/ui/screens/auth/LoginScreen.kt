@@ -167,12 +167,16 @@ fun LoginScreen(
                     Spacer(Modifier.height(2.dp))
 
                     Button(
-                        onClick = { viewModel.login(email, password, AuthErrorMessages(
-                            rellenaTodosLosCampos = s.rellenaTodosLosCampos,
-                            soloAdministradores = s.soloAdministradores,
-                            emailOContrasenaIncorrectos = s.emailOContrasenaIncorrectos,
-                            errorDeConexionRevisa = s.errorDeConexionRevisa
-                        )) },
+                        onClick = {
+                            viewModel.login(
+                                email, password, AuthErrorMessages(
+                                    rellenaTodosLosCampos = s.rellenaTodosLosCampos,
+                                    soloAdministradores = s.soloAdministradores,
+                                    emailOContrasenaIncorrectos = s.emailOContrasenaIncorrectos,
+                                    errorDeConexionRevisa = s.errorDeConexionRevisa
+                                )
+                            )
+                        },
                         enabled = state !is AuthState.Loading,
                         modifier = Modifier
                             .fillMaxWidth()

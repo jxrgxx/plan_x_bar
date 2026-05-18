@@ -112,9 +112,11 @@ fun ProductosAdminScreen(
     ) { padding ->
 
         if (loading) {
-            Box(Modifier
-                .fillMaxSize()
-                .padding(padding), contentAlignment = Alignment.Center) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(padding), contentAlignment = Alignment.Center
+            ) {
                 CircularProgressIndicator(color = ProductoAccent)
             }
             return@Scaffold
